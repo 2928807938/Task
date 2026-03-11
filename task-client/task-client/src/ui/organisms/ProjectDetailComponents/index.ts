@@ -1,0 +1,9 @@
+export { default as ProjectDetailHeader } from './ProjectDetailHeader';
+export { default as ProjectDetailTabs } from './ProjectDetailTabs';
+export { default as ProjectOverviewPanel } from './ProjectOverviewPanel';
+export { default as ProjectTasksPanel } from './ProjectTasksPanel';
+export { default as ProjectTaskTreePanel } from './ProjectTaskTreePanel';
+export { default as ProjectTeamPanel } from './ProjectTeamPanel';
+export { default as ProjectFilesPanel } from './ProjectFilesPanel';
+export { default as ProjectCalendarPanel } from './ProjectCalendarPanel';
+export { default as ProjectSettingsModal } from './ProjectSettingsModal';

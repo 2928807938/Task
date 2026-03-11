@@ -1,0 +1,94 @@
+2026-03-04T02:05:51.721Z [DEBUG] detectFileEncoding failed for expected reason: ENOENT
+2026-03-04T02:05:51.727Z [DEBUG] MDM settings load completed in 11ms
+2026-03-04T02:05:51.812Z [DEBUG] [init] configureGlobalMTLS starting
+2026-03-04T02:05:51.813Z [DEBUG] [init] configureGlobalMTLS complete
+2026-03-04T02:05:51.814Z [DEBUG] [init] configureGlobalAgents starting
+2026-03-04T02:05:51.814Z [DEBUG] [init] configureGlobalAgents complete
+2026-03-04T02:05:52.024Z [DEBUG] Using bash path: "E:\Develop\Git\bin\bash.exe"
+2026-03-04T02:05:52.043Z [DEBUG] [STARTUP] Loading MCP configs...
+2026-03-04T02:05:52.050Z [DEBUG] [ToolSearch:optimistic] mode=tst-auto, ENABLE_TOOL_SEARCH=undefined, result=true
+2026-03-04T02:05:52.052Z [DEBUG] [STARTUP] Running setup()...
+2026-03-04T02:05:52.062Z [DEBUG] Loading skills from: managed=C:\ProgramData\ClaudeCode\.claude\skills, user=C:\Users\wang2\.claude\skills, project=[]
+2026-03-04T02:05:52.063Z [DEBUG] Error log sink initialized
+2026-03-04T02:05:52.066Z [DEBUG] Loaded 0 unique skills (0 unconditional, 0 conditional, managed: 0, user: 0, project: 0, additional: 0, legacy commands: 0)
+2026-03-04T02:05:52.069Z [DEBUG] installed_plugins.json doesn't exist, returning empty V2 object
+2026-03-04T02:05:52.070Z [DEBUG] Found 0 plugins (0 enabled, 0 disabled)
+2026-03-04T02:05:52.071Z [DEBUG] getPluginSkills: Processing 0 enabled plugins
+2026-03-04T02:05:52.072Z [DEBUG] Total plugin skills loaded: 0
+2026-03-04T02:05:52.072Z [DEBUG] Total plugin commands loaded: 0
+2026-03-04T02:05:52.073Z [DEBUG] Registered 0 hooks from 0 plugins
+2026-03-04T02:05:52.074Z [DEBUG] [claudeai-mcp] Checking gate (cached)...
+2026-03-04T02:05:52.075Z [DEBUG] [claudeai-mcp] Gate returned: false
+2026-03-04T02:05:52.075Z [DEBUG] [claudeai-mcp] Disabled via gate
+2026-03-04T02:05:52.076Z [DEBUG] getSkills returning: 0 skill dir commands, 0 plugin skills, 5 bundled skills
+2026-03-04T02:05:52.091Z [DEBUG] Git remote URL: https://e.coding.net/g-avsg8658/task/task-code-parent.git
+2026-03-04T02:05:52.092Z [DEBUG] Parsed repository: null from URL: https://e.coding.net/g-avsg8658/task/task-code-parent.git
+2026-03-04T02:05:52.110Z [DEBUG] [STARTUP] setup() completed in 53ms
+2026-03-04T02:05:52.111Z [DEBUG] [STARTUP] Loading commands and agents...
+2026-03-04T02:05:52.113Z [DEBUG] Total plugin agents loaded: 0
+2026-03-04T02:05:52.114Z [DEBUG] [STARTUP] Commands and agents loaded in 2ms
+2026-03-04T02:05:52.115Z [DEBUG] [LSP MANAGER] initializeLspServerManager() called
+2026-03-04T02:05:52.116Z [DEBUG] [LSP MANAGER] Created manager instance, state=pending
+2026-03-04T02:05:52.116Z [DEBUG] [LSP MANAGER] Starting async initialization (generation 1)
+2026-03-04T02:05:52.157Z [DEBUG] Total LSP servers loaded: 0
+2026-03-04T02:05:52.158Z [DEBUG] [STARTUP] MCP configs loaded in 114ms
+2026-03-04T02:05:52.159Z [DEBUG] [LSP SERVER MANAGER] getAllLspServers returned 0 server(s)
+2026-03-04T02:05:52.160Z [DEBUG] LSP manager initialized with 0 servers
+2026-03-04T02:05:52.162Z [DEBUG] LSP server manager initialized successfully
+2026-03-04T02:05:52.163Z [DEBUG] LSP notification handlers registered successfully for all 0 server(s)
+2026-03-04T02:05:52.164Z [DEBUG] Initialized versioned plugins system with 0 plugins
+2026-03-04T02:05:52.405Z [DEBUG] [Perfetto] initializePerfettoTracing called, env value: undefined
+2026-03-04T02:05:52.406Z [DEBUG] [3P telemetry] isTelemetryEnabled=false (CLAUDE_CODE_ENABLE_TELEMETRY=undefined)
+2026-03-04T02:05:52.411Z [DEBUG] Plugin autoupdate: skipped (auto-updater disabled)
+2026-03-04T02:05:52.429Z [DEBUG] Getting matching hook commands for SessionStart with query: startup
+2026-03-04T02:05:52.430Z [DEBUG] Found 0 hook matchers in settings
+2026-03-04T02:05:52.431Z [DEBUG] Matched 0 unique hooks for query "startup" (0 before deduplication)
+2026-03-04T02:05:52.439Z [DEBUG] installPluginsForHeadless: starting
+2026-03-04T02:05:52.441Z [DEBUG] Found 0 installed plugins
+2026-03-04T02:05:52.443Z [DEBUG] installPluginsForHeadless: no missing plugins or marketplaces configured
+2026-03-04T02:05:52.689Z [DEBUG] Total plugin output styles loaded: 0
+2026-03-04T02:05:52.701Z [DEBUG] Ripgrep first use test: PASSED (mode=builtin, path=C:\Users\wang2\AppData\Roaming\npm\node_modules\@anthropic-ai\claude-code\vendor\ripgrep\x64-win32\rg.exe)
+2026-03-04T02:05:52.707Z [DEBUG] Watching for changes in setting files C:\Users\wang2\.claude\settings.json...
+2026-03-04T02:05:52.717Z [DEBUG] Security messages are fresh (<1h old), skipping fetch
+2026-03-04T02:05:52.796Z [DEBUG] LSP Diagnostics: getLSPDiagnosticAttachments called
+2026-03-04T02:05:52.798Z [DEBUG] LSP Diagnostics: Checking registry - 0 pending
+2026-03-04T02:05:52.800Z [DEBUG] Hooks: Found 0 total hooks in registry
+2026-03-04T02:05:52.802Z [DEBUG] Hooks: checkForNewResponses returning 0 responses
+2026-03-04T02:05:52.806Z [DEBUG] Sending 1 skills via attachment (initial, 1 total sent)
+2026-03-04T02:05:52.812Z [WARN] [3P telemetry] Event dropped (no event logger initialized): user_prompt
+2026-03-04T02:05:52.815Z [DEBUG] Getting matching hook commands for UserPromptSubmit with query: undefined
+2026-03-04T02:05:52.816Z [DEBUG] Found 0 hook matchers in settings
+2026-03-04T02:05:52.817Z [DEBUG] Matched 0 unique hooks for query "no match query" (0 before deduplication)
+2026-03-04T02:05:52.828Z [DEBUG] autocompact: tokens=50 threshold=167000 effectiveWindow=180000
+2026-03-04T02:05:52.835Z [DEBUG] Auto tool search disabled: 0 tokens (threshold: 20000, 10% of context) [source: query]
+2026-03-04T02:05:52.896Z [DEBUG] attribution header x-anthropic-billing-header: cc_version=2.1.66.c3c; cc_entrypoint=sdk-cli; cch=00000;
+2026-03-04T02:05:52.901Z [DEBUG] [API:request] Creating client, ANTHROPIC_CUSTOM_HEADERS present: false, has Authorization header: false
+2026-03-04T02:05:52.902Z [DEBUG] [API:auth] OAuth token check starting
+2026-03-04T02:05:52.907Z [DEBUG] [API:auth] OAuth token check complete
+2026-03-04T02:05:53.518Z [ERROR] Failed to fetch org fast mode status, defaulting to disabled: AxiosError: Request failed with status code 403
+2026-03-04T02:05:56.344Z [DEBUG] Stream started - received first chunk
+2026-03-04T02:05:56.351Z [DEBUG] Getting matching hook commands for Stop with query: undefined
+2026-03-04T02:05:56.352Z [DEBUG] Found 0 hook matchers in settings
+2026-03-04T02:05:56.352Z [DEBUG] Matched 0 unique hooks for query "no match query" (0 before deduplication)
+2026-03-04T02:05:56.356Z [DEBUG] LSP server manager shut down successfully
+2026-03-04T02:05:56.532Z [DEBUG] Failed to check metrics opt-out status: Request failed with status code 403
+2026-03-04T02:05:56.533Z [ERROR] AxiosError: [url=https://api.anthropic.com/api/claude_code/organizations/metrics_enabled,status=403,body=Request not allowed] AxiosError: Request failed with status code 403
+    at Tu (file:///C:/Users/wang2/AppData/Roaming/npm/node_modules/@anthropic-ai/claude-code/cli.js:90:1138)
+    at Unzip.<anonymous> (file:///C:/Users/wang2/AppData/Roaming/npm/node_modules/@anthropic-ai/claude-code/cli.js:91:9781)
+    at Unzip.emit (node:events:530:35)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+    at uy6.request (file:///C:/Users/wang2/AppData/Roaming/npm/node_modules/@anthropic-ai/claude-code/cli.js:93:2132)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async ll4 (file:///C:/Users/wang2/AppData/Roaming/npm/node_modules/@anthropic-ai/claude-code/cli.js:2478:35343)
+    at async jmY (file:///C:/Users/wang2/AppData/Roaming/npm/node_modules/@anthropic-ai/claude-code/cli.js:2478:35427)
+    at async Y (file:///C:/Users/wang2/AppData/Roaming/npm/node_modules/@anthropic-ai/claude-code/cli.js:108:27505)
+    at async GT1 (file:///C:/Users/wang2/AppData/Roaming/npm/node_modules/@anthropic-ai/claude-code/cli.js:2478:36122)
+    at async ph8.doExport (file:///C:/Users/wang2/AppData/Roaming/npm/node_modules/@anthropic-ai/claude-code/cli.js:2478:36937)
+2026-03-04T02:05:56.534Z [DEBUG] Metrics export disabled by organization setting
+2026-03-04T02:05:56.535Z [DEBUG] BigQuery metrics exporter flush complete
+2026-03-04T02:05:56.535Z [DEBUG] BigQuery metrics exporter flush complete
+2026-03-04T02:05:56.536Z [DEBUG] BigQuery metrics exporter shutdown complete
+2026-03-04T02:05:56.538Z [DEBUG] Getting matching hook commands for SessionEnd with query: other
+2026-03-04T02:05:56.538Z [DEBUG] Found 0 hook matchers in settings
+2026-03-04T02:05:56.539Z [DEBUG] Matched 0 unique hooks for query "other" (0 before deduplication)

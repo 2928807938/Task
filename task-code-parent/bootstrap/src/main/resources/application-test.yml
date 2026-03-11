@@ -1,0 +1,35 @@
+spring:
+  r2dbc:
+    url: r2dbc:postgresql://test-db:5432/task_code_parent
+    username: postgres
+    password: postgres
+    pool:
+      initial-size: 10
+      max-size: 30
+      max-idle-time: 30m
+  sql:
+    init:
+      mode: NEVER
+
+server:
+  port: 8080
+
+# LLM配置
+llm:
+  timeout-ms: ${LLM_TIMEOUT_MS:3600000}
+  connection-timeout: ${LLM_CONNECTION_TIMEOUT:5000}
+  read-timeout: ${LLM_READ_TIMEOUT:3600000}
+  write-timeout: ${LLM_WRITE_TIMEOUT:3600000}
+  api:
+    base-url: https://tag.airaphe.com
+    key: sk-aRxmPL8mfnBMP7SGc9mH5cETe9nwaQrQxsXVph3cIak
+    model: ${LLM_MODEL:gpt-5.2}
+  prompt:
+    dir: ${LLM_PROMPT_DIR:xml/xml}
+
+# 日志配置
+logging:
+  level:
+    root: INFO
+    com.task: INFO
+    org.springframework: WARN

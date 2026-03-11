@@ -1,0 +1,13 @@
+项目类型：iOS任务管理应用
+开发框架：SwiftUI和SwiftData
+开发语言：Swift
+架构模式：分层架构（表现层、领域层、数据层）
+数据持久化：SwiftData模型容器
+主要模型：Task和User
+项目目录结构：
+App - 应用配置
+Assets.xcassets - 资源文件
+Data - 数据层实现
+Domain/Entities - 领域模型（Task和User）
+Presentation/Views - UI视图组件
+task_app_iosApp.swift - 应用入口

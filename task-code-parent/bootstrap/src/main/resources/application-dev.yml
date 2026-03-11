@@ -1,0 +1,79 @@
+spring:
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5432/task_code_parent
+    username: postgres
+    password: postgres
+    properties:
+      # 在连接初始化后设置时区
+      statement: SET TIME ZONE 'Asia/Shanghai'
+    pool:
+      initial-size: 10          # 增加初始连接数
+      max-size: 30             # 增加最大连接数
+      max-idle-time: 10m       # 减少空闲连接时间
+      max-acquire-time: 20s    # 设置获取连接超时时间
+      max-life-time: 30m       # 连接最大生存时间
+      validation-query: SELECT 1  # 添加连接验证
+  sql:
+    init:
+      mode: NEVER
+      schema-locations: classpath:db/schema/*.sql  # 创建表的SQL
+      #data-locations: classpath:db/data/*.sql      # 初始化数据的SQL
+      platform: postgresql
+      continue-on-error: false
+      separator: ;
+  # Redis配置
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: redis123  # 确保此密码与Redis服务器设置的密码一致
+      database: 0
+      timeout: 10000
+      connect-timeout: 5000
+  # 邮件服务器配置
+  mail:
+    host: smtp.qq.com  # 请替换成您实际使用的SMTP服务器
+    port: 465  # QQ邮箱需要使用SSL端口465
+    username: 9920664@qq.com  # 请替换成您的邮箱账号
+    password: tlxdkvvwwzcbbjbc  # 请替换成您的邮箱密码或授权码
+    protocol: smtp
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.ssl.enable: true  # 启用SSL
+      mail.smtp.ssl.trust: smtp.qq.com  # 请替换成您的SMTP服务器
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 5000
+      mail.smtp.writetimeout: 5000
+      mail.debug: true  # 开启调试模式，查看详细日志
+
+server:
+  port: 8080
+
+# LLM配置
+llm:
+  timeout-ms: ${LLM_TIMEOUT_MS:3600000}
+  connection-timeout: ${LLM_CONNECTION_TIMEOUT:5000}
+  read-timeout: ${LLM_READ_TIMEOUT:3600000}
+  write-timeout: ${LLM_WRITE_TIMEOUT:3600000}
+  api:
+    base-url: https://tag.airaphe.com
+    key: sk-aRxmPL8mfnBMP7SGc9mH5cETe9nwaQrQxsXVph3cIak
+    model: ${LLM_MODEL:gpt-5.2}
+  prompt:
+    dir: ${LLM_PROMPT_DIR:xml/xml}
+# 日志配置
+logging:
+  level:
+    root: INFO
+    com.task: DEBUG
+    org.springframework: INFO
+    org.springframework.r2dbc: DEBUG
+    org.springframework.web.reactive: DEBUG
+    org.springframework.mail: DEBUG  # 添加邮件相关日志记录
+
+# 应用程序自定义配置
+app:
+  email:
+    verification-code:
+      expire-minutes: 5  # 验证码有效期（分钟）
+      subject: "【Task任务管理】验证码"  # 邮件主题

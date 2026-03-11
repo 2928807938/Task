@@ -1,0 +1,375 @@
+/* Tailwind CSS 导入 */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 基础样式重置 - 手动替代preflight */
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+}
+
+/* 亮色主题默认变量 */
+:root {
+  /* 基础颜色 */
+  --background: #F3F4F6;
+  --foreground: #171717;
+
+  /* 主色调 */
+  --theme-primary-50: #EEF2FF;
+  --theme-primary-100: #E0E7FF;
+  --theme-primary-200: #C7D2FE;
+  --theme-primary-300: #A5B4FC;
+  --theme-primary-400: #818CF8;
+  --theme-primary-500: #6366F1;
+  --theme-primary-500-rgb: 99, 102, 241; /* RGB值用于rga颜色 */
+  --theme-primary-600: #4F46E5;
+  --theme-primary-700: #4338CA;
+  --theme-primary-800: #3730A3;
+  --theme-primary-900: #312E81;
+  
+  /* 中性色 */
+  --theme-neutral-50: #F9FAFB;
+  --theme-neutral-100: #F3F4F6;
+  --theme-neutral-200: #E5E7EB;
+  --theme-neutral-300: #D1D5DB;
+  --theme-neutral-400: #9CA3AF;
+  --theme-neutral-500: #6B7280;
+  --theme-neutral-600: #4B5563;
+  --theme-neutral-700: #374151;
+  --theme-neutral-800: #1F2937;
+  --theme-neutral-900: #111827;
+  
+  /* 功能色 */
+  --theme-success-50: #ECFDF5;
+  --theme-success-100: #D1FAE5;
+  --theme-success-200: #A7F3D0;
+  --theme-success-500: #10B981;
+  --theme-success-500-rgb: 16, 185, 129;
+  --theme-success-700: #047857;
+  
+  --theme-warning-50: #FFFBEB;
+  --theme-warning-100: #FEF3C7;
+  --theme-warning-200: #FDE68A;
+  --theme-warning-500: #F59E0B;
+  --theme-warning-500-rgb: 245, 158, 11;
+  --theme-warning-700: #B45309;
+  
+  --theme-error-50: #FEF2F2;
+  --theme-error-100: #FEE2E2;
+  --theme-error-200: #FECACA;
+  --theme-error-500: #EF4444;
+  --theme-error-500-rgb: 239, 68, 68;
+  --theme-error-700: #B91C1C;
+  
+  --theme-info-50: #EFF6FF;
+  --theme-info-100: #DBEAFE;
+  --theme-info-200: #BFDBFE;
+  --theme-info-500: #3B82F6;
+  --theme-info-500-rgb: 59, 130, 246;
+  --theme-info-700: #1D4ED8;
+  
+  /* 卡片 */
+  --theme-card-bg: #FFFFFF;
+  --theme-card-border: #E5E7EB;
+  --theme-card-hover: #F9FAFB;
+  
+  /* 任务优先级 */
+  --theme-priority-high-bg: #FEE2E2;
+  --theme-priority-high-text: #B91C1C;
+  --theme-priority-high-border: #FECACA;
+  
+  --theme-priority-medium-bg: #FEF3C7;
+  --theme-priority-medium-text: #B45309;
+  --theme-priority-medium-border: #FDE68A;
+  
+  --theme-priority-low-bg: #D1FAE5;
+  --theme-priority-low-text: #047857;
+  --theme-priority-low-border: #A7F3D0;
+  
+  /* 任务状态 */
+  --theme-status-inprogress-bg: #DBEAFE;
+  --theme-status-inprogress-text: #1D4ED8;
+  --theme-status-inprogress-border: #BFDBFE;
+  
+  --theme-status-completed-bg: #D1FAE5;
+  --theme-status-completed-text: #047857;
+  
+  --theme-priority-medium-bg: var(--theme-warning-100);
+  --theme-priority-medium-text: var(--theme-warning-700);
+  --theme-priority-medium-border: var(--theme-warning-200);
+  
+  --theme-priority-low-bg: var(--theme-success-100);
+  --theme-priority-low-text: var(--theme-success-700);
+  --theme-priority-low-border: var(--theme-success-200);
+  
+  /* 阴影 */
+  --theme-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --theme-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --theme-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  
+  /* 字体 */
+  --theme-font-family: Arial, Helvetica, sans-serif;
+  
+  /* 字体大小 */
+  --theme-font-size-xs: 0.75rem;
+  --theme-font-size-sm: 0.875rem;
+  --theme-font-size-base: 1rem;
+  --theme-font-size-lg: 1.125rem;
+  --theme-font-size-xl: 1.25rem;
+  --theme-font-size-2xl: 1.5rem;
+  
+  /* 字重 */
+  --theme-font-weight-normal: 400;
+  --theme-font-weight-medium: 500;
+  --theme-font-weight-semibold: 600;
+  --theme-font-weight-bold: 700;
+  
+  /* 圆角 */
+  --theme-radius-sm: 0.125rem;
+  --theme-radius-md: 0.375rem;
+  --theme-radius-lg: 0.5rem;
+  --theme-radius-xl: 0.75rem;
+  --theme-radius-full: 9999px;
+  
+  /* 间距 */
+  --theme-spacing-xs: 0.5rem;
+  --theme-spacing-sm: 0.75rem;
+  --theme-spacing-md: 1rem;
+  --theme-spacing-lg: 1.5rem;
+  --theme-spacing-xl: 2rem;
+  
+  /* 过渡 */
+  --theme-transition-fast: 150ms;
+  --theme-transition-normal: 300ms;
+  --theme-transition-slow: 500ms;
+}
+
+/* 骨架屏动画 */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes wave {
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer::before {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--shimmer-color, rgba(255, 255, 255, 0.2)),
+    transparent
+  );
+  animation: shimmer 2s infinite;
+}
+
+.animate-wave::before {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--shimmer-color, rgba(255, 255, 255, 0.2)),
+    transparent
+  );
+  animation: wave 2s infinite;
+}
+
+/* 暗色主题变量 */
+.dark-theme {
+  /* 基础颜色 - 增强对比度 */
+  --background: #0F172A;
+  --foreground: #F8FAFC;
+
+  /* 中性色 - 暗色模式下的对比度优化 */
+  --theme-neutral-50: #0F172A;
+  --theme-neutral-100: #1E293B;
+  --theme-neutral-200: #334155;
+  --theme-neutral-300: #475569;
+  --theme-neutral-400: #64748B;
+  --theme-neutral-500: #94A3B8;
+  --theme-neutral-600: #CBD5E1;
+  --theme-neutral-700: #E2E8F0;
+  --theme-neutral-800: #F1F5F9;
+  --theme-neutral-900: #F8FAFC;
+  
+  /* 功能色 - 暗色模式下调整 */
+  --theme-success-50: #064E3B;
+  --theme-success-100: #065F46;
+  --theme-success-200: #047857;
+  --theme-success-500: #10B981;
+  --theme-success-700: #D1FAE5;
+  
+  --theme-warning-50: #78350F;
+  --theme-warning-100: #92400E;
+  --theme-warning-200: #B45309;
+  --theme-warning-500: #F59E0B;
+  --theme-warning-700: #FEF3C7;
+  
+  --theme-error-50: #7F1D1D;
+  --theme-error-100: #991B1B;
+  --theme-error-200: #B91C1C;
+  --theme-error-500: #EF4444;
+  --theme-error-700: #FEE2E2;
+  
+  --theme-info-50: #1E3A8A;
+  --theme-info-100: #1D4ED8;
+  --theme-info-200: #2563EB;
+  --theme-info-500: #3B82F6;
+  --theme-info-700: #DBEAFE;
+  
+  /* 卡片 - 暗色模式，增强对比度 */
+  --theme-card-bg: #1E293B;
+  --theme-card-border: #334155;
+  --theme-card-hover: #334155;
+  
+  /* 任务优先级 - 暗色模式 */
+  --theme-priority-high-bg: #7F1D1D;
+  --theme-priority-high-text: #FCA5A5;
+  --theme-priority-high-border: #B91C1C;
+  
+  --theme-priority-medium-bg: #78350F;
+  --theme-priority-medium-text: #FCD34D;
+  --theme-priority-medium-border: #B45309;
+  
+  --theme-priority-low-bg: #064E3B;
+  --theme-priority-low-text: #6EE7B7;
+  --theme-priority-low-border: #047857;
+  
+  /* 任务状态 - 暗色模式 */
+  --theme-status-inprogress-bg: #1E3A8A;
+  --theme-status-inprogress-text: #93C5FD;
+  --theme-status-inprogress-border: #1D4ED8;
+  
+  --theme-status-completed-bg: #064E3B;
+  --theme-status-completed-text: #6EE7B7;
+  --theme-status-completed-border: #047857;
+  
+  --theme-status-overdue-bg: #78350F;
+  --theme-status-overdue-text: #FCD34D;
+  --theme-status-overdue-border: #B45309;
+  
+  --theme-status-waiting-bg: #78350F;
+  --theme-status-waiting-text: #FCD34D;
+  --theme-status-waiting-border: #B45309;
+  
+  /* 阴影 - 暗色模式 */
+  --theme-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.1);
+  --theme-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+  --theme-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+}
+
+@layer base {
+  html, body {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    touch-action: pan-x pan-y; /* 允许平移但禁止缩放 */
+    -ms-touch-action: pan-x pan-y;
+    overscroll-behavior: none; /* 禁止过度滚动行为 */
+  }
+  
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--theme-font-family);
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    transition: background-color var(--theme-transition-normal), color var(--theme-transition-normal);
+  }
+
+  /* 确保表单元素和按钮使用主题颜色 */
+  button, input, select, textarea {
+    font-family: var(--theme-font-family);
+  }
+
+  /* 添加全局链接样式 */
+  a {
+    color: var(--theme-primary-600);
+    text-decoration: none;
+    transition: color var(--theme-transition-fast);
+  }
+
+  a:hover {
+    color: var(--theme-primary-700);
+  }
+
+  /* 暗色模式下的链接颜色调整 */
+  .dark-theme a {
+    color: var(--theme-primary-400);
+  }
+  
+  .dark-theme a:hover {
+    color: var(--theme-primary-300);
+  }
+
+  /* 文本选择颜色 */
+  ::selection {
+    background-color: var(--theme-primary-100);
+    color: var(--theme-primary-800);
+  }
+
+  .dark-theme ::selection {
+    background-color: var(--theme-primary-800);
+    color: var(--theme-primary-100);
+  }
+
+  /* 滚动条样式 */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--theme-neutral-100);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--theme-neutral-300);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--theme-neutral-400);
+  }
+
+  .dark-theme ::-webkit-scrollbar-track {
+    background: var(--theme-neutral-800);
+  }
+
+  .dark-theme ::-webkit-scrollbar-thumb {
+    background: var(--theme-neutral-600);
+  }
+
+  .dark-theme ::-webkit-scrollbar-thumb:hover {
+    background: var(--theme-neutral-500);
+  }
+  
+  /* 隐藏滚动条但保留滚动功能 */
+  .hide-scrollbar::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+  }
+  
+  .hide-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+}

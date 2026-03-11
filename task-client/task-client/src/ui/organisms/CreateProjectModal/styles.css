@@ -1,0 +1,114 @@
+/* 苹果风格自定义滚动条样式 */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(250, 250, 250, 0.8);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(180, 180, 180, 0.5);
+  border-radius: 10px;
+  transition: all 0.2s;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(150, 150, 150, 0.7);
+}
+
+/* 苹果风格模态框样式 */
+.apple-modal {
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  background-color: rgba(255, 255, 255, 0.85);
+  border-radius: 16px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1), 
+              0 4px 6px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+/* 苹果风格输入框焦点样式 */
+.apple-input:focus {
+  box-shadow: 0 0 0 4px rgba(0, 125, 250, 0.15);
+  border-color: rgba(0, 125, 250, 0.8);
+  outline: none;
+}
+
+/* 苹果风格按钮效果 */
+.apple-button {
+  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  border-radius: 12px;
+  user-select: none;
+}
+
+.apple-button:active {
+  transform: scale(0.97);
+}
+
+/* 苹果风格步骤指示器 */
+.step-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 1rem;
+}
+
+.step-indicator .step-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+
+.step-indicator .step-number {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  font-size: 0.9rem;
+  transition: all 0.3s;
+}
+
+.step-indicator .step-line {
+  height: 2px;
+  flex: 1;
+  background-color: #e5e7eb;
+  transition: background-color 0.3s;
+}
+
+.step-indicator .step-text {
+  position: absolute;
+  top: 100%;
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+/* 步骤内容容器 */
+.step-content {
+  position: relative;
+  overflow: hidden;
+  min-height: 300px;
+}
+
+/* 苹果组件设计 */
+.apple-card {
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 12px;
+  border: 1px solid rgba(235, 235, 235, 0.8);
+  overflow: hidden;
+  transition: all 0.2s;
+}
+
+.apple-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border-color: rgba(225, 225, 225, 0.9);
+}

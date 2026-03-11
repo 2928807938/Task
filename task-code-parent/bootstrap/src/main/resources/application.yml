@@ -1,0 +1,50 @@
+spring:
+  application:
+    name: task-code-parent
+  main:
+    allow-bean-definition-overriding: false
+  profiles:
+    active: dev  # 默认使用生产环境
+  jmx:
+    enabled: false
+  codec:
+    max-in-memory-size: 1KB
+  jackson:
+    # 启用流式JSON序列化
+    serialization:
+      FLUSH_AFTER_WRITE_VALUE: true
+      # 添加更多流式序列化配置
+      CLOSE_CLOSEABLE: false
+      FAIL_ON_EMPTY_BEANS: false
+    # 禁用缓冲
+    generator:
+      FLUSH_PASSED_TO_STREAM: true
+      AUTO_CLOSE_TARGET: false
+      AUTO_CLOSE_JSON_CONTENT: false
+
+# 通用服务器配置
+server:
+  # 响应相关配置
+  reactive:
+    session:
+      timeout: 0
+  # 添加Netty相关配置
+  netty:
+    connection-timeout: 0
+    idle-timeout: 0
+    max-keep-alive-requests: -1
+
+# Actuator 配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+      base-path: /api
+      path-mapping:
+        health: health/liveness
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
