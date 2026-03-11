@@ -76,7 +76,22 @@ command_exists() {
 # 检查端口是否被占用
 check_port() {
     local port=$1
-    if lsof -Pi :$port -sTCP:LISTEN -t >/dev/null 2>&1 || netstat -tuln | grep -q ":$port "; then
+    if command_exists ss; then
+        if ss -lnt | awk '{print $4}' | grep -qE ":${port}$"; then
+            return 0
+        fi
+    elif command_exists lsof; then
+        if lsof -Pi :$port -sTCP:LISTEN -t >/dev/null 2>&1; then
+            return 0
+        fi
+    elif command_exists netstat; then
+        if netstat -tuln | grep -q ":$port "; then
+            return 0
+        fi
+    else
+        print_warning "未找到 ss/lsof/netstat，无法检查端口 $port"
+        return 1
+    fi
         return 0  # 端口被占用
     else
         return 1  # 端口空闲
@@ -120,6 +135,32 @@ check_os() {
     fi
 }
 
+# 检查并设置 docker compose 命令
+set_compose_cmd() {
+    if command_exists docker-compose; then
+        DOCKER_COMPOSE="docker-compose"
+    elif docker compose version >/dev/null 2>&1; then
+        DOCKER_COMPOSE="docker compose"
+    else
+        DOCKER_COMPOSE=""
+    fi
+}
+
+# 安装基础工具
+install_utils() {
+    case $OS in
+        ubuntu|debian)
+            sudo apt-get update
+            sudo apt-get install -y lsof iproute2
+            ;;
+        centos|rhel)
+            sudo yum install -y lsof iproute
+            ;;
+        *)
+            ;;
+    esac
+}
+
 # 安装 Docker
 install_docker() {
     if command_exists docker; then
@@ -154,11 +195,13 @@ install_docker() {
     # 将当前用户添加到 docker 组
     sudo usermod -aG docker $USER
     print_success "Docker 安装完成"
+    print_warning "已将当前用户加入 docker 组，需重新登录后生效"
 }
 
 # 安装 Docker Compose
 install_docker_compose() {
-    if command_exists docker-compose || docker compose version >/dev/null 2>&1; then
+    set_compose_cmd
+    if [ -n "$DOCKER_COMPOSE" ]; then
         print_success "Docker Compose 已安装"
         return 0
     fi
@@ -212,9 +255,21 @@ install_nodejs() {
 
     print_info "开始安装 Node.js 18..."
 
-    # 使用 NodeSource 仓库
-    curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-    sudo apt-get install -y nodejs
+    case $OS in
+        ubuntu|debian)
+            # 使用 NodeSource 仓库
+            curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+            sudo apt-get install -y nodejs
+            ;;
+        centos|rhel)
+            curl -fsSL https://rpm.nodesource.com/setup_18.x | sudo bash -
+            sudo yum install -y nodejs
+            ;;
+        *)
+            print_error "不支持的操作系统: $OS"
+            exit 1
+            ;;
+    esac
 
     print_success "Node.js 安装完成"
 }
@@ -323,6 +378,7 @@ main_deploy() {
 
     # 安装依赖
     print_info "步骤 1/8: 检查并安装依赖..."
+    install_utils
     install_git
     install_docker
     install_docker_compose
@@ -352,7 +408,12 @@ main_deploy() {
     # 启动数据库服务
     print_info "步骤 5/8: 启动 PostgreSQL 和 Redis..."
     cd "$DEPLOY_DIR"
-    docker-compose up -d
+    set_compose_cmd
+    if [ -z "$DOCKER_COMPOSE" ]; then
+        print_error "未找到 docker compose 命令"
+        return 1
+    fi
+    $DOCKER_COMPOSE up -d
     sleep 5
 
     # 等待数据库就绪
@@ -421,7 +482,12 @@ start_backend() {
     if ! check_port $POSTGRES_PORT; then
         print_warning "PostgreSQL 未启动，正在启动..."
         cd "$DEPLOY_DIR"
-        docker-compose up -d postgres redis
+        set_compose_cmd
+        if [ -z "$DOCKER_COMPOSE" ]; then
+            print_error "未找到 docker compose 命令"
+            return 1
+        fi
+        $DOCKER_COMPOSE up -d postgres redis
         wait_for_port $POSTGRES_PORT 30
     fi
 
@@ -573,7 +639,12 @@ stop_all() {
     print_info "停止数据库服务..."
     if [ -f "$DEPLOY_DIR/docker-compose.yml" ]; then
         cd "$DEPLOY_DIR"
-        docker-compose stop
+        set_compose_cmd
+        if [ -z "$DOCKER_COMPOSE" ]; then
+            print_error "未找到 docker compose 命令"
+            return 1
+        fi
+        $DOCKER_COMPOSE stop
         print_success "数据库服务已停止"
     fi
 
@@ -694,9 +765,15 @@ update_deploy() {
     print_info "步骤 3/5: 拉取最新代码..."
     git fetch origin
 
+    # 检测默认分支
+    DEFAULT_BRANCH=$(git symbolic-ref --quiet refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
+    if [ -z "$DEFAULT_BRANCH" ]; then
+        DEFAULT_BRANCH="main"
+    fi
+
     # 显示更新内容
     print_info "更新内容:"
-    git log HEAD..origin/master --oneline | head -10
+    git log HEAD..origin/$DEFAULT_BRANCH --oneline | head -10
 
     read -p "是否继续更新? (y/n): " choice
     if [ "$choice" \!= "y" ]; then
@@ -705,7 +782,7 @@ update_deploy() {
     fi
 
     # 执行更新
-    git pull origin master
+    git pull origin "$DEFAULT_BRANCH"
     NEW_COMMIT=$(git rev-parse HEAD)
 
     if [ "$CURRENT_COMMIT" = "$NEW_COMMIT" ]; then
