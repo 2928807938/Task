@@ -11,15 +11,12 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.context.annotation.Import
 import org.springframework.context.annotation.Primary
 import org.springframework.context.event.EventListener
 import org.springframework.data.r2dbc.config.AbstractR2dbcConfiguration
-import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
-import org.springframework.data.r2dbc.dialect.PostgresDialect
-import org.springframework.data.r2dbc.dialect.R2dbcDialect
 import org.springframework.data.r2dbc.repository.config.EnableR2dbcRepositories
 import org.springframework.r2dbc.connection.R2dbcTransactionManager
-import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.transaction.ReactiveTransactionManager
 import org.springframework.transaction.annotation.EnableTransactionManagement
 import reactor.core.publisher.Mono
@@ -30,6 +27,7 @@ import java.time.Duration
  * 提供PostgreSQL数据库的R2DBC连接工厂，并添加连接池监控
  */
 @Configuration
+@Import(R2dbcConfig::class)
 @EnableR2dbcRepositories(basePackages = ["com.task.infrastructure.persistence.mapper"])
 @EnableTransactionManagement
 class R2dbcConnectionConfig : AbstractR2dbcConfiguration() {
@@ -135,20 +133,6 @@ class R2dbcConnectionConfig : AbstractR2dbcConfiguration() {
 //        return R2dbcEntityTemplate(connectionFactory())
 //    }
 
-    /**
-     * 配置R2dbcEntityTemplate
-     * 这是Spring Data R2DBC的核心组件，用于执行数据库操作
-     */
-    @Bean
-    fun r2dbcEntityTemplate(connectionFactory: ConnectionFactory): R2dbcEntityTemplate {
-        val dialect: R2dbcDialect = PostgresDialect.INSTANCE
-        val databaseClient = DatabaseClient.builder()
-            .connectionFactory(connectionFactory)
-            .build()
-
-        return R2dbcEntityTemplate(databaseClient, dialect)
-    }
-    
     /**
      * 在应用程序启动时记录连接池配置
      */
