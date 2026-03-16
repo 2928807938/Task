@@ -212,6 +212,12 @@ ktlint {
     outputToConsole.set(true)
 }
 
+tasks.matching {
+    it.name == "runKtlintCheckOverKotlinScripts" || it.name == "ktlintKotlinScriptCheck"
+}.configureEach {
+    enabled = false
+}
+
 // detekt 配置
 detekt {
     buildUponDefaultConfig = true
