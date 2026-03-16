@@ -1,8 +1,8 @@
 spring:
   r2dbc:
-    url: r2dbc:postgresql://172.17.0.7:5432/task_code_parent
+    url: r2dbc:postgresql://localhost:5432/task_code_parent
     username: task_ark
-    password: RaFDXbFJln3oQSU53S7gTld2aAkfoQO~
+    password: tanghulu040707
     properties:
       # 在连接初始化后设置时区
       statement: SET TIME ZONE 'Asia/Shanghai'
@@ -15,18 +15,18 @@ spring:
       validation-query: SELECT 1  # 添加连接验证
   sql:
     init:
-      mode: NEVER
+      mode: ALWAYS
       schema-locations: classpath:db/schema/*.sql  # 创建表的SQL
-      data-locations: classpath:db/data/*.sql      # 初始化数据的SQL
+      #data-locations: classpath:db/data/*.sql      # 初始化数据的SQL
       platform: postgresql
       continue-on-error: false
       separator: ;
   # Redis配置
   data:
     redis:
-      host: 172.17.0.9
+      host: localhost
       port: 6379
-      password: RaFDXbFJln3oQSU53S7gTld2aAkfoQO~  # 确保此密码与Redis服务器设置的密码一致
+      password: tanghulu040707  # 确保此密码与Redis服务器设置的密码一致
       database: 0
       timeout: 10000
       connect-timeout: 5000
