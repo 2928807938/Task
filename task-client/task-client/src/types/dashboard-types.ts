@@ -56,13 +56,6 @@ export interface CollaborationActivity {
 /**
  * Dashboard数据响应类型
  */
-export interface DashboardDataResponse {
-  tasks: {
-    items?: TodoTask[];
-  } | TodoTask[];
-  activities: CollaborationActivity[];
-}
-
 export interface DashboardTaskItem {
   id?: string;
   title?: string;
@@ -110,6 +103,8 @@ export interface DashboardApiPayload {
   } | DashboardTaskItem[];
   activities?: DashboardActivityItem[];
 }
+
+export type DashboardDataResponse = DashboardApiPayload;
 
 /**
  * Dashboard API响应类型

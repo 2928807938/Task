@@ -10,6 +10,7 @@ import {
   CollaborationActivity,
   DashboardData,
   DashboardOptions,
+  DashboardApiResponse,
   DashboardApiPayload,
   DashboardActivityItem,
   DashboardTaskItem,
@@ -60,7 +61,7 @@ export const useDashboardData = (options: DashboardOptions = {}): DashboardHookR
     staleTime: staleTime !== Infinity ? staleTime : dashboardQueryConfig.staleTime,
     
     // 优化的select函数，只在数据实际改变时触发组件重渲染
-    select: useCallback((data) => {
+    select: useCallback((data: DashboardApiResponse) => {
       // 数据预处理和缓存优化
       if (!data) return data;
       
@@ -231,7 +232,7 @@ export const useDashboardData = (options: DashboardOptions = {}): DashboardHookR
       
       // 额外的性能指标
       lastUpdated: processedData.tasks.length > 0 ? new Date() : null,
-      dataFreshness: staleTime !== Infinity ? 'configurable' : 'static' as const,
+      dataFreshness: (staleTime !== Infinity ? 'configurable' : 'static') as 'configurable' | 'static',
     };
   }, [
     processedData.tasks.length,
