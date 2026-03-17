@@ -12,11 +12,11 @@ import {
 } from 'react-icons/fi';
 import { CollaborationTimeline } from '@/ui/organisms/CollaborationTimeline';
 import RecentCommunications from '@/ui/organisms/RecentCommunications';
-import { CollaborationActivity } from '@/types/dashboard-types';
+import { ActivityEvent } from '@/infrastructure/websocket/types';
 
 interface BottomTabsProps {
   className?: string;
-  onActivityClick?: (activity: CollaborationActivity) => void;
+  onActivityClick?: (activity: ActivityEvent) => void;
   onCommunicationClick?: (communication: any) => void;
   defaultTab?: BottomTabType;
   collapsible?: boolean;
