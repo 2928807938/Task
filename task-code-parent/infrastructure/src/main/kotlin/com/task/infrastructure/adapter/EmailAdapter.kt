@@ -5,9 +5,11 @@ import jakarta.mail.internet.InternetAddress
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate
+import org.springframework.mail.MailAuthenticationException
 import org.springframework.mail.javamail.JavaMailSender
 import org.springframework.mail.javamail.MimeMessageHelper
 import org.springframework.stereotype.Component
+import com.task.shared.exceptions.EmailSendException
 import reactor.core.publisher.Mono
 import reactor.core.scheduler.Schedulers
 import java.time.Duration
@@ -110,9 +112,12 @@ class EmailAdapter(
                 mailSender.send(message)
                 log.info("邮件验证码发送成功，邮箱：{}", email)
                 true
+            } catch (e: MailAuthenticationException) {
+                log.error("邮件认证失败，邮箱：{}", email, e)
+                throw EmailSendException("邮件服务认证失败，请联系管理员检查邮箱配置", e)
             } catch (e: Exception) {
                 log.error("邮件验证码发送失败，邮箱：{}", email, e)
-                throw e
+                throw EmailSendException(cause = e)
             }
         }.subscribeOn(Schedulers.boundedElastic())
         .then()
