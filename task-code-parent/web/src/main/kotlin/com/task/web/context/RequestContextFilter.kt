@@ -1,6 +1,7 @@
 package com.task.web.context
 
 import com.task.shared.context.RequestContextHolder
+import com.task.web.config.TraceIdFilter
 import org.slf4j.LoggerFactory
 import org.springframework.core.annotation.Order
 import org.springframework.stereotype.Component
@@ -34,7 +35,10 @@ class RequestContextFilter : WebFilter {
         val headers = exchange.request.headers
         val userId = headers.getFirst(HEADER_USER_ID)
         val tenantId = headers.getFirst(HEADER_TENANT_ID)
-        val traceId = headers.getFirst(HEADER_TRACE_ID) ?: UUID.randomUUID().toString()
+        val traceId = exchange.attributes[TraceIdFilter.TRACE_ID_KEY] as? String
+            ?: headers.getFirst(HEADER_TRACE_ID)
+            ?: headers.getFirst(TraceIdFilter.TRACE_ID_KEY)
+            ?: UUID.randomUUID().toString()
         val requestId = UUID.randomUUID().toString()
 
         log.debug("请求头用户ID: {}, 跟踪ID: {}", userId, traceId)

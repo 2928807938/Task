@@ -35,6 +35,7 @@ class WebSecurityConfig(
             .authorizeExchange { exchanges ->
                 exchanges
                     .pathMatchers("/api/client/user/register",
+                        "/api/client/user/simple-register",
                         "/api/client/user/login",
                         "/api/client/user/send-email-verification-code",
                         "/api/client/user/change-password",
