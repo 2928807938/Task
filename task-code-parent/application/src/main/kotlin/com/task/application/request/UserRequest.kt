@@ -34,6 +34,19 @@ data class RegisterRequest(
     val verificationCode: String
 )
 
+data class SimpleRegisterRequest(
+
+    @field:NotBlank(message = "用户名不能为空")
+    @field:Size(min = 2, max = 10, message = "用户名长度必须在2-10个字符之间")
+    val username: String,
+
+    @field:NotBlank(message = "密码不能为空")
+    val password: String,
+
+    @field:NotBlank(message = "确认密码不能为空")
+    val confirmPassword: String
+)
+
 /**
  * 登录请求
  */

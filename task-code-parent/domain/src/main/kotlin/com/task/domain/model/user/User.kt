@@ -26,7 +26,7 @@ data class User(
     /**
      * 用户电子邮箱
      */
-    val email: String,
+    val email: String?,
 
     /**
      * 用户拥有的所有角色列表

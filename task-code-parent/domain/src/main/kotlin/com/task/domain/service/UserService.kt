@@ -75,7 +75,48 @@ class UserService(
                 }
             }
     }
-    
+
+    fun simpleRegister(username: String, password: String): Mono<Void> {
+        if (username.isBlank() || password.isBlank()) {
+            return Mono.error(IllegalArgumentException("用户名或密码不能为空"))
+        }
+
+        return userRepository.exists {
+            fieldOf(User::username, ComparisonOperator.EQUALS, username)
+        }.flatMap { usernameExists ->
+            if (usernameExists) {
+                Mono.error(IllegalArgumentException("用户名已被使用"))
+            } else {
+                val now = OffsetDateTime.now()
+                val userProfile = UserProfile(
+                    id = 0L,
+                    userId = 0L,
+                    createdAt = now
+                )
+
+                val user = User(
+                    id = null,
+                    username = username,
+                    passwordHash = passwordEncoder.encode(password),
+                    email = null,
+                    lastLogin = now,
+                    status = UserStatusEnum.ACTIVE,
+                    profile = userProfile,
+                    createdAt = now
+                )
+
+                userRepository.save(user).flatMap { savedUser ->
+                    val profile = user.profile?.copy(userId = savedUser.id!!)
+                    if (profile != null) {
+                        userProfileRepository.save(profile).then()
+                    } else {
+                        Mono.empty()
+                    }
+                }
+            }
+        }
+    }
+
     /**
      * 用户登录
      *

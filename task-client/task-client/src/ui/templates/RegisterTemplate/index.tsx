@@ -11,7 +11,6 @@ import {handleApiError} from '@/utils/response-utils';
 import {encryptPassword} from '@/utils/crypto-utils';
 import {evaluatePasswordStrength} from '@/utils/password-utils';
 import {
-    EmailVerificationInput,
     FormHeader,
     FormMessage,
     PasswordInput,
@@ -23,8 +22,6 @@ import { useTheme } from '@/ui/theme';
 // 定义表单数据类型
 type RegisterFormData = {
   username: string;
-  email: string;
-  verificationCode: string; // 新增验证码字段
   password: string;
   confirmPassword: string;
   terms: boolean;
@@ -43,14 +40,11 @@ export function RegisterTemplate() {
   // 输入框聚焦状态
   const [inputFocus, setInputFocus] = useState({
     username: false,
-    email: false,
-    verificationCode: false,
     password: false,
     confirmPassword: false
   });
 
   const password = watch('password', '');
-  const email = watch('email', '');
 
   // 评估密码强度
   const passwordStrengthResult = React.useMemo(() => {
@@ -76,8 +70,7 @@ export function RegisterTemplate() {
       registerUser({
         username: data.username,
         password: encryptedPassword,
-        email: data.email,
-        verificationCode: data.verificationCode // 添加验证码
+        confirmPassword: encryptedPassword
       }, {
         onSuccess: (response) => {
           if (response.success) {
@@ -100,9 +93,6 @@ export function RegisterTemplate() {
               case ResponseCode.DATA_VALIDATION_FAILED:
               case ResponseCode.PARAM_VALIDATION_ERROR:
                 setApiError('提交的数据验证失败，请检查输入');
-                break;
-              case ResponseCode.VERIFICATION_CODE_INVALID:
-                setApiError('验证码无效或已过期，请重新获取');
                 break;
               default:
                 // 使用通用错误处理
@@ -184,27 +174,6 @@ export function RegisterTemplate() {
             setInputFocus={setInputFocus}
             theme={theme}
             isDark={isDark}
-          />
-
-          {/* 邮箱和验证码输入框 */}
-          <EmailVerificationInput
-            register={register}
-            errors={errors}
-            email={email}
-            isDarkMode={isDark}
-            inputFocus={{
-              email: inputFocus.email,
-              verificationCode: inputFocus.verificationCode
-            }}
-            setInputFocus={setInputFocus}
-            colors={{
-              input: isDark ? 'bg-gray-800 border-gray-600' : 'bg-gray-50 border-gray-300',
-              inputFocus: isDark ? 'ring-blue-500 border-blue-500' : 'ring-blue-300 border-blue-500',
-              textSecondary: isDark ? 'text-gray-300' : 'text-gray-600',
-              buttonPrimary: isDark ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600',
-              buttonSecondary: isDark ? 'bg-gray-700 hover:bg-gray-600 text-gray-200' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-            }}
-            setApiError={setApiError}
           />
 
           {/* 密码输入框 */}

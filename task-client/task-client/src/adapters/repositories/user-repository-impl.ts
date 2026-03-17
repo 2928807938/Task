@@ -14,7 +14,7 @@ import {
 
 // API端点常量
 const API_ENDPOINTS = {
-  REGISTER: '/api/client/user/register',
+  REGISTER: '/api/client/user/simple-register',
   LOGIN: '/api/client/user/login',
   LOGOUT: '/api/client/user/logout',
   GET_CURRENT_USER: '/api/client/user/current',

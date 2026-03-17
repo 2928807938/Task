@@ -13,8 +13,8 @@ CREATE TABLE t_user
     -- 密码的哈希值，不存储明文密码
     password_hash VARCHAR(255)             NOT NULL,
 
-    -- 用户电子邮箱，用于通知和找回密码，不可重复
-    email         VARCHAR(100)             NOT NULL,
+    -- 用户电子邮箱，用于通知和找回密码，可为空；有值时不可重复
+    email         VARCHAR(100),
 
     -- 用户最后登录时间
     last_login    TIMESTAMP WITH TIME ZONE NOT NULL,
@@ -53,7 +53,7 @@ ON COLUMN t_user.username IS '用户名，登录时使用，不可重复';
 COMMENT
 ON COLUMN t_user.password_hash IS '密码的哈希值，不存储明文密码';
 COMMENT
-ON COLUMN t_user.email IS '用户电子邮箱，用于通知和找回密码，不可重复';
+ON COLUMN t_user.email IS '用户电子邮箱，用于通知和找回密码，可为空；有值时不可重复';
 COMMENT
 ON COLUMN t_user.last_login IS '用户最后登录时间';
 COMMENT

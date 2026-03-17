@@ -16,8 +16,7 @@ export interface ApiResponse<T = any> {
 export interface RegisterRequest {
   username: string;
   password: string;
-  email: string;
-  verificationCode?: string; // 邮箱验证码
+  confirmPassword: string;
 }
 
 export interface LoginRequest {

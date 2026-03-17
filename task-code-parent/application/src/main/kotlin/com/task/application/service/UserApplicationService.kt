@@ -60,6 +60,17 @@ class UserApplicationService(
                 userService.register(command)
             }
     }
+
+    fun simpleRegister(request: SimpleRegisterRequest): Mono<Void> {
+        val logger = LoggerFactory.getLogger(this::class.java)
+        logger.info("开始处理用户简易注册请求，用户名：{}", request.username)
+
+        if (request.password != request.confirmPassword) {
+            return Mono.error(IllegalArgumentException("两次输入的密码不一致"))
+        }
+
+        return userService.simpleRegister(request.username, request.password)
+    }
     
     /**
      * 用户登录
@@ -368,7 +379,7 @@ class UserApplicationService(
                     UserBasicInfoVO(
                         id = userId,
                         name = user.profile?.fullName ?: user.username,
-                        email = user.email,
+                        email = user.email ?: "",
                         isSelf = userId == currentUserId, // 判断是否是当前登录用户
                         isInProject = projectMemberUserIds.contains(userId) // 判断是否是项目成员
                     )

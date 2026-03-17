@@ -51,10 +51,6 @@ export function FormMessage({
                   <p>请同意服务条款和隐私政策</p>
                 ) : errors.username ? (
                   <p>{errors.username.message as string}</p>
-                ) : errors.email ? (
-                  <p>{errors.email.message as string}</p>
-                ) : errors.verificationCode ? (
-                  <p>{errors.verificationCode.message as string}</p>
                 ) : errors.password ? (
                   <p>{errors.password.message as string}</p>
                 ) : errors.confirmPassword ? (

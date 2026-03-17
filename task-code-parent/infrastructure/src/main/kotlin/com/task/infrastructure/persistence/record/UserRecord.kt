@@ -24,7 +24,7 @@ data class UserRecord(
     /**
      * 用户电子邮箱，用于通知和找回密码，不可重复
      */
-    val email: String,
+    val email: String?,
 
     /**
      * 用户最后登录时间
@@ -41,7 +41,7 @@ data class UserRecord(
         fun create(
             username: String,
             passwordHash: String,
-            email: String,
+            email: String?,
             lastLogin: OffsetDateTime,
             status: Int,
             version: Int = 0

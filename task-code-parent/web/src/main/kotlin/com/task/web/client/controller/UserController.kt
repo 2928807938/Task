@@ -31,6 +31,15 @@ class UserController(
         return userApplicationService.register(request)
             .then(Mono.just(ApiResponse.success()))
     }
+
+    /**
+     * 用户简易注册
+     */
+    @PostMapping("/simple-register")
+    fun simpleRegister(@RequestBody @Validated request: SimpleRegisterRequest): Mono<ApiResponse<Void>> {
+        return userApplicationService.simpleRegister(request)
+            .then(Mono.just(ApiResponse.success()))
+    }
     
     /**
      * 用户登录
