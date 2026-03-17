@@ -39,12 +39,14 @@ spring:
     protocol: smtp
     properties:
       mail.smtp.auth: true
+      mail.smtp.starttls.enable: false
+      mail.smtp.starttls.required: false
       mail.smtp.ssl.enable: true  # 启用SSL
       mail.smtp.ssl.trust: smtp.qq.com  # 请替换成您的SMTP服务器
       mail.smtp.connectiontimeout: 5000
       mail.smtp.timeout: 5000
       mail.smtp.writetimeout: 5000
-      mail.debug: true  # 开启调试模式，查看详细日志
+      mail.debug: false  # 开启调试模式，查看详细日志
 
 server:
   port: 8080

@@ -59,6 +59,7 @@ GIT_SSH_CONTROL_PATH="${HOME}/.ssh/task-github-%r@%h:%p"
 GRADLE_VERSION="8.11.1"
 GRADLE_DOWNLOAD_URL="https://mirrors.cloud.tencent.com/gradle/gradle-${GRADLE_VERSION}-bin.zip"
 GRADLE_INSTALL_DIR="/opt/gradle"
+GRADLE_USER_HOME_DIR="$BACKEND_DIR/.gradle-user-home"
 NPM_REGISTRY="https://registry.npmmirror.com"
 ENABLE_AUTO_CACHE_CLEANUP=1
 
@@ -149,6 +150,21 @@ cleanup_gradle_cache() {
         print_info "清理 Gradle 缓存..."
         rm -rf "$HOME/.gradle/caches"
     fi
+}
+
+cleanup_gradle_kotlin_dsl_cache() {
+    local gradle_cache_root="$HOME/.gradle/caches"
+    local local_gradle_cache_root="$GRADLE_USER_HOME_DIR/caches"
+
+    if [ ! -d "$gradle_cache_root" ]; then
+        mkdir -p "$GRADLE_USER_HOME_DIR"
+    fi
+
+    print_info "清理可能损坏的 Gradle Kotlin DSL 缓存..."
+    rm -rf "$gradle_cache_root/$GRADLE_VERSION/kotlin-dsl" 2>/dev/null || true
+    rm -rf "$gradle_cache_root/$GRADLE_VERSION/generated-gradle-jars" 2>/dev/null || true
+    rm -rf "$local_gradle_cache_root/$GRADLE_VERSION/kotlin-dsl" 2>/dev/null || true
+    rm -rf "$local_gradle_cache_root/$GRADLE_VERSION/generated-gradle-jars" 2>/dev/null || true
 }
 
 cleanup_npm_cache() {
@@ -415,11 +431,13 @@ ensure_gradle_wrapper_jar() {
 }
 
 run_gradle_build() {
+    cleanup_gradle_kotlin_dsl_cache
     ensure_gradle_wrapper_jar
+    mkdir -p "$GRADLE_USER_HOME_DIR"
 
     if [ -f "$BACKEND_DIR/gradle/wrapper/gradle-wrapper.jar" ]; then
         chmod +x "$BACKEND_DIR/gradlew"
-        "$BACKEND_DIR/gradlew" clean :bootstrap:bootJar -x test
+        GRADLE_USER_HOME="$GRADLE_USER_HOME_DIR" "$BACKEND_DIR/gradlew" clean :bootstrap:bootJar -x test --refresh-dependencies
         return 0
     fi
 
@@ -428,7 +446,7 @@ run_gradle_build() {
         install_gradle
     fi
 
-    gradle -p "$BACKEND_DIR" clean :bootstrap:bootJar -x test
+    GRADLE_USER_HOME="$GRADLE_USER_HOME_DIR" gradle -p "$BACKEND_DIR" clean :bootstrap:bootJar -x test --refresh-dependencies
 }
 
 ensure_gradlew_executable() {

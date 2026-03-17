@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate
 import org.springframework.mail.MailAuthenticationException
+import org.springframework.mail.MailSendException
 import org.springframework.mail.javamail.JavaMailSender
 import org.springframework.mail.javamail.MimeMessageHelper
 import org.springframework.stereotype.Component
@@ -115,6 +116,9 @@ class EmailAdapter(
             } catch (e: MailAuthenticationException) {
                 log.error("邮件认证失败，邮箱：{}", email, e)
                 throw EmailSendException("邮件服务认证失败，请联系管理员检查邮箱配置", e)
+            } catch (e: MailSendException) {
+                log.error("邮件投递失败，邮箱：{}", email, e)
+                throw EmailSendException("邮件发送失败，请检查收件地址或稍后重试", e)
             } catch (e: Exception) {
                 log.error("邮件验证码发送失败，邮箱：{}", email, e)
                 throw EmailSendException(cause = e)
