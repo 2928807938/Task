@@ -60,6 +60,7 @@ GRADLE_VERSION="8.11.1"
 GRADLE_DOWNLOAD_URL="https://mirrors.cloud.tencent.com/gradle/gradle-${GRADLE_VERSION}-bin.zip"
 GRADLE_INSTALL_DIR="/opt/gradle"
 NPM_REGISTRY="https://registry.npmmirror.com"
+ENABLE_AUTO_CACHE_CLEANUP=1
 
 print_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
 print_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
@@ -67,6 +68,138 @@ print_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
 print_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 print_separator() { echo -e "${BLUE}========================================${NC}"; }
 command_exists() { command -v "$1" >/dev/null 2>&1; }
+
+APT_LOCK_TIMEOUT=600
+APT_LOCK_WAIT_INTERVAL=5
+
+get_apt_lock_holder() {
+    local lock_file=$1
+    local holder=""
+
+    if command_exists fuser; then
+        holder=$(sudo fuser "$lock_file" 2>/dev/null | tr '\n' ' ' | sed 's/^\s*//;s/\s*$//')
+    fi
+
+    if [ -z "$holder" ] && command_exists lsof; then
+        holder=$(sudo lsof -t "$lock_file" 2>/dev/null | tr '\n' ' ' | sed 's/^\s*//;s/\s*$//')
+    fi
+
+    printf '%s' "$holder"
+}
+
+wait_for_apt_lock_release() {
+    local timeout=${1:-$APT_LOCK_TIMEOUT}
+    local waited=0
+    local lock_files="/var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/cache/apt/archives/lock /var/lib/apt/lists/lock"
+
+    while true; do
+        local blocked=0
+        local lock_file
+        local active_lock=""
+        local holder=""
+
+        for lock_file in $lock_files; do
+            [ -e "$lock_file" ] || continue
+            holder=$(get_apt_lock_holder "$lock_file")
+            if [ -n "$holder" ]; then
+                blocked=1
+                active_lock="$lock_file"
+                break
+            fi
+        done
+
+        if [ "$blocked" -eq 0 ]; then
+            return 0
+        fi
+
+        if [ "$waited" -eq 0 ]; then
+            print_warning "检测到 apt/dpkg 锁被占用，正在等待释放: $active_lock"
+        fi
+
+        if [ "$waited" -ge "$timeout" ]; then
+            print_error "等待 apt/dpkg 锁超时 (${timeout}s)，占用进程: ${holder:-未知}"
+            print_info "如果是 unattended-upgrades，建议等待系统自动更新完成后重试"
+            return 1
+        fi
+
+        print_info "apt/dpkg 锁占用中，${APT_LOCK_WAIT_INTERVAL} 秒后重试（已等待 ${waited}s/${timeout}s），进程: ${holder:-未知}"
+        sleep "$APT_LOCK_WAIT_INTERVAL"
+        waited=$((waited + APT_LOCK_WAIT_INTERVAL))
+    done
+}
+
+apt_get_safe() {
+    wait_for_apt_lock_release "$APT_LOCK_TIMEOUT"
+    sudo DEBIAN_FRONTEND=noninteractive apt-get -o DPkg::Lock::Timeout="$APT_LOCK_TIMEOUT" "$@"
+}
+
+clean_apt_cache() {
+    case $OS in
+        ubuntu|debian)
+            print_info "清理 apt 缓存..."
+            apt_get_safe clean || true
+            apt_get_safe autoclean || true
+            sudo rm -rf /var/lib/apt/lists/* 2>/dev/null || true
+            ;;
+    esac
+}
+
+cleanup_gradle_cache() {
+    if [ -d "$HOME/.gradle/caches" ]; then
+        print_info "清理 Gradle 缓存..."
+        rm -rf "$HOME/.gradle/caches"
+    fi
+}
+
+cleanup_npm_cache() {
+    if command_exists npm; then
+        print_info "清理 npm 缓存..."
+        npm cache clean --force >/dev/null 2>&1 || true
+    fi
+    rm -rf "$HOME/.npm/_cacache" 2>/dev/null || true
+}
+
+cleanup_frontend_build_cache() {
+    if [ -d "$FRONTEND_DIR/.next/cache" ]; then
+        print_info "清理 Next.js 构建缓存..."
+        rm -rf "$FRONTEND_DIR/.next/cache"
+    fi
+}
+
+cleanup_backend_build_artifacts() {
+    local build_dirs="
+$BACKEND_DIR/build
+$BACKEND_BOOTSTRAP_DIR/build/tmp
+$BACKEND_BOOTSTRAP_DIR/build/classes
+$BACKEND_BOOTSTRAP_DIR/build/resources
+"
+    local target
+    while IFS= read -r target; do
+        [ -z "$target" ] && continue
+        if [ -d "$target" ]; then
+            print_info "清理后端构建缓存: $target"
+            rm -rf "$target"
+        fi
+    done <<EOF
+$build_dirs
+EOF
+}
+
+cleanup_deployment_caches() {
+    if [ "$ENABLE_AUTO_CACHE_CLEANUP" != "1" ]; then
+        return 0
+    fi
+
+    print_separator
+    print_info "开始自动清理部署缓存..."
+    print_separator
+    clean_apt_cache
+    cleanup_npm_cache
+    cleanup_gradle_cache
+    cleanup_frontend_build_cache
+    cleanup_backend_build_artifacts
+    print_success "部署缓存清理完成"
+}
 
 resolve_deploy_dir() {
     DEPLOY_DIR="$SCRIPT_DIR"
@@ -212,8 +345,8 @@ install_gradle() {
     print_info "开始安装 Gradle..."
     case $OS in
         ubuntu|debian)
-            sudo apt-get update
-            sudo apt-get install -y gradle unzip
+            apt_get_safe update
+            apt_get_safe install -y gradle unzip
             ;;
         *)
             if is_rhel_like_os; then
@@ -477,8 +610,8 @@ check_os() {
 install_utils() {
     case $OS in
         ubuntu|debian)
-            sudo apt-get update
-            sudo apt-get install -y lsof iproute2 curl gnupg ca-certificates software-properties-common
+            apt_get_safe update
+            apt_get_safe install -y lsof iproute2 curl gnupg ca-certificates software-properties-common psmisc
             ;;
         *)
             if is_rhel_like_os; then
@@ -500,8 +633,8 @@ install_java() {
     print_info "开始安装 Java 21..."
     case $OS in
         ubuntu|debian)
-            sudo apt-get update
-            sudo apt-get install -y openjdk-21-jdk
+            apt_get_safe update
+            apt_get_safe install -y openjdk-21-jdk
             ;;
         *)
             if is_rhel_like_os; then
@@ -527,7 +660,7 @@ install_nodejs() {
     case $OS in
         ubuntu|debian)
             curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-            sudo apt-get install -y nodejs
+            apt_get_safe install -y nodejs
             ;;
         centos|rhel|rocky|almalinux|anolis|ol)
             curl -fsSL https://rpm.nodesource.com/setup_18.x | sudo bash -
@@ -563,8 +696,8 @@ install_git() {
     print_info "开始安装 Git..."
     case $OS in
         ubuntu|debian)
-            sudo apt-get update
-            sudo apt-get install -y git
+            apt_get_safe update
+            apt_get_safe install -y git
             ;;
         *)
             if is_rhel_like_os; then
@@ -586,8 +719,8 @@ install_postgresql() {
     print_info "开始安装 PostgreSQL..."
     case $OS in
         ubuntu|debian)
-            sudo apt-get update
-            sudo apt-get install -y postgresql postgresql-contrib
+            apt_get_safe update
+            apt_get_safe install -y postgresql postgresql-contrib
             ;;
         *)
             if is_rhel_like_os; then
@@ -702,8 +835,8 @@ install_redis() {
     print_info "开始安装 Redis..."
     case $OS in
         ubuntu|debian)
-            sudo apt-get update
-            sudo apt-get install -y redis-server
+            apt_get_safe update
+            apt_get_safe install -y redis-server
             ;;
         *)
             if is_rhel_like_os; then
@@ -833,6 +966,7 @@ main_deploy() {
     start_backend
     sleep 5
     start_frontend
+    cleanup_deployment_caches
 
     print_separator
     print_success "部署完成！"
@@ -1097,6 +1231,7 @@ update_deploy() {
     start_backend
     sleep 5
     start_frontend
+    cleanup_deployment_caches
     print_success "更新部署完成"
 }
 
