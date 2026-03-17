@@ -5,6 +5,7 @@ import AddMemberModal from './AddMemberModal';
 import {useQueryClient} from '@tanstack/react-query';
 import ProjectStats from '@/ui/organisms/ProjectStats';
 import {AnimatePresence, motion} from 'framer-motion';
+import type { Transition } from 'framer-motion';
 import Card from '../../molecules/Card';
 import {Avatar} from '@/ui/atoms/Avatar';
 import {TaskStatusTrend} from '@/types/task-status-trend';
@@ -37,7 +38,7 @@ interface ProjectOverviewPanelProps {
 }
 
 // 动画参数
-const springTransition = {
+const springTransition: Transition = {
   type: 'spring',
   stiffness: 300,
   damping: 30,

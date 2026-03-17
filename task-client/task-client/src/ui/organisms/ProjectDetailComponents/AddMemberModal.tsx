@@ -1,5 +1,6 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {AnimatePresence, motion} from 'framer-motion';
+import type { Variants } from 'framer-motion';
 import {FiCheck, FiChevronDown, FiInfo, FiMail, FiPlus, FiSearch, FiUsers, FiX} from 'react-icons/fi';
 import {Avatar} from '@/ui/atoms/Avatar';
 import useProjectHook from '@/hooks/use-project-hook';
@@ -297,7 +298,7 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
   };
 
   // 弹框动画效果
-  const modalVariants = {
+  const modalVariants: Variants = {
     hidden: { opacity: 0, scale: 0.95, y: 10 },
     visible: {
       opacity: 1,

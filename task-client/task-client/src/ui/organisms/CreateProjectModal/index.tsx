@@ -3,6 +3,7 @@
 import React, {useEffect, useState} from 'react';
 import {useForm} from 'react-hook-form';
 import {AnimatePresence, motion} from 'framer-motion';
+import type { Variants } from 'framer-motion';
 import {FiCheck, FiChevronLeft, FiChevronRight, FiX} from 'react-icons/fi';
 import {CreateProjectRequest} from '@/types/api-types';
 import {useProjectHook} from '@/hooks/use-project-hook';
@@ -29,13 +30,13 @@ const variants = {
 };
 
 // 背景遮罩动画
-const backdropVariants = {
+const backdropVariants: Variants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1 },
 };
 
 // 模态框动画
-const modalVariants = {
+const modalVariants: Variants = {
   hidden: {
     opacity: 0,
     scale: 0.98,

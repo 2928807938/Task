@@ -2,6 +2,7 @@
 
 import React, {useEffect, useRef, useState} from 'react';
 import {AnimatePresence, motion} from 'framer-motion';
+import type { Variants } from 'framer-motion';
 import {FiChevronLeft, FiPlus, FiSearch, FiTrash2, FiX} from 'react-icons/fi';
 import {useAnalysisHistory} from './AnalysisHistoryProvider';
 import {AnalysisHistory, HistoryActionType} from './types/history';
@@ -27,7 +28,7 @@ const AnalysisHistoryDrawer: React.FC<AnalysisHistoryDrawerProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
 
   // 抽屉动画变体 - 更符合苹果设计的流畅动效
-  const drawerVariants = {
+  const drawerVariants: Variants = {
     hidden: { x: '100%', opacity: 0 },
     visible: {
       x: 0,
