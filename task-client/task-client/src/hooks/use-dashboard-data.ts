@@ -10,7 +10,9 @@ import {
   CollaborationActivity,
   DashboardData,
   DashboardOptions,
-  TaskClassificationResult,
+  DashboardApiPayload,
+  DashboardActivityItem,
+  DashboardTaskItem,
   DashboardHookResult
 } from '@/types/dashboard-types';
 
@@ -105,7 +107,7 @@ export const useDashboardData = (options: DashboardOptions = {}): DashboardHookR
   }, []);
 
   // 处理API返回的数据
-  const processApiData = useCallback((data: any) => {
+  const processApiData = useCallback((data: DashboardApiPayload): DashboardData => {
     try {
       let tasks: TodoTask[] = [];
       let activities: CollaborationActivity[] = [];
@@ -117,8 +119,7 @@ export const useDashboardData = (options: DashboardOptions = {}): DashboardHookR
                      [];
 
         if (items.length > 0) {
-          // 映射数据到组件需要的格式
-          tasks = items.map((task: any) => ({
+          tasks = (items as DashboardTaskItem[]).map((task) => ({
             id: task.id || '',
             title: task.title || '',
             description: task.description || '',
@@ -145,7 +146,7 @@ export const useDashboardData = (options: DashboardOptions = {}): DashboardHookR
 
       // 处理协作动态信息
       if (data.activities && Array.isArray(data.activities)) {
-        activities = data.activities.map((activity: any) => ({
+        activities = data.activities.map((activity: DashboardActivityItem) => ({
           id: activity.id || '',
           type: activity.type || '',
           userId: activity.userId || '',

@@ -5,6 +5,7 @@
 
 // 导入基础API类型
 import { ApiResponse } from './api-types';
+import type { QueryObserverResult, RefetchOptions } from '@tanstack/react-query';
 
 /**
  * 任务基础类型 - 统一TodoTask定义
@@ -62,6 +63,54 @@ export interface DashboardDataResponse {
   activities: CollaborationActivity[];
 }
 
+export interface DashboardTaskItem {
+  id?: string;
+  title?: string;
+  description?: string;
+  projectId?: string;
+  projectName?: string;
+  statusId?: string;
+  statusName?: string;
+  status?: string;
+  statusColor?: string;
+  priorityId?: string;
+  priorityName?: string;
+  priority?: string;
+  priorityColor?: string;
+  priorityScore?: string;
+  dueDate?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  assigneeId?: string;
+  assigneeName?: string;
+  assignee?: string;
+  creatorId?: string;
+  creatorName?: string;
+  creator?: string;
+  progress?: string;
+}
+
+export interface DashboardActivityItem {
+  id?: string;
+  type?: string;
+  userId?: string;
+  username?: string;
+  projectId?: string;
+  projectName?: string;
+  content?: string;
+  timestamp?: string;
+  taskId?: string;
+  taskTitle?: string;
+  userName?: string;
+}
+
+export interface DashboardApiPayload {
+  tasks?: {
+    items?: DashboardTaskItem[];
+  } | DashboardTaskItem[];
+  activities?: DashboardActivityItem[];
+}
+
 /**
  * Dashboard API响应类型
  */
@@ -111,10 +160,13 @@ export interface DashboardOptions {
 export interface DashboardHookResult extends DashboardData, DashboardStats {
   isLoading: boolean;
   isRefreshing: boolean;
-  error: any;
+  isFetching: boolean;
+  lastUpdated: Date | null;
+  dataFreshness: 'configurable' | 'static';
+  error: Error | null;
   refreshData: () => Promise<void>;
   classifyTasks: (tasks: TodoTask[]) => TaskClassificationResult;
-  processApiData: (data: any) => DashboardData;
+  processApiData: (data: DashboardApiPayload) => DashboardData;
 }
 
 /**

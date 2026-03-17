@@ -23,4 +23,6 @@ export const api = {
   comment: commentApi,
 };
 
+export {userApi, teamApi, dashboardApi, commentApi};
+
 export default api;

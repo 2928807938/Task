@@ -22,6 +22,19 @@ import {
 } from '@/types/task-ios-types';
 import {TaskRepositoryImpl} from '../repositories/task-repository-impl';
 
+type StreamAnalyzeRequestBody = {
+  projectId: string;
+  content: string;
+  conversationListId?: string;
+};
+
+type EventListenerMap = Record<string, EventListener[]>;
+
+type PostEventSource = EventSource & {
+  listeners: EventListenerMap;
+  abortController?: AbortController;
+};
+
 /**
  * 获取认证令牌
  */
@@ -53,7 +66,7 @@ export const taskApi = {
     const baseUrl = createUrl(endpoint);
 
     // 注意：conversationListId 可能超过 JS 安全整数范围，必须按字符串透传，避免精度丢失
-    const requestBody: Record<string, any> = {
+    const requestBody: StreamAnalyzeRequestBody = {
       projectId,
       content
     };
@@ -79,10 +92,10 @@ export const taskApi = {
    * @param options 请求选项
    * @returns 返回一个类似EventSource的对象
    */
-  _createPostEventSource(url: string, options: RequestInit = {}): any {
+  _createPostEventSource(url: string, options: RequestInit = {}): PostEventSource {
     // 创建一个自定义对象，模拟EventSource的API
-    const eventSource: any = {
-      listeners: {},
+    const eventSource = {
+      listeners: {} as EventListenerMap,
       addEventListener: function(type: string, listener: EventListener) {
         if (!this.listeners[type]) {
           this.listeners[type] = [];
@@ -128,7 +141,7 @@ export const taskApi = {
       CONNECTING: 0,
       OPEN: 1,
       CLOSED: 2
-    };
+    } as PostEventSource;
 
     // 创建AbortController来控制取消请求
     const abortController = new AbortController();
@@ -219,12 +232,12 @@ export const taskApi = {
    * @param description 任务分配描述，字符串或对象
    * @returns 返回一个类似EventSource的对象
    */
-  streamAssignTask: (projectId: string, description: string | object): any => {
+  streamAssignTask: (projectId: string, description: string | object): EventSource => {
     // 获取认证令牌
     const token = getAuthToken();
 
     // 处理description参数，确保它是一个字符串
-    let descriptionStr = typeof description === 'object'
+    const descriptionStr = typeof description === 'object'
       ? JSON.stringify(description)
       : description;
 
@@ -374,10 +387,10 @@ export const taskApi = {
    * @param taskData 编辑任务请求数据
    * @returns 编辑结果
    */
-  editTask: async (taskData: EditTaskRequest): Promise<ApiResponse<any>> => {
+  editTask: async (taskData: EditTaskRequest): Promise<ApiResponse<null>> => {
     const token = getAuthToken();
     // 直接使用httpClient.post方法，并启用通知功能
-    return httpClientImpl.post<any>(`/api/client/task/edit`, taskData, {
+    return httpClientImpl.post<null>(`/api/client/task/edit`, taskData, {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       showNotification: true,
       fallbackMessage: '任务编辑操作'
@@ -399,9 +412,9 @@ export const taskApi = {
    * @param statusId 新的状态ID
    * @returns 更新结果
    */
-  updateTaskStatus: async (taskId: string, statusId: string): Promise<ApiResponse<any>> => {
+  updateTaskStatus: async (taskId: string, statusId: string): Promise<ApiResponse<null>> => {
     const token = getAuthToken();
-    return httpClientImpl.post<any>(`/api/client/task/${taskId}/status`, { statusId }, {
+    return httpClientImpl.post<null>(`/api/client/task/${taskId}/status`, { statusId }, {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       showNotification: true, // 显示操作结果通知
       fallbackMessage: '任务状态更新'

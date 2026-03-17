@@ -1,6 +1,6 @@
 "use client";
 
-import {useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {
   AnalysisData,
   ChatMessage,
@@ -10,14 +10,82 @@ import {
 } from '@/ui/organisms/AiAnalysisModal/components/types';
 import {WorkloadAnalysisData} from '@/ui/organisms/AiAnalysisModal/components/WorkloadAnalysisPanel';
 import {PertWorkloadData} from '@/ui/organisms/AiAnalysisModal/components/PertWorkloadPanel';
-import {AnalysisMessageType} from './use-task-hook';
+import {AnalysisMessage, AnalysisMessageType, AnalysisResult} from './use-task-hook';
+
+type JsonPrimitive = string | number | boolean | null;
+type JsonValue = JsonPrimitive | JsonObject | JsonValue[];
+type JsonObject = { [key: string]: JsonValue };
+
+type TaskSplitSubTaskInput = Partial<TaskSplitData['sub_tasks'][number]> & Record<string, JsonValue>;
+type TaskSplitParsedData = JsonObject & {
+  main_task?: string | TaskSplitData['main_task'];
+  sub_tasks?: TaskSplitSubTaskInput[];
+  parallelism_score?: number;
+  parallel_execution_tips?: string;
+};
+
+type CompletenessCategory = {
+  name?: string;
+  category?: string;
+  completeness?: string;
+  score?: string | number;
+  suggestions?: string;
+  recommendation?: string;
+};
+
+type CompletenessDetailValue = {
+  completeness?: string;
+  score?: string | number;
+  suggestions?: string;
+  recommendation?: string;
+};
+
+type SuggestionInput = string | {
+  icon?: string;
+  type?: string;
+  content?: string;
+  text?: string;
+  message?: string;
+};
+
+type RecommendationInput = {
+  priority?: string;
+  content?: string;
+  text?: string;
+  description?: string;
+};
+
+type CompletenessParsedData = JsonObject & {
+  overallCompleteness?: string;
+  overall?: string | number;
+  completeness?: string | number;
+  aspects?: CompletenessAnalysis['aspects'];
+  categories?: CompletenessCategory[];
+  details?: Record<string, string | CompletenessDetailValue>;
+  optimizationSuggestions?: CompletenessAnalysis['optimizationSuggestions'];
+  suggestions?: SuggestionInput[];
+  recommendations?: RecommendationInput[];
+};
+
+type PriorityParsedData = JsonObject & {
+  priority?: {
+    level?: string;
+    score?: number;
+    analysis?: string;
+  };
+  scheduling?: JsonValue;
+};
+
+const isJsonObject = (value: JsonValue | null): value is JsonObject => {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+};
 
 export default function useAiAnalysisDataHook(
-  analysisResult: any,
+  analysisResult: AnalysisResult,
   isStreaming: boolean,
-  streamingError: any,
+  streamingError: string | null,
   streamingComplete: boolean,
-  analysisMessages: any[],
+  analysisMessages: AnalysisMessage[],
   messages: ChatMessage[],
   setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>
 ) {
@@ -53,8 +121,6 @@ export default function useAiAnalysisDataHook(
     if (analysisMessages.length > 0) {
       // 将分析消息转换为聊天消息
       const newMessages: ChatMessage[] = [];
-      let analysisCompleted = false;
-
       analysisMessages.forEach(msg => {
         if (msg.type === AnalysisMessageType.START) {
           // 分析开始消息不需要显示
@@ -64,7 +130,6 @@ export default function useAiAnalysisDataHook(
             isAi: true,
             type: msg.type
           });
-          analysisCompleted = true;
 
           // 当分析完成时，更新analysisData中的streamingComplete状态
           setAnalysisData(prevData => ({
@@ -105,7 +170,7 @@ export default function useAiAnalysisDataHook(
   }, [isStreaming, streamingError, streamingComplete]);
 
   // 检查数据是否完整可解析
-  const isDataCompleteForParsing = (content: string): boolean => {
+  const isDataCompleteForParsing = useCallback((content: string): boolean => {
     if (!content || content.trim() === '') {
       return false;
     }
@@ -130,10 +195,10 @@ export default function useAiAnalysisDataHook(
 
     // 如果括号不平衡，说明JSON不完整
     return !(openBraces !== 0 || openBrackets !== 0);
-  };
+  }, []);
 
   // 通用的JSON解析方法，用于处理各种类型的JSON数据（包括Markdown格式）
-  const parseJsonContent = (content: string) => {
+  const parseJsonContent = useCallback((content: string): JsonValue | null => {
     if (!content || content.trim() === '') {
       return null;
     }
@@ -147,7 +212,7 @@ export default function useAiAnalysisDataHook(
       // 直接尝试解析JSON
       try {
         return JSON.parse(content.trim());
-      } catch (e) {
+      } catch {
         // 直接解析失败，继续尝试其他方法
       }
 
@@ -162,7 +227,7 @@ export default function useAiAnalysisDataHook(
           try {
             const extractedJson = jsonMatch[1].trim();
             return JSON.parse(extractedJson);
-          } catch (extractError) {
+          } catch {
             // 继续使用其他方法尝试
           }
         }
@@ -178,7 +243,7 @@ export default function useAiAnalysisDataHook(
       // 尝试解析清理后的内容
       try {
         return JSON.parse(cleanedContent);
-      } catch (cleanError) {
+      } catch {
         // 尝试修复JSON
         try {
           // 修复可能的JSON格式问题
@@ -199,7 +264,7 @@ export default function useAiAnalysisDataHook(
 
           try {
             return JSON.parse(fixedJson);
-          } catch (innerFixError) {
+          } catch {
             // 如果还是失败，尝试更激进的修复
             // 移除所有可能导致问题的转义字符
             fixedJson = fixedJson.replace(/\\(?=[^"\\])/g, '');
@@ -207,11 +272,11 @@ export default function useAiAnalysisDataHook(
             fixedJson = fixedJson.replace(/(\w+)\s*:/g, '"$1":');
             try {
               return JSON.parse(fixedJson);
-            } catch (finalError) {
+            } catch {
               // 继续尝试下一个方法
             }
           }
-        } catch (fixError) {
+        } catch {
           // 继续尝试其他方法
         }
 
@@ -225,22 +290,22 @@ export default function useAiAnalysisDataHook(
             for (const match of matches) {
               try {
                 return JSON.parse(match);
-              } catch (matchError) {
+              } catch {
                 // 尝试修复这个匹配项
                 try {
-                  let fixedMatch = match
+                  const fixedMatch = match
                       // 修复未终止的字符串
                       .replace(/"([^"]*)(?=[\r\n]|$)/g, '"$1"')
                       // 确保所有属性名都有引号
                       .replace(/(\w+)\s*:/g, '"$1":');
                   return JSON.parse(fixedMatch);
-                } catch (fixMatchError) {
+                } catch {
                   // 继续尝试下一个
                 }
               }
             }
           }
-        } catch (e) {
+        } catch {
           // 最后尝试失败
         }
 
@@ -248,15 +313,14 @@ export default function useAiAnalysisDataHook(
         // 这样至少可以避免UI出错
         return {};
       }
-    } catch (error) {
+    } catch {
       // JSON解析过程中出现意外错误
       return {};
     }
-  };
+  }, [isDataCompleteForParsing]);
 
   // 处理建议数据
-  let handleSuggestionsData: () => (boolean);
-  handleSuggestionsData = () => {
+  const handleSuggestionsData = useCallback((): boolean => {
     try {
       if (!analysisResult || !analysisResult.suggestions) return false;
 
@@ -289,7 +353,7 @@ export default function useAiAnalysisDataHook(
       const parsedData = parseJsonContent(rawData);
 
       // 检查解析后的数据是否符合预期结构
-      if (parsedData && typeof parsedData === 'object' && Array.isArray(parsedData.suggestions)) {
+      if (isJsonObject(parsedData) && Array.isArray(parsedData.suggestions)) {
         // 更新分析数据
         setAnalysisData(prev => ({
           ...prev,
@@ -302,11 +366,10 @@ export default function useAiAnalysisDataHook(
       console.error('处理建议数据出错:', error);
       return false;
     }
-  };
+  }, [analysisResult, parseJsonContent]);
 
   // 处理任务拆分数据
-  let handleTaskSplitData: () => (boolean);
-  handleTaskSplitData = () => {
+  const handleTaskSplitData = useCallback((): boolean => {
     try {
       if (!analysisResult || !analysisResult.taskSplit) {
         return false;
@@ -334,38 +397,36 @@ export default function useAiAnalysisDataHook(
 
       // 尝试解析为JSON对象
       const parsedData = parseJsonContent(rawData);
-      if (!parsedData) return false;
+      if (!isJsonObject(parsedData)) return false;
+      const taskSplitData = parsedData as TaskSplitParsedData;
 
       // 标准化数据结构
       // 先处理子任务数据，确保字段名称一致性
-      let processedSubTasks = [];
-      if (parsedData.sub_tasks && Array.isArray(parsedData.sub_tasks)) {
-        processedSubTasks = parsedData.sub_tasks.map((task: any, index: number) => {
+      const processedSubTasks: TaskSplitData['sub_tasks'] = Array.isArray(taskSplitData.sub_tasks)
+        ? taskSplitData.sub_tasks.flatMap((task, index) => {
           if (!task) return null; // 跳过空任务
 
-          // 创建新对象，确保字段名称一致性
-
-          return {
+          return [{
             ...task,
-            id: task.id || `task-${Date.now()}-${index}`,
-            name: task.name || `子任务 ${index + 1}`,
-            description: task.description || '',
-            // 确保dependency字段存在，保持与SubTask接口一致
-            dependency: task.dependency || [],
-            // 确保其他必要字段存在
-            priority: task.priority || '中',
-            parallel_group: task.parallel_group || '默认'
-          };
-        }).filter(Boolean); // 过滤掉空值
-      }
+            id: typeof task.id === 'string' ? task.id : `task-${Date.now()}-${index}`,
+            name: typeof task.name === 'string' ? task.name : `子任务 ${index + 1}`,
+            description: typeof task.description === 'string' ? task.description : '',
+            dependency: Array.isArray(task.dependency)
+              ? task.dependency.filter((item): item is string => typeof item === 'string')
+              : [],
+            priority: typeof task.priority === 'string' ? task.priority : '中',
+            parallel_group: typeof task.parallel_group === 'string' ? task.parallel_group : '默认'
+          }];
+        })
+        : [];
 
       const standardData: TaskSplitData = {
-        main_task: typeof parsedData.main_task === 'string' ?
-            {name: parsedData.main_task, description: ''} :
-            parsedData.main_task || {name: '', description: ''},
+        main_task: typeof taskSplitData.main_task === 'string' ?
+            {name: taskSplitData.main_task, description: ''} :
+            taskSplitData.main_task || {name: '', description: ''},
         sub_tasks: processedSubTasks,
-        parallelism_score: parsedData.parallelism_score || 0,
-        parallel_execution_tips: parsedData.parallel_execution_tips || ''
+        parallelism_score: typeof taskSplitData.parallelism_score === 'number' ? taskSplitData.parallelism_score : 0,
+        parallel_execution_tips: typeof taskSplitData.parallel_execution_tips === 'string' ? taskSplitData.parallel_execution_tips : ''
       };
 
       // 更新分析数据
@@ -382,14 +443,13 @@ export default function useAiAnalysisDataHook(
 
       return true;
 
-    } catch (error) {
+    } catch {
       return false;
     }
-  };
+  }, [analysisResult, parseJsonContent]);
 
   // 处理工作量分析数据
-  let handleWorkloadAnalysisData: () => (boolean);
-  handleWorkloadAnalysisData = () => {
+  const handleWorkloadAnalysisData = useCallback((): boolean => {
     try {
       // 处理原始数据，清理Markdown代码块
       let rawData = analysisResult?.workload?.trim();
@@ -423,10 +483,10 @@ export default function useAiAnalysisDataHook(
       // 解析JSON数据
       try {
         // 尝试解析JSON，如果数据不完整，逐步尝试删除可能不完整的部分
-        let parsedData;
+        let parsedData: PertWorkloadData | WorkloadAnalysisData;
         try {
           parsedData = JSON.parse(rawData);
-        } catch (jsonError) {
+        } catch {
           // 如果直接解析失败，尝试修复不完整的JSON
           // 删除最后一个可能不完整的对象或数组
           let fixedData = rawData;
@@ -442,7 +502,7 @@ export default function useAiAnalysisDataHook(
             fixedData = fixedData.substring(0, lastValidBrace + 1);
             try {
               parsedData = JSON.parse(fixedData);
-            } catch (fixError) {
+            } catch {
               // 如果修复失败，则静默返回失败
               return false;
             }
@@ -521,18 +581,17 @@ export default function useAiAnalysisDataHook(
 
         return false;
 
-      } catch (error) {
+      } catch {
         // 静默返回失败，不输出日志
         return false;
       }
-    } catch (error) {
+    } catch {
       return false;
     }
-  };
+  }, [analysisResult]);
 
   // 处理完整度分析数据
-  let handleCompletenessAnalysisData: () => (boolean);
-  handleCompletenessAnalysisData = () => {
+  const handleCompletenessAnalysisData = useCallback((): boolean => {
     try {
       if (!analysisResult || !analysisResult.completion) {
         return false;
@@ -560,7 +619,8 @@ export default function useAiAnalysisDataHook(
 
       // 尝试解析为JSON对象
       const parsedData = parseJsonContent(rawData);
-      if (!parsedData) return false;
+      if (!isJsonObject(parsedData)) return false;
+      const completenessData = parsedData as CompletenessParsedData;
 
       // 标准化数据结构
       const standardData: CompletenessAnalysis = {
@@ -570,54 +630,53 @@ export default function useAiAnalysisDataHook(
       };
 
       // 处理总体完整度
-      if (parsedData.overallCompleteness) {
-        standardData.overallCompleteness = parsedData.overallCompleteness;
-      } else if (parsedData.overall) {
-        standardData.overallCompleteness = typeof parsedData.overall === 'string'
-            ? parsedData.overall
-            : `${parsedData.overall}%`;
-      } else if (parsedData.completeness) {
-        standardData.overallCompleteness = typeof parsedData.completeness === 'string'
-            ? parsedData.completeness
-            : `${parsedData.completeness}%`;
+      if (completenessData.overallCompleteness) {
+        standardData.overallCompleteness = completenessData.overallCompleteness;
+      } else if (completenessData.overall) {
+        standardData.overallCompleteness = typeof completenessData.overall === 'string'
+            ? completenessData.overall
+            : `${completenessData.overall}%`;
+      } else if (completenessData.completeness) {
+        standardData.overallCompleteness = typeof completenessData.completeness === 'string'
+            ? completenessData.completeness
+            : `${completenessData.completeness}%`;
       }
 
       // 处理各方面完整度
-      if (Array.isArray(parsedData.aspects)) {
-        standardData.aspects = parsedData.aspects;
-      } else if (Array.isArray(parsedData.categories)) {
-        standardData.aspects = parsedData.categories.map((cat: any) => ({
+      if (Array.isArray(completenessData.aspects)) {
+        standardData.aspects = completenessData.aspects;
+      } else if (Array.isArray(completenessData.categories)) {
+        standardData.aspects = completenessData.categories.map((cat) => ({
           name: cat.name || cat.category || '',
           completeness: cat.completeness || cat.score || '0%',
           suggestions: cat.suggestions || cat.recommendation || ''
         }));
-      } else if (parsedData.details && typeof parsedData.details === 'object') {
-        // 处理对象形式的详情
-        standardData.aspects = Object.entries(parsedData.details).map(([key, value]: [string, any]) => ({
+      } else if (completenessData.details && typeof completenessData.details === 'object') {
+        standardData.aspects = Object.entries(completenessData.details).map(([key, value]) => ({
           name: key,
-          completeness: value.completeness || value.score || (typeof value === 'string' ? value : '0%'),
-          suggestions: value.suggestions || value.recommendation || ''
+          completeness: typeof value === 'string' ? value : value.completeness || value.score || '0%',
+          suggestions: typeof value === 'string' ? '' : value.suggestions || value.recommendation || ''
         }));
       }
 
       // 处理优化建议
-      if (Array.isArray(parsedData.optimizationSuggestions)) {
-        standardData.optimizationSuggestions = parsedData.optimizationSuggestions;
-      } else if (Array.isArray(parsedData.suggestions)) {
-        standardData.optimizationSuggestions = parsedData.suggestions.map((sug: any) => {
+      if (Array.isArray(completenessData.optimizationSuggestions)) {
+        standardData.optimizationSuggestions = completenessData.optimizationSuggestions;
+      } else if (Array.isArray(completenessData.suggestions)) {
+        standardData.optimizationSuggestions = completenessData.suggestions.map((sug) => {
           if (typeof sug === 'string') {
             return {icon: "ℹ️", content: sug};
           } else {
             return {
-              icon: sug.icon || sug.type === 'warning' ? '⚠️' :
+              icon: sug.icon || (sug.type === 'warning' ? '⚠️' :
                   sug.type === 'error' ? '❌' :
-                      sug.type === 'success' ? '✅' : 'ℹ️',
+                      sug.type === 'success' ? '✅' : 'ℹ️'),
               content: sug.content || sug.text || sug.message || ''
             };
           }
         });
-      } else if (Array.isArray(parsedData.recommendations)) {
-        standardData.optimizationSuggestions = parsedData.recommendations.map((rec: any) => ({
+      } else if (Array.isArray(completenessData.recommendations)) {
+        standardData.optimizationSuggestions = completenessData.recommendations.map((rec) => ({
           icon: rec.priority === 'high' ? '❌' :
               rec.priority === 'medium' ? '⚠️' :
                   rec.priority === 'low' ? '✅' : 'ℹ️',
@@ -639,14 +698,13 @@ export default function useAiAnalysisDataHook(
 
       return true;
 
-    } catch (error) {
+    } catch {
       return false;
     }
-  };
+  }, [analysisResult, parseJsonContent]);
 
   // 处理优先级分析数据
-  let handlePriorityAnalysisData: () => (boolean);
-  handlePriorityAnalysisData = () => {
+  const handlePriorityAnalysisData = useCallback((): boolean => {
     try {
       if (!analysisResult || !analysisResult.priority) return false;
 
@@ -676,22 +734,15 @@ export default function useAiAnalysisDataHook(
       }
 
       // 尝试解析为JSON对象
-      let parsedData: {
-        priority?: {
-          level?: string;
-          score?: number;
-          analysis?: string;
-        };
-        scheduling?: any;
-        [key: string]: any;
-      } | null = null;
+      let parsedData: PriorityParsedData | null = null;
 
       try {
         // 尝试使用通用JSON解析方法
-        parsedData = parseJsonContent(rawData);
+        const jsonData = parseJsonContent(rawData);
+        parsedData = isJsonObject(jsonData) ? (jsonData as PriorityParsedData) : null;
 
         // 检查解析后的数据是否符合预期结构
-        if (parsedData && typeof parsedData === 'object') {
+        if (isJsonObject(parsedData)) {
           // 更新分析数据
           setAnalysisData(prev => ({
             ...prev,
@@ -702,7 +753,7 @@ export default function useAiAnalysisDataHook(
           }));
           return true;
         }
-      } catch (jsonError) {
+      } catch {
         // 流式数据中可能会出现不完整的JSON片段，这是正常情况
         if (process.env.NODE_ENV === 'development') {
           console.debug('优先级数据解析跳过:', rawData.substring(0, 50) + '...');
@@ -713,11 +764,10 @@ export default function useAiAnalysisDataHook(
       console.error('处理优先级数据出错:', error);
       return false;
     }
-  };
+  }, [analysisResult, parseJsonContent]);
 
   // 处理综合分析数据
-  let handleComprehensiveAnalysisData: () => (boolean);
-  handleComprehensiveAnalysisData = () => {
+  const handleComprehensiveAnalysisData = useCallback((): boolean => {
     if (!analysisResult || !analysisResult.comprehensive) {
       return false;
     }
@@ -725,8 +775,7 @@ export default function useAiAnalysisDataHook(
     try {
       // 清理数据，提取JSON
       let dataContent = analysisResult.comprehensive.trim();
-      // 使用现有的ComprehensiveAnalysis类型，确保类型匹配
-      let parsedData: ComprehensiveAnalysis | undefined = undefined;
+      let parsedData: ComprehensiveAnalysis | null = null;
 
       // 检查是否是Markdown代码块格式
       if (dataContent.includes('```json')) {
@@ -748,7 +797,10 @@ export default function useAiAnalysisDataHook(
 
       try {
         // 尝试解析JSON
-        parsedData = parseJsonContent(dataContent);
+        const jsonData = parseJsonContent(dataContent);
+        if (isJsonObject(jsonData)) {
+          parsedData = jsonData as ComprehensiveAnalysis;
+        }
 
         // 检查是否有必要的字段
         if (!parsedData || !parsedData.summary) {
@@ -777,14 +829,14 @@ export default function useAiAnalysisDataHook(
         }));
 
         return true;
-      } catch (parseError) {
+      } catch {
         // 当解析失败时，什么也不做，待数据完整后再尝试
         return false;
       }
-    } catch (error) {
+    } catch {
       return false;
     }
-  };
+  }, [analysisResult, parseJsonContent, setMessages]);
 
   // 监听分析结果的变化
   useEffect(() => {
@@ -846,7 +898,7 @@ export default function useAiAnalysisDataHook(
         handleComprehensiveAnalysisData();
       }
     }
-  }, [analysisResult, streamingComplete, handleCompletenessAnalysisData, handleComprehensiveAnalysisData, handlePriorityAnalysisData, handleSuggestionsData, handleTaskSplitData, handleWorkloadAnalysisData]);
+  }, [analysisResult, streamingComplete, handleCompletenessAnalysisData, handleComprehensiveAnalysisData, handlePriorityAnalysisData, handleSuggestionsData, handleTaskSplitData, handleWorkloadAnalysisData, isDataCompleteForParsing]);
 
   // 返回需要的状态和函数
   return {

@@ -1,6 +1,7 @@
 import httpClientImpl from '@/infrastructure/http/http-client-impl';
 import Cookies from 'js-cookie';
 import {ApiResponse} from '@/types/api-types';
+import type {DashboardApiPayload} from '@/types/dashboard-types';
 
 /**
  * 获取认证令牌
@@ -18,9 +19,9 @@ export const dashboardApi = {
    * 包括未完成任务列表等信息
    * @returns 仪表盘数据响应
    */
-  getDashboardData: async (): Promise<ApiResponse<any>> => {
+  getDashboardData: async (): Promise<ApiResponse<DashboardApiPayload>> => {
     const token = getAuthToken();
-    return httpClientImpl.get<any>('/api/client/homepage/dashboard', {
+    return httpClientImpl.get<DashboardApiPayload>('/api/client/homepage/dashboard', {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined
     });
   }

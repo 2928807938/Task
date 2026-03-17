@@ -22,7 +22,7 @@ export interface ProjectRoleItem {
   name: string;     // 角色名称
   description: string; // 角色描述
   system: boolean;  // 是否为系统预设角色
-  [key: string]: any; // 允许其他属性
+  [key: string]: unknown; // 允许其他属性
 }
 
 export interface ProjectRepository {
