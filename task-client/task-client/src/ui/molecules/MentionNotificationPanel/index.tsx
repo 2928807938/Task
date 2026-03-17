@@ -16,7 +16,8 @@ import { Avatar } from '@/ui/atoms/Avatar';
 import { Input } from '@/ui/atoms/Input';
 import { LoadingSpinner } from '@/ui/molecules/LoadingSpinner';
 import { useMentionNotifications } from '@/hooks/use-task-comments-hook';
-import { formatDate } from '@/utils/date-utils';
+import type { MentionNotification } from '@/types/api-types';
+import { getRelativeTime } from '@/utils/date-utils';
 
 interface MentionNotificationPanelProps {
   /** 是否显示面板 */
@@ -60,7 +61,7 @@ const MentionNotificationPanel: React.FC<MentionNotificationPanelProps> = ({
   });
 
   // 处理通知点击
-  const handleNotificationClick = useCallback((notification: any) => {
+  const handleNotificationClick = useCallback((notification: MentionNotification) => {
     onNotificationClick?.(notification.taskId, notification.commentId);
     
     // 标记为已读
@@ -189,7 +190,7 @@ const MentionNotificationPanel: React.FC<MentionNotificationPanelProps> = ({
             ) : error ? (
               <div className="p-6 text-center">
                 <div className="text-red-500 mb-2">加载失败</div>
-                <Button variant="ghost" size="sm" onClick={refetch}>
+                <Button variant="ghost" size="sm" onClick={() => void refetch()}>
                   重试
                 </Button>
               </div>
@@ -238,7 +239,7 @@ const MentionNotificationPanel: React.FC<MentionNotificationPanelProps> = ({
                         
                         <div className="flex items-center justify-between">
                           <span className="text-xs text-gray-400 dark:text-gray-500">
-                            {formatDate(notification.createdAt, { format: 'relative' })}
+                            {getRelativeTime(notification.createdAt)}
                           </span>
                           <ExternalLink className="w-3 h-3 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>

@@ -158,11 +158,15 @@ export const EmptyStateCard: React.FC<EmptyStateCardProps> = ({
 /**
  * 预设的常用空状态组件
  */
-export const EmptyTasksCard: React.FC<Omit<EmptyStateCardProps, 'icon' | 'title' | 'description'> & { variant?: 'upcoming' | 'completed' | 'general' }> = ({
+type EmptyTasksVariant = 'upcoming' | 'completed' | 'general';
+type EmptyTasksConfig = { icon: React.LazyExoticComponent<React.ComponentType<any>>; title: string; description: string };
+
+export const EmptyTasksCard: React.FC<Omit<EmptyStateCardProps, 'icon' | 'title' | 'description'> & { variant?: EmptyTasksVariant }> = ({
   variant = 'general',
   ...props
 }) => {
-  const configs = {
+  const currentVariant = variant as EmptyTasksVariant;
+  const configs: Record<EmptyTasksVariant, EmptyTasksConfig> = {
     upcoming: {
       icon: React.lazy(() => import('react-icons/fi').then(mod => ({ default: mod.FiClock }))),
       title: '暂无临期任务',
@@ -180,7 +184,7 @@ export const EmptyTasksCard: React.FC<Omit<EmptyStateCardProps, 'icon' | 'title'
     }
   };
 
-  const config = configs[variant];
+  const config = configs[currentVariant];
 
   return (
     <React.Suspense fallback={<div>Loading...</div>}>

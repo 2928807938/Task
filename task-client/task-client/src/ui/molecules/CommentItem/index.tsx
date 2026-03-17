@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { Avatar } from '@/ui/atoms/Avatar';
 import { Button } from '@/ui/atoms/Button';
-import { formatDate } from '@/utils/date-utils';
+import { getRelativeTime } from '@/utils/date-utils';
 import { TaskComment } from '@/types/api-types';
 import CommentEditor from '../CommentEditor';
 
@@ -103,7 +103,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
 
   // 格式化时间
   const formattedTime = useMemo(() => {
-    return formatDate(comment.createdAt, { format: 'relative' });
+    return getRelativeTime(comment.createdAt);
   }, [comment.createdAt]);
 
   return (

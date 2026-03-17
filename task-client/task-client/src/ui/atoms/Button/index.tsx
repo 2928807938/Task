@@ -1,12 +1,12 @@
 "use client";
 
-import React, {useCallback} from 'react';
+import React, {forwardRef, useCallback} from 'react';
 import {FiCheck, FiEdit, FiPlus, FiSearch, FiTrash, FiX} from 'react-icons/fi';
 import {showLoading} from '@/utils/loading-utils';
 
 type IconType = 'plus' | 'edit' | 'delete' | 'check' | 'close' | 'search' | null;
 
-interface ButtonProps {
+export interface ButtonProps {
   children?: React.ReactNode;
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
   size?: 'sm' | 'md' | 'lg';
@@ -15,7 +15,7 @@ interface ButtonProps {
   fullWidth?: boolean;
   disabled?: boolean;
   className?: string;
-  onClick?: () => void;
+  onClick?: React.MouseEventHandler<HTMLButtonElement | HTMLAnchorElement>;
   type?: 'button' | 'submit' | 'reset';
   isLoading?: boolean;
   loadingText?: string;
@@ -33,7 +33,7 @@ interface ButtonProps {
   href?: string;
 }
 
-const Button: React.FC<ButtonProps> = ({
+const Button = forwardRef<HTMLButtonElement, ButtonProps>(({ 
   children,
   variant = 'primary',
   size = 'md',
@@ -49,7 +49,7 @@ const Button: React.FC<ButtonProps> = ({
   isNavigation = false,
   navLoadingText = '页面加载中',
   href,
-}) => {
+}, ref) => {
   const getIcon = (iconName: IconType) => {
     switch (iconName) {
       case 'plus':
@@ -89,15 +89,13 @@ const Button: React.FC<ButtonProps> = ({
   const disabledStyle = (disabled || isLoading) ? "opacity-50 cursor-not-allowed" : "cursor-pointer";
 
   // 处理点击事件，如果是导航按钮，显示全局加载状态
-  const handleClick = useCallback(() => {
+  const handleClick = useCallback<React.MouseEventHandler<HTMLButtonElement | HTMLAnchorElement>>((event) => {
     if (isNavigation) {
-      // 触发全局加载状态
       showLoading(navLoadingText);
     }
 
-    // 调用原始的onClick处理函数
     if (onClick) {
-      onClick();
+      onClick(event);
     }
   }, [isNavigation, navLoadingText, onClick]);
 
@@ -138,6 +136,7 @@ const Button: React.FC<ButtonProps> = ({
     </a>
   ) : (
     <button
+      ref={ref}
       type={type}
       className={`${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${widthStyle} ${disabledStyle} ${className} flex items-center justify-center`}
       onClick={handleClick}
@@ -147,7 +146,9 @@ const Button: React.FC<ButtonProps> = ({
       {renderContent()}
     </button>
   );
-};
+});
+
+Button.displayName = 'Button';
 
 export default Button;
 export {Button};
