@@ -12,6 +12,7 @@ interface ActivityState {
   filteredActivities: ActivityEvent[];
   filters: {
     projectId?: number;
+    taskId?: number;
     userId?: number;
     activityType?: string;
     timeRange?: 'today' | 'week' | 'month' | 'all';
@@ -252,6 +253,11 @@ function applyFiltersToActivities(activities: ActivityEvent[], filters: Activity
   // 按项目ID过滤
   if (filters.projectId) {
     filtered = filtered.filter(activity => activity.projectId === filters.projectId);
+  }
+
+  // 按任务ID过滤
+  if (filters.taskId) {
+    filtered = filtered.filter(activity => activity.taskId === filters.taskId);
   }
 
   // 按用户ID过滤
