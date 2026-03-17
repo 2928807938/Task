@@ -59,6 +59,7 @@ GIT_SSH_CONTROL_PATH="${HOME}/.ssh/task-github-%r@%h:%p"
 GRADLE_VERSION="8.11.1"
 GRADLE_DOWNLOAD_URL="https://mirrors.cloud.tencent.com/gradle/gradle-${GRADLE_VERSION}-bin.zip"
 GRADLE_INSTALL_DIR="/opt/gradle"
+NPM_REGISTRY="https://registry.npmmirror.com"
 
 print_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
 print_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
@@ -609,13 +610,88 @@ install_postgresql() {
 configure_postgresql() {
     print_info "配置 PostgreSQL 数据库和用户..."
     sudo systemctl start postgresql || sudo systemctl start postgresql-16 || sudo systemctl start postgresql-15 || true
-    sudo -u postgres psql -tc "SELECT 1 FROM pg_database WHERE datname = '${POSTGRES_DB}'" | grep -q 1 || \
-        sudo -u postgres psql -c "CREATE DATABASE ${POSTGRES_DB};"
-    sudo -u postgres psql -tc "SELECT 1 FROM pg_roles WHERE rolname = '${POSTGRES_USER}'" | grep -q 1 || \
-        sudo -u postgres psql -c "CREATE USER ${POSTGRES_USER} WITH PASSWORD '${POSTGRES_PASSWORD}';"
-    sudo -u postgres psql -c "ALTER USER ${POSTGRES_USER} WITH PASSWORD '${POSTGRES_PASSWORD}';"
-    sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE ${POSTGRES_DB} TO ${POSTGRES_USER};"
+    sudo -u postgres psql -d postgres -tc "SELECT 1 FROM pg_database WHERE datname = '${POSTGRES_DB}'" | grep -q 1 || \
+        sudo -u postgres psql -d postgres -c "CREATE DATABASE ${POSTGRES_DB};"
+    sudo -u postgres psql -d postgres -tc "SELECT 1 FROM pg_roles WHERE rolname = '${POSTGRES_USER}'" | grep -q 1 || \
+        sudo -u postgres psql -d postgres -c "CREATE USER ${POSTGRES_USER} WITH PASSWORD '${POSTGRES_PASSWORD}';"
+    sudo -u postgres psql -d postgres -c "ALTER USER ${POSTGRES_USER} WITH PASSWORD '${POSTGRES_PASSWORD}';"
+    sudo -u postgres psql -d postgres -c "GRANT ALL PRIVILEGES ON DATABASE ${POSTGRES_DB} TO ${POSTGRES_USER};"
     print_success "PostgreSQL 配置完成"
+}
+
+get_postgresql_hba_config() {
+    local candidates="
+/etc/postgresql/${OS_VERSION}/main/pg_hba.conf
+/etc/postgresql/16/main/pg_hba.conf
+/etc/postgresql/15/main/pg_hba.conf
+/var/lib/pgsql/data/pg_hba.conf
+/var/lib/pgsql/16/data/pg_hba.conf
+/var/lib/pgsql/15/data/pg_hba.conf
+"
+    local path
+    while IFS= read -r path; do
+        [ -z "$path" ] && continue
+        if [ -f "$path" ]; then
+            printf '%s' "$path"
+            return 0
+        fi
+    done <<EOF
+$candidates
+EOF
+
+    sudo -u postgres psql -t -P format=unaligned -c "SHOW hba_file;" 2>/dev/null | head -n 1
+}
+
+configure_postgresql_authentication() {
+    print_info "配置 PostgreSQL 本地认证方式为密码认证..."
+    local pg_hba
+    pg_hba=$(get_postgresql_hba_config)
+
+    if [ -z "$pg_hba" ] || [ ! -f "$pg_hba" ]; then
+        print_error "未找到 pg_hba.conf，无法自动配置 PostgreSQL 认证方式"
+        return 1
+    fi
+
+    sudo cp "$pg_hba" "${pg_hba}.bak"
+    sudo python3 - "$pg_hba" <<'PY'
+import pathlib
+import re
+import sys
+
+config_path = pathlib.Path(sys.argv[1])
+lines = config_path.read_text().splitlines()
+updated = []
+
+patterns = [
+    (re.compile(r'^\s*local\s+all\s+postgres\s+'), 'local   all             postgres                                peer'),
+    (re.compile(r'^\s*local\s+all\s+all\s+'), 'local   all             all                                     peer'),
+    (re.compile(r'^\s*host\s+all\s+all\s+127\.0\.0\.1/32\s+'), 'host    all             all             127.0.0.1/32            md5'),
+    (re.compile(r'^\s*host\s+all\s+all\s+::1/128\s+'), 'host    all             all             ::1/128                 md5'),
+]
+
+matched = [False, False, False, False]
+
+for line in lines:
+    replaced = False
+    for index, (pattern, replacement) in enumerate(patterns):
+        if pattern.match(line) and not line.lstrip().startswith('#'):
+            updated.append(replacement)
+            matched[index] = True
+            replaced = True
+            break
+    if not replaced:
+        updated.append(line)
+
+for index, found in enumerate(matched):
+    if not found:
+        updated.append(patterns[index][1])
+
+config_path.write_text('\n'.join(updated) + '\n')
+PY
+
+    sudo systemctl restart postgresql || sudo systemctl restart postgresql-16 || sudo systemctl restart postgresql-15 || true
+    wait_for_port "$POSTGRES_PORT" 60
+    print_success "PostgreSQL 认证方式已更新: $pg_hba"
 }
 
 install_redis() {
@@ -717,6 +793,7 @@ main_deploy() {
     install_java
     install_nodejs
     install_postgresql
+    configure_postgresql_authentication
     configure_postgresql
     install_redis
     configure_redis
@@ -843,13 +920,13 @@ start_frontend() {
     if [ ! -d "$FRONTEND_DIR/node_modules" ]; then
         print_info "安装前端依赖..."
         cd "$FRONTEND_DIR"
-        npm install --registry=https://registry.npmmirror.com
+        npm install --registry="$NPM_REGISTRY"
     fi
     cd "$FRONTEND_DIR"
     print_info "构建前端项目..."
     npm run build
     print_info "正在启动前端服务..."
-    nohup npm run start > "$FRONTEND_LOG" 2>&1 &
+    nohup npm run start -- -p "$FRONTEND_PORT" > "$FRONTEND_LOG" 2>&1 &
     echo $! > "$FRONTEND_PID"
     if wait_for_port "$FRONTEND_PORT" 60; then
         print_success "前端服务启动成功"
