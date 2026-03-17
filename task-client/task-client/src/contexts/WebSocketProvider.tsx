@@ -6,9 +6,13 @@ import { useActivityStore } from '@/store/websocket/useActivityStore';
 import { usePresenceStore } from '@/store/websocket/usePresenceStore';
 import { useNotificationStore } from '@/store/websocket/useNotificationStore';
 import { WebSocketConnectionStatus } from '@/infrastructure/websocket/types';
-import { webSocketManager } from '@/infrastructure/websocket/websocket-manager';
 import { useCurrentUser } from '@/hooks/use-user-hook';
 import { useToast } from '@/ui/molecules/Toast';
+
+const toNumericId = (value: string): number | null => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
 
 interface WebSocketContextValue {
   // 连接状态
@@ -43,8 +47,9 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   children,
   autoConnect = true
 }) => {
-  const { showToast } = useToast();
-  const { user } = useCurrentUser();
+  const { addToast } = useToast();
+  const { data: currentUserResponse } = useCurrentUser();
+  const user = currentUserResponse?.data;
 
   // WebSocket状态
   const {
@@ -94,8 +99,14 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
       return;
     }
 
-    console.log('[WebSocketProvider] Auto-connecting WebSocket for user:', user.id);
-    initialize(token, user.id);
+    const userId = toNumericId(user.id);
+    if (userId === null) {
+      console.warn('[WebSocketProvider] Invalid user id for WebSocket initialization:', user.id);
+      return;
+    }
+
+    console.log('[WebSocketProvider] Auto-connecting WebSocket for user:', userId);
+    initialize(token, userId);
 
     // 清理函数
     return () => {
@@ -108,44 +119,28 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   useEffect(() => {
     switch (connectionStatus) {
       case WebSocketConnectionStatus.CONNECTED:
-        showToast?.({
-          type: 'success',
-          message: '实时功能已连接',
-          duration: 2000
-        });
+        addToast('实时功能已连接', 'success', 2000);
         break;
       
       case WebSocketConnectionStatus.ERROR:
-        showToast?.({
-          type: 'error',
-          message: '实时功能连接失败',
-          duration: 3000
-        });
+        addToast('实时功能连接失败', 'error', 3000);
         break;
       
       case WebSocketConnectionStatus.DISCONNECTED:
         if (isConnected) { // 只在从连接状态变为断开时提醒
-          showToast?.({
-            type: 'warning',
-            message: '实时功能已断开',
-            duration: 3000
-          });
+          addToast('实时功能已断开', 'warning', 3000);
         }
         break;
     }
-  }, [connectionStatus, showToast, isConnected]);
+  }, [connectionStatus, addToast, isConnected]);
 
   // 监听错误状态
   useEffect(() => {
     if (error) {
       console.error('[WebSocketProvider] WebSocket error:', error);
-      showToast?.({
-        type: 'error',
-        message: `连接错误: ${error}`,
-        duration: 5000
-      });
+      addToast(`连接错误: ${error}`, 'error', 5000);
     }
-  }, [error, showToast]);
+  }, [error, addToast]);
 
   // 重连方法
   const reconnect = () => {
@@ -160,12 +155,18 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
       return;
     }
 
+    const userId = toNumericId(user.id);
+    if (userId === null) {
+      console.warn('[WebSocketProvider] Cannot reconnect - invalid user id:', user.id);
+      return;
+    }
+
     console.log('[WebSocketProvider] Manual reconnection initiated');
     destroy();
     
     // 延迟重连，确保断开完成
     setTimeout(() => {
-      initialize(token, user.id);
+      initialize(token, userId);
     }, 1000);
   };
 

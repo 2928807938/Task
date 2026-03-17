@@ -6,6 +6,7 @@ import {
   ChatMessage,
   CompletenessAnalysis,
   ComprehensiveAnalysis,
+  Suggestion,
   TaskSplitData
 } from '@/ui/organisms/AiAnalysisModal/components/types';
 import {WorkloadAnalysisData} from '@/ui/organisms/AiAnalysisModal/components/WorkloadAnalysisPanel';
@@ -43,9 +44,12 @@ type CompletenessDetailValue = {
 type SuggestionInput = string | {
   icon?: string;
   type?: string;
+  title?: string;
+  color?: string;
   content?: string;
   text?: string;
   message?: string;
+  description?: string;
 };
 
 type RecommendationInput = {
@@ -74,6 +78,51 @@ type PriorityParsedData = JsonObject & {
     analysis?: string;
   };
   scheduling?: JsonValue;
+};
+
+const normalizeSuggestions = (value: JsonValue): string[] | Suggestion[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const normalized = value.reduce<Array<string | Suggestion>>((result, item) => {
+    if (typeof item === 'string') {
+      result.push(item);
+      return result;
+    }
+
+    if (!isJsonObject(item)) {
+      return result;
+    }
+
+    const title = typeof item.title === 'string' ? item.title : '';
+    const descriptionCandidate = [item.description, item.content, item.text, item.message]
+      .find((entry) => typeof entry === 'string');
+    const description = typeof descriptionCandidate === 'string' ? descriptionCandidate : '';
+
+    result.push({
+      type: typeof item.type === 'string' ? item.type : 'info',
+      title,
+      icon: typeof item.icon === 'string' ? item.icon : 'ℹ️',
+      color: typeof item.color === 'string' ? item.color : 'blue',
+      description
+    });
+
+    return result;
+  }, []);
+
+  if (normalized.every((item): item is string => typeof item === 'string')) {
+    return normalized;
+  }
+
+  return normalized.filter((item): item is Suggestion => typeof item !== 'string');
+};
+
+const formatCompletenessValue = (value?: string | number): string => {
+  if (typeof value === 'number') {
+    return `${value}%`;
+  }
+  return value || '0%';
 };
 
 const isJsonObject = (value: JsonValue | null): value is JsonObject => {
@@ -354,10 +403,12 @@ export default function useAiAnalysisDataHook(
 
       // 检查解析后的数据是否符合预期结构
       if (isJsonObject(parsedData) && Array.isArray(parsedData.suggestions)) {
+        const normalizedSuggestions = normalizeSuggestions(parsedData.suggestions);
+
         // 更新分析数据
         setAnalysisData(prev => ({
           ...prev,
-          suggestions: parsedData.suggestions
+          suggestions: normalizedSuggestions
         }));
         return true;
       }
@@ -404,7 +455,9 @@ export default function useAiAnalysisDataHook(
       // 先处理子任务数据，确保字段名称一致性
       const processedSubTasks: TaskSplitData['sub_tasks'] = Array.isArray(taskSplitData.sub_tasks)
         ? taskSplitData.sub_tasks.flatMap((task, index) => {
-          if (!task) return null; // 跳过空任务
+          if (!task) {
+            return [];
+          }
 
           return [{
             ...task,
@@ -644,17 +697,21 @@ export default function useAiAnalysisDataHook(
 
       // 处理各方面完整度
       if (Array.isArray(completenessData.aspects)) {
-        standardData.aspects = completenessData.aspects;
+        standardData.aspects = completenessData.aspects.map((aspect) => ({
+          name: aspect.name,
+          completeness: formatCompletenessValue(aspect.completeness),
+          suggestions: aspect.suggestions
+        }));
       } else if (Array.isArray(completenessData.categories)) {
         standardData.aspects = completenessData.categories.map((cat) => ({
           name: cat.name || cat.category || '',
-          completeness: cat.completeness || cat.score || '0%',
+          completeness: formatCompletenessValue(cat.completeness || cat.score),
           suggestions: cat.suggestions || cat.recommendation || ''
         }));
       } else if (completenessData.details && typeof completenessData.details === 'object') {
         standardData.aspects = Object.entries(completenessData.details).map(([key, value]) => ({
           name: key,
-          completeness: typeof value === 'string' ? value : value.completeness || value.score || '0%',
+          completeness: typeof value === 'string' ? value : formatCompletenessValue(value.completeness || value.score),
           suggestions: typeof value === 'string' ? '' : value.suggestions || value.recommendation || ''
         }));
       }
@@ -799,7 +856,17 @@ export default function useAiAnalysisDataHook(
         // 尝试解析JSON
         const jsonData = parseJsonContent(dataContent);
         if (isJsonObject(jsonData)) {
-          parsedData = jsonData as ComprehensiveAnalysis;
+          const summary = isJsonObject(jsonData.summary) ? jsonData.summary : undefined;
+          const taskArrangement = isJsonObject(jsonData.taskArrangement) ? jsonData.taskArrangement : undefined;
+
+          parsedData = {
+            content: typeof jsonData.content === 'string' ? jsonData.content : JSON.stringify(jsonData),
+            summary: summary as unknown as ComprehensiveAnalysis['summary'],
+            taskArrangement: taskArrangement as unknown as ComprehensiveAnalysis['taskArrangement'],
+            recommendations: Array.isArray(jsonData.recommendations)
+              ? jsonData.recommendations.filter((item): item is string => typeof item === 'string')
+              : undefined
+          };
         }
 
         // 检查是否有必要的字段
@@ -825,7 +892,7 @@ export default function useAiAnalysisDataHook(
         // 更新全局分析数据
         setAnalysisData(prev => ({
           ...prev,
-          comprehensiveAnalysis: parsedData
+          comprehensiveAnalysis: parsedData || undefined
         }));
 
         return true;

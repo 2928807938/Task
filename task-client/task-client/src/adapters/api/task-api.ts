@@ -36,6 +36,7 @@ type GenericEventListener = (event: Event) => void;
 type PostEventSource = EventSource & {
   listeners: EventListenerMap;
   abortController?: AbortController;
+  setReadyState: (state: 0 | 1 | 2) => void;
   onmessage: MessageEventListener | null;
   onerror: GenericEventListener | null;
   onopen: GenericEventListener | null;
@@ -140,6 +141,13 @@ export const taskApi = {
         }
         return !event.defaultPrevented;
       },
+      setReadyState: function(state: 0 | 1 | 2) {
+        Object.defineProperty(this, 'readyState', {
+          value: state,
+          writable: true,
+          configurable: true
+        });
+      },
       close: function() {
         if (this.abortController) {
           this.abortController.abort();
@@ -150,7 +158,7 @@ export const taskApi = {
         this.onmessage = null;
         this.onerror = null;
         this.onopen = null;
-        this.readyState = 2; // CLOSED
+        this.setReadyState(2);
       },
       readyState: 0, // CONNECTING
       onmessage: null as ((event: MessageEvent) => void) | null,
@@ -179,7 +187,7 @@ export const taskApi = {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      eventSource.readyState = 1; // OPEN
+      eventSource.setReadyState(1);
       const openEvent = new Event('open');
       eventSource.dispatchEvent(openEvent);
 
@@ -191,7 +199,7 @@ export const taskApi = {
       function readStream() {
         reader.read().then(({ done, value }) => {
           if (done) {
-            eventSource.readyState = 2; // CLOSED
+            eventSource.setReadyState(2);
             const closeEvent = new Event('close');
             eventSource.dispatchEvent(closeEvent);
             return;
@@ -224,7 +232,7 @@ export const taskApi = {
           if (err.name !== 'AbortError') {
             const errorEvent = new Event('error');
             eventSource.dispatchEvent(errorEvent);
-            eventSource.readyState = 2; // CLOSED
+            eventSource.setReadyState(2);
           }
         });
       }
@@ -236,7 +244,7 @@ export const taskApi = {
       if (err.name !== 'AbortError') {
         const errorEvent = new Event('error');
         eventSource.dispatchEvent(errorEvent);
-        eventSource.readyState = 2; // CLOSED
+        eventSource.setReadyState(2);
       }
     });
 

@@ -8,6 +8,11 @@ import { api } from '@/adapters/api';
 import { ApiResponse, LoginRequest, RegisterRequest, SendEmailVerificationCodeRequest, UserInfo, UserSearchItem } from '@/types/api-types';
 import { setAuthInfo, clearAuthInfo } from '@/utils/auth-utils';
 
+type SearchableUserData = Partial<UserSearchItem> & {
+    self?: boolean;
+    inProject?: boolean;
+};
+
 /**
  * 用户API相关缓存键
  */
@@ -137,7 +142,7 @@ export const useFindUsers = (initialParam: string = '', initialProjectId?: strin
     const queryKey = [...userQueryKeys.all, 'search', param, projectId];
 
     // 定义一个转换函数，将后端返回的数据转换为我们需要的UserSearchItem形式
-    const convertToUserSearchItem = (userData: any): UserSearchItem => {
+    const convertToUserSearchItem = (userData: SearchableUserData): UserSearchItem => {
         // 将后端返回的self和inProject字段映射到前端的isSelf和isInProject字段
         return {
             id: userData.id || '',
@@ -184,8 +189,7 @@ export const useFindUsers = (initialParam: string = '', initialProjectId?: strin
                     return response.data.map(item => convertToUserSearchItem(item));
                 }
 
-                // 如果是单个用户对象
-                return [convertToUserSearchItem(response.data)];
+                return [];
             }
             return [];
         },
