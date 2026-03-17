@@ -33,6 +33,17 @@ type EventListenerMap = Record<string, EventListener[]>;
 type PostEventSource = EventSource & {
   listeners: EventListenerMap;
   abortController?: AbortController;
+  onmessage: ((event: MessageEvent) => void) | null;
+  onerror: ((event: Event) => void) | null;
+  onopen: ((event: Event) => void) | null;
+};
+
+type EventHandlerKey = 'onmessage' | 'onerror' | 'onopen';
+
+const eventHandlerMap: Record<string, EventHandlerKey> = {
+  message: 'onmessage',
+  error: 'onerror',
+  open: 'onopen'
 };
 
 /**
@@ -116,7 +127,8 @@ export const taskApi = {
         for (const listener of listeners) {
           listener(event);
         }
-        const onHandler = this[`on${event.type}`];
+        const handlerKey = eventHandlerMap[event.type];
+        const onHandler = handlerKey ? this[handlerKey] : null;
         if (onHandler && typeof onHandler === 'function') {
           onHandler(event);
         }
