@@ -30,20 +30,15 @@ type StreamAnalyzeRequestBody = {
 
 type EventListenerMap = Record<string, EventListener[]>;
 
+type MessageEventListener = (event: MessageEvent) => void;
+type GenericEventListener = (event: Event) => void;
+
 type PostEventSource = EventSource & {
   listeners: EventListenerMap;
   abortController?: AbortController;
-  onmessage: ((event: MessageEvent) => void) | null;
-  onerror: ((event: Event) => void) | null;
-  onopen: ((event: Event) => void) | null;
-};
-
-type EventHandlerKey = 'onmessage' | 'onerror' | 'onopen';
-
-const eventHandlerMap: Record<string, EventHandlerKey> = {
-  message: 'onmessage',
-  error: 'onerror',
-  open: 'onopen'
+  onmessage: MessageEventListener | null;
+  onerror: GenericEventListener | null;
+  onopen: GenericEventListener | null;
 };
 
 /**
@@ -127,10 +122,21 @@ export const taskApi = {
         for (const listener of listeners) {
           listener(event);
         }
-        const handlerKey = eventHandlerMap[event.type];
-        const onHandler = handlerKey ? this[handlerKey] : null;
-        if (onHandler && typeof onHandler === 'function') {
-          onHandler(event);
+        if (event.type === 'message') {
+          const onMessage = this.onmessage;
+          if (onMessage && typeof onMessage === 'function' && event instanceof MessageEvent) {
+            onMessage.call(this, event);
+          }
+        } else if (event.type === 'error') {
+          const onError = this.onerror;
+          if (onError && typeof onError === 'function') {
+            onError.call(this, event);
+          }
+        } else if (event.type === 'open') {
+          const onOpen = this.onopen;
+          if (onOpen && typeof onOpen === 'function') {
+            onOpen.call(this, event);
+          }
         }
         return !event.defaultPrevented;
       },
