@@ -15,14 +15,14 @@ const httpClientAdapter: IHttpClient = {
     }
     return response.data as T;
   },
-  post: async <T>(url: string, data: any): Promise<T> => {
+  post: async <T, D = unknown>(url: string, data: D): Promise<T> => {
     const response = await httpClientImpl.post<T>(url, data);
     if (!response.success) {
       throw new Error(response.message || '请求失败');
     }
     return response.data as T;
   },
-  put: async <T>(url: string, data: any): Promise<T> => {
+  put: async <T, D = unknown>(url: string, data: D): Promise<T> => {
     const response = await httpClientImpl.put<T>(url, data);
     if (!response.success) {
       throw new Error(response.message || '请求失败');

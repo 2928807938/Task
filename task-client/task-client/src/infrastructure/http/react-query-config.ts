@@ -1,5 +1,18 @@
 import { QueryClient } from '@tanstack/react-query';
 
+interface QueryErrorLike {
+  status?: number;
+}
+
+const getErrorStatus = (error: Error): number | undefined => {
+  if (typeof error === 'object' && error !== null && 'status' in error) {
+    const status = (error as QueryErrorLike).status;
+    return typeof status === 'number' ? status : undefined;
+  }
+
+  return undefined;
+};
+
 /**
  * 优化的React Query配置
  * 针对Dashboard和任务管理场景进行性能优化
@@ -14,9 +27,10 @@ export const queryClient = new QueryClient({
       gcTime: 30 * 60 * 1000,
       
       // 重试配置 - 网络错误时最多重试3次，每次延迟递增
-      retry: (failureCount, error: any) => {
+      retry: (failureCount, error: Error) => {
         // 4xx错误不重试（客户端错误）
-        if (error?.status >= 400 && error?.status < 500) {
+        const status = getErrorStatus(error);
+        if (status !== undefined && status >= 400 && status < 500) {
           return false;
         }
         // 最多重试3次
@@ -46,9 +60,10 @@ export const queryClient = new QueryClient({
     },
     mutations: {
       // 变更重试策略 - 更保守的重试
-      retry: (failureCount, error: any) => {
+      retry: (failureCount, error: Error) => {
         // POST/PUT/DELETE等变更操作通常不应该重试，除非是网络错误
-        if (error?.status >= 400 && error?.status < 500) {
+        const status = getErrorStatus(error);
+        if (status !== undefined && status >= 400 && status < 500) {
           return false;
         }
         return failureCount < 2;

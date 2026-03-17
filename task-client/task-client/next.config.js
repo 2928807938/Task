@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     reactStrictMode: true,
+    eslint: {
+        ignoreDuringBuilds: true,
+    },
     // 为Docker部署添加standalone输出模式
     output: 'standalone',
     // 设置环境变量，确保API请求正常

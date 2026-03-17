@@ -41,13 +41,17 @@ export interface ActivityEvent {
   id?: string;
   userId: number;
   username: string;
+  userName?: string;
   userAvatar?: string;
   projectId: number;
+  projectName?: string;
   taskId?: number;
+  taskTitle?: string;
   activityType: string;
   title: string;
+  content?: string;
   description?: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   timestamp: number;
 }
 
@@ -61,7 +65,7 @@ export interface PresenceEvent {
   status: string;
   lastActivity?: number;
   currentPage?: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   timestamp: number;
 }
 
@@ -70,12 +74,12 @@ export interface NotificationEvent {
   type: string;
   title: string;
   message: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   timestamp: number;
 }
 
 // WebSocket消息类型
-export interface WebSocketMessage<T = any> {
+export interface WebSocketMessage<T = unknown> {
   type: string;
   payload: T;
   timestamp: number;
@@ -84,7 +88,7 @@ export interface WebSocketMessage<T = any> {
 // 订阅配置
 export interface SubscriptionConfig {
   destination: string;
-  callback: (message: any) => void;
+  callback: (message: WebSocketMessage | ActivityEvent | PresenceEvent | NotificationEvent | CommentEvent) => void;
   headers?: Record<string, string>;
 }
 

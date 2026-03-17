@@ -47,6 +47,7 @@ interface WebSocketState {
     uptime: number | null;
     reconnectAttempts: number;
     quality: string;
+    latency: number;
     messageStats: { sent: number; received: number };
   };
 }
@@ -232,6 +233,7 @@ export const useWebSocketStore = create<WebSocketState>()(
         uptime: state.lastConnectedTime ? Date.now() - state.lastConnectedTime : null,
         reconnectAttempts: state.reconnectAttempts,
         quality: state.connectionQuality,
+        latency: state.latency,
         messageStats: {
           sent: state.messagesSent,
           received: state.messagesReceived

@@ -15,13 +15,15 @@ import {
     subMonths
 } from 'date-fns';
 import {zhCN} from 'date-fns/locale';
-import {TodoTask} from './MyTasksPanel';
+import { TodoTask } from '@/types/dashboard-types';
 
 type TaskCalendarProps = {
   tasks: TodoTask[];
+  compact?: boolean;
+  className?: string;
 };
 
-export function TaskCalendarPanel({ tasks }: TaskCalendarProps) {
+export function TaskCalendarPanel({ tasks, className = '' }: TaskCalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   const nextMonth = () => {
@@ -164,7 +166,7 @@ export function TaskCalendarPanel({ tasks }: TaskCalendarProps) {
 
   return (
     <div 
-      className="rounded-lg pt-5 px-5 pb-6"
+      className={`rounded-lg pt-5 px-5 pb-6 ${className}`}
       style={{ 
         backgroundColor: 'var(--theme-card-bg)',
         border: '1px solid var(--theme-card-border)',

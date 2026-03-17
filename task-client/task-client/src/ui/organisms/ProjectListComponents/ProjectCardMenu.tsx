@@ -6,7 +6,7 @@ import {useRouter} from 'next/navigation';
 import {useProjectListContext} from '@/contexts/ProjectListContext';
 import {ProjectListItem} from '@/types/api-types';
 import {useProjectHook} from '@/hooks/use-project-hook';
-import {motion} from 'framer-motion';
+import { motion, type Variants } from 'framer-motion';
 import ArchiveReasonModal from './ArchiveReasonModal';
 
 // 扫展 ProjectListItem 类型，与 ProjectCard 组件保持一致
@@ -58,7 +58,7 @@ const ProjectCardMenu: React.FC<ProjectCardMenuProps> = ({ project, onClose }) =
   };
 
   // 菜单动画变量
-  const menuVariants = {
+  const menuVariants: Variants = {
     hidden: { opacity: 0, scale: 0.95, y: -5 },
     visible: { opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 400, damping: 30 } },
     exit: { opacity: 0, scale: 0.95, transition: { duration: 0.15, ease: 'easeOut' } }

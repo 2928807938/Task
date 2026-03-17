@@ -3,25 +3,15 @@ import {GetPrivacyUseCase} from '@/core/application/usecases/GetPrivacyUseCase';
 import {PrivacyRepositoryImpl} from '@/adapters/repositories/PrivacyRepositoryImpl';
 import {IHttpClient} from '@/infrastructure/http/i-http-client';
 
-// 创建一个模拟的HttpClient实例
-// 在实际项目中，应该使用真实的HttpClient实现
+const notImplemented = async <T>(): Promise<T> => {
+  throw new Error('Not implemented');
+};
+
 const httpClient: IHttpClient = {
-  get: async <T>(url: string): Promise<T> => {
-    // 这里应该是真实的HTTP请求实现
-    throw new Error('Not implemented');
-  },
-  post: async <T>(url: string, data: any): Promise<T> => {
-    // 这里应该是真实的HTTP请求实现
-    throw new Error('Not implemented');
-  },
-  put: async <T>(url: string, data: any): Promise<T> => {
-    // 这里应该是真实的HTTP请求实现
-    throw new Error('Not implemented');
-  },
-  delete: async <T>(url: string): Promise<T> => {
-    // 这里应该是真实的HTTP请求实现
-    throw new Error('Not implemented');
-  }
+  get: notImplemented,
+  post: notImplemented,
+  put: notImplemented,
+  delete: notImplemented,
 };
 
 // 创建仓库和用例实例

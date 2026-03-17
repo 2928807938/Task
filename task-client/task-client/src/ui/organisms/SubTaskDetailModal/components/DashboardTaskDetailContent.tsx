@@ -288,7 +288,9 @@ const DashboardTaskDetailContent: React.FC<DashboardTaskDetailContentProps> = ({
 
       editTask(editTaskData, {
         onSuccess: (data) => {
-          onTaskUpdate?.(data);
+          if (data) {
+            onTaskUpdate?.(data);
+          }
           // 苹果风格：保存成功后不清除编辑状态，保持编辑模式
         },
         onError: (error) => {

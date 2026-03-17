@@ -1,5 +1,5 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {motion} from 'framer-motion';
+import { motion, type Variants } from 'framer-motion';
 import {
   FiChevronRight,
   FiEdit,
@@ -120,7 +120,7 @@ const AppleStyleProjectTeamPanel: React.FC<ProjectTeamPanelProps> = ({
   };
 
   // 过渡动画
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
@@ -131,12 +131,12 @@ const AppleStyleProjectTeamPanel: React.FC<ProjectTeamPanelProps> = ({
     }
   };
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { y: 20, opacity: 0 },
     visible: {
       y: 0,
       opacity: 1,
-      transition: { type: "spring", stiffness: 300, damping: 24 }
+      transition: { type: 'spring', stiffness: 300, damping: 24 }
     }
   };
 

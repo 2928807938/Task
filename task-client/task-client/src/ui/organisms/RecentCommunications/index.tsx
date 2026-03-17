@@ -116,7 +116,7 @@ const RecentCommunications: React.FC<RecentCommunicationsProps> = ({
     };
 
     return {
-      id: activity.id,
+      id: activity.id ?? `${activity.activityType}-${activity.userId}-${activity.timestamp}`,
       userId: activity.userId,
       userName: activity.userName || `用户${activity.userId}`,
       userAvatar: activity.userAvatar,

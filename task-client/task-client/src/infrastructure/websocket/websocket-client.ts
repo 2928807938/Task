@@ -4,7 +4,6 @@ import {
   WebSocketConnectionStatus, 
   WebSocketConfig, 
   SubscriptionConfig,
-  WebSocketMessage,
   WebSocketError
 } from './types';
 import { WebSocketErrorHandler } from './error-handler';
@@ -15,7 +14,7 @@ import { WebSocketErrorHandler } from './error-handler';
  */
 export class WebSocketClient {
   private client: Client;
-  private subscriptions: Map<string, any> = new Map();
+  private subscriptions: Map<string, { unsubscribe: () => void }> = new Map();
   private connectionStatus: WebSocketConnectionStatus = WebSocketConnectionStatus.DISCONNECTED;
   private reconnectAttempts = 0;
   private listeners: {
@@ -159,7 +158,7 @@ export class WebSocketClient {
   /**
    * 订阅消息频道
    */
-  subscribe(config: SubscriptionConfig): string {
+  subscribe<T>(config: Omit<SubscriptionConfig, 'callback'> & { callback: (message: T) => void }): string {
     if (this.connectionStatus !== WebSocketConnectionStatus.CONNECTED) {
       throw new Error('WebSocket is not connected');
     }
@@ -175,7 +174,7 @@ export class WebSocketClient {
           try {
             const parsedMessage = JSON.parse(message.body);
             console.log(`[WebSocket] Received message from ${config.destination}:`, parsedMessage);
-            config.callback(parsedMessage);
+            config.callback(parsedMessage as T);
           } catch (error) {
             console.error('[WebSocket] Failed to parse message:', error, message.body);
           }
@@ -206,7 +205,7 @@ export class WebSocketClient {
   /**
    * 发送消息
    */
-  send(destination: string, body: any, headers?: Record<string, string>): void {
+  send(destination: string, body: unknown, headers?: Record<string, string>): void {
     if (this.connectionStatus !== WebSocketConnectionStatus.CONNECTED) {
       throw new Error('WebSocket is not connected');
     }

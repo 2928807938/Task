@@ -2,6 +2,7 @@
 
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {AnimatePresence, motion} from 'framer-motion';
+import type { Transition } from 'framer-motion';
 import {FiAlertCircle, FiArrowLeft, FiMoreHorizontal, FiX} from 'react-icons/fi';
 import {ProjectTask} from '@/types/api-types';
 import {useTheme} from '@/ui/theme';
@@ -166,7 +167,7 @@ const SubTaskDetailModal: React.FC<SubTaskDetailModalProps> = ({
     initial: { opacity: 0 },
     animate: { opacity: 1 },
     exit: { opacity: 0 },
-    transition: { duration: 0.2, ease: 'easeOut' }
+    transition: { duration: 0.2, ease: 'easeOut' as Transition['ease'] }
   };
 
   const modalAnimation = {
@@ -180,7 +181,7 @@ const SubTaskDetailModal: React.FC<SubTaskDetailModalProps> = ({
       opacity: 1,
       scale: 1,
       transition: {
-        type: 'spring',
+        type: 'spring' as const,
         damping: 25,
         stiffness: 300,
         duration: 0.4
@@ -192,7 +193,7 @@ const SubTaskDetailModal: React.FC<SubTaskDetailModalProps> = ({
       scale: 0.95,
       transition: {
         duration: 0.25,
-        ease: 'easeIn'
+        ease: 'easeIn' as Transition['ease']
       }
     }
   };

@@ -21,6 +21,13 @@ interface RequestOptions {
   fallbackMessage?: string; // 当响应没有消息时显示的后备消息
 }
 
+type JsonPrimitive = string | number | boolean | null;
+export type JsonValue = JsonPrimitive | { [key: string]: JsonValue | undefined } | JsonValue[];
+
+interface ErrorWithMessage {
+  message?: string;
+}
+
 /**
  * 创建完整的请求URL
  */
@@ -41,7 +48,7 @@ const getAuthToken = (): string | undefined => {
  * 安全的JSON序列化函数
  * 特别处理assigneeId和conversationListId字段，确保它们以字符串形式传输避免精度丢失
  */
-const safeJsonStringify = (obj: any): string => {
+const safeJsonStringify = (obj: unknown): string => {
   return JSON.stringify(obj, (key, value) => {
     // 如果是assigneeId或conversationListId字段且不是undefined或null，则转换为字符串
     if ((key === 'assigneeId' || key === 'conversationListId') && value !== undefined && value !== null) {
@@ -122,7 +129,7 @@ const handleResponse = async <T>(response: Response): Promise<ApiResponse<T>> =>
     }
 
     return data as ApiResponse<T>;
-  } catch (error) {
+  } catch {
     // JSON解析错误，返回错误响应
     return {
       success: false,
@@ -137,7 +144,7 @@ const handleResponse = async <T>(response: Response): Promise<ApiResponse<T>> =>
 /**
  * 处理请求错误
  */
-const handleError = (error: any): ApiResponse<never> => {
+const handleError = (error: unknown): ApiResponse<never> => {
   console.error('API请求错误:', error);
 
   // 如果是网络错误，可能是服务器无法连接
@@ -155,7 +162,7 @@ const handleError = (error: any): ApiResponse<never> => {
     success: false,
     data: null,
     code: '500',
-    message: error.message || '网络请求失败',
+    message: (error as ErrorWithMessage)?.message || '网络请求失败',
     timestamp: Date.now().toString()
   };
 };
@@ -195,7 +202,7 @@ export const get = async <T>(endpoint: string, options?: RequestOptions): Promis
 /**
  * 发送POST请求
  */
-export const post = async <T>(endpoint: string, body?: any, options?: RequestOptions): Promise<ApiResponse<T>> => {
+export const post = async <T>(endpoint: string, body?: unknown, options?: RequestOptions): Promise<ApiResponse<T>> => {
   try {
     const url = createUrl(endpoint);
     const headers = createHeaders(options);
@@ -233,7 +240,7 @@ export const post = async <T>(endpoint: string, body?: any, options?: RequestOpt
 /**
  * 发送PUT请求
  */
-export const put = async <T>(endpoint: string, body?: any, options?: RequestOptions): Promise<ApiResponse<T>> => {
+export const put = async <T>(endpoint: string, body?: unknown, options?: RequestOptions): Promise<ApiResponse<T>> => {
   try {
     const url = createUrl(endpoint);
     const headers = createHeaders(options);
