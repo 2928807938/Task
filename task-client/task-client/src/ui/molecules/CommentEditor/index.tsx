@@ -329,7 +329,7 @@ const CommentEditor: React.FC<CommentEditorProps> = ({
           
           {/* 提交按钮 */}
           <Button
-            variant="default"
+            variant="primary"
             size="sm"
             onClick={handleSubmit}
             disabled={isSubmitDisabled}

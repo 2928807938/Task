@@ -11,7 +11,7 @@ interface NotificationButtonProps {
   /** 按钮大小 */
   size?: 'sm' | 'md' | 'lg';
   /** 按钮变体 */
-  variant?: 'ghost' | 'default' | 'outline';
+  variant?: 'ghost' | 'outline' | 'primary' | 'secondary' | 'danger';
 }
 
 const NotificationButton: React.FC<NotificationButtonProps> = ({

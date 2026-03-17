@@ -154,7 +154,7 @@ const MentionNotificationPanel: React.FC<MentionNotificationPanelProps> = ({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Button
-                    variant={showOnlyUnread ? "default" : "ghost"}
+                    variant={showOnlyUnread ? "primary" : "ghost"}
                     size="sm"
                     onClick={() => setShowOnlyUnread(!showOnlyUnread)}
                     className="h-7 px-2 text-xs"
