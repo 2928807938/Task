@@ -307,7 +307,11 @@ function DashboardContent() {
             </div>
           ) : (
             <div className="flex-1 overflow-y-auto px-4 pb-10 pt-5 md:px-6 lg:px-8">
-              <div className="mr-auto flex w-full max-w-[1760px] flex-col gap-6">
+              <div
+                className={`flex w-full flex-col gap-6 ${
+                  isSidebarDesktop ? 'mr-auto max-w-[1760px]' : 'mx-auto max-w-[1600px]'
+                }`}
+              >
                 <div className={`grid grid-cols-1 items-start gap-6 ${isCalendarRailVisible ? 'xl:grid-cols-[minmax(0,1fr)_360px]' : ''}`}>
                   <div className="min-w-0 space-y-6">
                     <section className="dashboard-surface px-5 py-5 md:px-7 md:py-7">
