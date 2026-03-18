@@ -613,6 +613,122 @@ wait_for_port() {
     return 1
 }
 
+get_port_pids() {
+    local port=$1
+
+    if command_exists lsof; then
+        lsof -tiTCP:"$port" -sTCP:LISTEN 2>/dev/null | tr '\n' ' '
+        return 0
+    fi
+
+    if command_exists fuser; then
+        fuser -n tcp "$port" 2>/dev/null | tr ' ' '\n' | tr '\n' ' '
+        return 0
+    fi
+
+    if command_exists ss; then
+        ss -lntp 2>/dev/null | awk -v port=":${port}" '
+            $4 ~ port "$" {
+                while (match($0, /pid=[0-9]+/)) {
+                    pid = substr($0, RSTART + 4, RLENGTH - 4)
+                    print pid
+                    $0 = substr($0, RSTART + RLENGTH)
+                }
+            }
+        ' | tr '\n' ' '
+        return 0
+    fi
+
+    return 1
+}
+
+terminate_pid_and_children() {
+    local pid=$1
+
+    [ -n "$pid" ] || return 0
+    ps -p "$pid" >/dev/null 2>&1 || return 0
+
+    if command_exists pgrep; then
+        local child_pid
+        for child_pid in $(pgrep -P "$pid" 2>/dev/null); do
+            terminate_pid_and_children "$child_pid"
+        done
+    fi
+
+    kill "$pid" 2>/dev/null || true
+}
+
+force_kill_pid_and_children() {
+    local pid=$1
+
+    [ -n "$pid" ] || return 0
+    ps -p "$pid" >/dev/null 2>&1 || return 0
+
+    if command_exists pgrep; then
+        local child_pid
+        for child_pid in $(pgrep -P "$pid" 2>/dev/null); do
+            force_kill_pid_and_children "$child_pid"
+        done
+    fi
+
+    kill -9 "$pid" 2>/dev/null || true
+}
+
+stop_service_by_pid_file() {
+    local pid_file=$1
+    local service_name=$2
+
+    if [ ! -f "$pid_file" ]; then
+        return 0
+    fi
+
+    local pid
+    pid=$(cat "$pid_file" 2>/dev/null)
+
+    if [ -n "$pid" ] && ps -p "$pid" >/dev/null 2>&1; then
+        print_info "停止${service_name}服务 (PID: $pid)..."
+        terminate_pid_and_children "$pid"
+        sleep 2
+        if ps -p "$pid" >/dev/null 2>&1; then
+            force_kill_pid_and_children "$pid"
+        fi
+        print_success "${service_name}服务已停止"
+    fi
+
+    rm -f "$pid_file"
+}
+
+stop_processes_on_port() {
+    local port=$1
+    local service_name=$2
+    local pids
+
+    if ! check_port "$port"; then
+        return 0
+    fi
+
+    print_warning "端口 $port 仍被占用，尝试强制停止..."
+    pids=$(get_port_pids "$port")
+
+    if [ -z "$pids" ]; then
+        print_warning "无法识别占用端口 $port 的进程"
+        return 1
+    fi
+
+    local pid
+    for pid in $pids; do
+        force_kill_pid_and_children "$pid"
+    done
+
+    sleep 1
+    if check_port "$port"; then
+        print_error "${service_name}端口 $port 仍被占用"
+        return 1
+    fi
+
+    print_success "已强制停止占用端口的进程"
+}
+
 check_os() {
     if [ -f /etc/os-release ]; then
         . /etc/os-release
@@ -1092,55 +1208,13 @@ start_frontend() {
 }
 
 stop_backend() {
-    if [ -f "$BACKEND_PID" ]; then
-        PID=$(cat "$BACKEND_PID")
-        if ps -p $PID > /dev/null 2>&1; then
-            print_info "停止后端服务 (PID: $PID)..."
-            kill $PID
-            sleep 2
-            if ps -p $PID > /dev/null 2>&1; then
-                kill -9 $PID
-            fi
-            rm -f "$BACKEND_PID"
-            print_success "后端服务已停止"
-        else
-            rm -f "$BACKEND_PID"
-        fi
-    fi
-    if check_port "$BACKEND_PORT"; then
-        print_warning "端口 $BACKEND_PORT 仍被占用，尝试强制停止..."
-        PID=$(lsof -ti:$BACKEND_PORT)
-        if [ -n "$PID" ]; then
-            kill -9 $PID
-            print_success "已强制停止占用端口的进程"
-        fi
-    fi
+    stop_service_by_pid_file "$BACKEND_PID" "后端"
+    stop_processes_on_port "$BACKEND_PORT" "后端"
 }
 
 stop_frontend() {
-    if [ -f "$FRONTEND_PID" ]; then
-        PID=$(cat "$FRONTEND_PID")
-        if ps -p $PID > /dev/null 2>&1; then
-            print_info "停止前端服务 (PID: $PID)..."
-            kill $PID
-            sleep 2
-            if ps -p $PID > /dev/null 2>&1; then
-                kill -9 $PID
-            fi
-            rm -f "$FRONTEND_PID"
-            print_success "前端服务已停止"
-        else
-            rm -f "$FRONTEND_PID"
-        fi
-    fi
-    if check_port "$FRONTEND_PORT"; then
-        print_warning "端口 $FRONTEND_PORT 仍被占用，尝试强制停止..."
-        PID=$(lsof -ti:$FRONTEND_PORT)
-        if [ -n "$PID" ]; then
-            kill -9 $PID
-            print_success "已强制停止占用端口的进程"
-        fi
-    fi
+    stop_service_by_pid_file "$FRONTEND_PID" "前端"
+    stop_processes_on_port "$FRONTEND_PORT" "前端"
 }
 
 stop_all() {
