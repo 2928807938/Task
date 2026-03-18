@@ -23,6 +23,7 @@ type TaskCalendarProps = {
   tasks: TodoTask[];
   compact?: boolean;
   className?: string;
+  onTaskClick?: (taskId: string) => void;
 };
 
 const dateFormat = 'yyyy年MM月';
@@ -40,7 +41,7 @@ function getDateKey(day: Date) {
   return format(day, 'yyyy-MM-dd');
 }
 
-export function TaskCalendarPanel({tasks, compact = false, className = ''}: TaskCalendarProps) {
+export function TaskCalendarPanel({tasks, compact = false, className = '', onTaskClick}: TaskCalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
 
@@ -155,15 +156,12 @@ export function TaskCalendarPanel({tasks, compact = false, className = ''}: Task
     const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
 
     return (
-      <div
-        className="overflow-hidden rounded-[24px] p-px"
-        style={{backgroundColor: 'var(--theme-card-border)'}}
-      >
-        <div className="grid grid-cols-7 gap-px" style={{backgroundColor: 'var(--theme-card-border)'}}>
+      <div className="overflow-hidden rounded-[24px] border" style={{borderColor: 'var(--theme-card-border)'}}>
+        <div className="grid grid-cols-7 border-b" style={{borderColor: 'var(--theme-card-border)'}}>
           {weekdays.map((day) => (
             <div
               key={day}
-              className="flex h-8 items-center justify-center text-xs font-medium"
+              className="flex h-10 items-center justify-center text-xs font-medium"
               style={{backgroundColor: 'var(--theme-neutral-100)', color: 'var(--theme-neutral-500)'}}
             >
               {day}
@@ -171,74 +169,50 @@ export function TaskCalendarPanel({tasks, compact = false, className = ''}: Task
           ))}
         </div>
 
-        <div className="grid grid-cols-7 gap-px" style={{backgroundColor: 'var(--theme-card-border)'}}>
+        <div className="grid grid-cols-7">
           {calendarDays.map((day) => {
             const dayTasks = tasksByDate.get(getDateKey(day)) ?? [];
             const isCurrentDay = isToday(day);
             const isCurrentMonthDay = isSameMonth(day, currentMonth);
             const isSelected = isSameDay(day, selectedDate);
-            const visibleDots = Math.min(dayTasks.length, compact ? 2 : 3);
 
             return (
               <button
                 key={getDateKey(day)}
                 type="button"
                 onClick={() => handleDayClick(day)}
-                className="group relative aspect-square min-h-[52px] p-2 text-left transition-all"
+                className="relative flex aspect-square w-full items-center justify-center border-r border-b transition-all"
                 style={{
-                  backgroundColor: isSelected
-                    ? 'rgba(var(--theme-primary-500-rgb), 0.12)'
-                    : 'var(--theme-card-bg)',
+                  borderColor: 'var(--theme-card-border)',
+                  backgroundColor: isSelected ? 'rgba(var(--theme-primary-500-rgb), 0.08)' : 'var(--theme-card-bg)',
                   opacity: isCurrentMonthDay ? 1 : 0.42,
                   boxShadow: isSelected ? 'inset 0 0 0 1px rgba(var(--theme-primary-500-rgb), 0.28)' : 'none',
                 }}
               >
-                <div className="flex h-full flex-col">
-                  <div className="flex items-start justify-between gap-1">
-                    <div
-                      className="flex h-7 min-w-7 items-center justify-center rounded-full px-1.5 text-xs font-semibold leading-none"
-                      style={{
-                        backgroundColor: isCurrentDay ? 'var(--theme-primary-500)' : isSelected ? 'rgba(var(--theme-primary-500-rgb), 0.12)' : 'transparent',
-                        color: isCurrentDay ? '#fff' : isSelected ? 'var(--theme-primary-700)' : 'var(--theme-neutral-700)',
-                      }}
-                    >
-                      {format(day, 'd')}
-                    </div>
-
-                    {dayTasks.length > 0 && (
-                      <div
-                        className="rounded-full px-2 py-0.5 text-[10px] font-semibold leading-none"
-                        style={{
-                          backgroundColor: 'rgba(var(--theme-primary-500-rgb), 0.12)',
-                          color: 'var(--theme-primary-700)',
-                        }}
-                      >
-                        {dayTasks.length}
-                      </div>
-                    )}
+                {dayTasks.length > 0 && (
+                  <div
+                    className="absolute right-0 top-0 z-10 flex h-5 min-w-5 translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full px-1 text-[10px] font-semibold leading-none shadow-sm"
+                    style={{
+                      backgroundColor: isSelected ? 'var(--theme-primary-500)' : 'rgba(var(--theme-primary-500-rgb), 0.14)',
+                      color: isSelected ? '#fff' : 'var(--theme-primary-700)',
+                    }}
+                  >
+                    {dayTasks.length}
                   </div>
+                )}
 
-                  <div className="mt-auto flex items-end justify-between gap-1">
-                    <div className="flex items-center gap-1">
-                      {Array.from({length: visibleDots}).map((_, index) => (
-                        <span
-                          key={index}
-                          className="h-1.5 w-1.5 rounded-full"
-                          style={{backgroundColor: index === 0 ? 'var(--theme-primary-500)' : 'rgba(var(--theme-primary-500-rgb), 0.45)'}}
-                        />
-                      ))}
-                    </div>
-
-                    {!compact && dayTasks[0] && (
-                      <div
-                        className="max-w-[72%] truncate text-[10px] font-medium"
-                        style={{color: 'var(--theme-neutral-500)'}}
-                        title={dayTasks[0].title}
-                      >
-                        {dayTasks[0].title}
-                      </div>
-                    )}
-                  </div>
+                <div
+                  className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold leading-none"
+                  style={{
+                    backgroundColor: isCurrentDay
+                      ? 'var(--theme-primary-500)'
+                      : isSelected
+                        ? 'rgba(var(--theme-primary-500-rgb), 0.12)'
+                        : 'transparent',
+                    color: isCurrentDay ? '#fff' : isSelected ? 'var(--theme-primary-700)' : 'var(--theme-neutral-700)',
+                  }}
+                >
+                  {format(day, 'd')}
                 </div>
               </button>
             );
@@ -255,7 +229,9 @@ export function TaskCalendarPanel({tasks, compact = false, className = ''}: Task
 
     const agendaTasks = selectedDateTasks.length > 0 ? selectedDateTasks : currentMonthTasks.slice(0, 6);
     const agendaTitle = selectedDateTasks.length > 0
-      ? `${format(selectedDate, 'M月d日', {locale: zhCN})} 的任务`
+      ? isToday(selectedDate)
+        ? '今日任务'
+        : `${format(selectedDate, 'M月d日', {locale: zhCN})} 的任务`
       : `${format(currentMonth, 'M月', {locale: zhCN})} 即将到期`;
     const agendaHint = selectedDateTasks.length > 0
       ? `共 ${selectedDateTasks.length} 项，点击其他日期可切换`
@@ -279,9 +255,12 @@ export function TaskCalendarPanel({tasks, compact = false, className = ''}: Task
               const taskDate = parseTaskDate(task.dueDate);
 
               return (
-                <div
+                <button
                   key={task.id}
-                  className="rounded-[18px] border px-3 py-3"
+                  type="button"
+                  onClick={() => onTaskClick?.(task.id)}
+                  className="w-full rounded-[18px] border px-3 py-3 text-left transition hover:-translate-y-0.5 disabled:cursor-default disabled:hover:translate-y-0"
+                  disabled={!onTaskClick}
                   style={{borderColor: 'color-mix(in srgb, var(--theme-card-border) 78%, transparent)', backgroundColor: 'color-mix(in srgb, var(--theme-card-bg) 88%, transparent)'}}
                 >
                   <div className="text-sm font-medium leading-5" style={{color: 'var(--foreground)'}}>{task.title}</div>
@@ -296,7 +275,7 @@ export function TaskCalendarPanel({tasks, compact = false, className = ''}: Task
                       </>
                     )}
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>
