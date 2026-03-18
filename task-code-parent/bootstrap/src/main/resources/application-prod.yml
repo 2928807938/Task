@@ -59,7 +59,7 @@ llm:
   write-timeout: ${LLM_WRITE_TIMEOUT:3600000}
   api:
     base-url: https://tag.airaphe.com
-    key: sk-aRxmPL8mfnBMP7SGc9mH5cETe9nwaQrQxsXVph3cIak
+    key: sk-2p84Rx4GHawutOgt0hQWlYNaNSfrQjGPVuUjfo0JLgQ
     model: ${LLM_MODEL:gpt-5.2}
   prompt:
     dir: ${LLM_PROMPT_DIR:xml/xml}

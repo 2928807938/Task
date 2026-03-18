@@ -615,28 +615,67 @@ wait_for_port() {
 
 get_port_pids() {
     local port=$1
-
-    if command_exists lsof; then
-        lsof -tiTCP:"$port" -sTCP:LISTEN 2>/dev/null | tr '\n' ' '
-        return 0
-    fi
-
-    if command_exists fuser; then
-        fuser -n tcp "$port" 2>/dev/null | tr ' ' '\n' | tr '\n' ' '
-        return 0
-    fi
+    local pids=""
 
     if command_exists ss; then
-        ss -lntp 2>/dev/null | awk -v port=":${port}" '
+        pids=$(ss -ltnp 2>/dev/null | awk -v port=":${port}" '
             $4 ~ port "$" {
                 while (match($0, /pid=[0-9]+/)) {
-                    pid = substr($0, RSTART + 4, RLENGTH - 4)
-                    print pid
+                    print substr($0, RSTART + 4, RLENGTH - 4)
                     $0 = substr($0, RSTART + RLENGTH)
                 }
             }
-        ' | tr '\n' ' '
-        return 0
+        ' | sort -u | tr '\n' ' ')
+        if [ -n "$pids" ]; then
+            printf '%s' "$pids"
+            return 0
+        fi
+    fi
+
+    if command_exists lsof; then
+        pids=$(lsof -tiTCP:"$port" -sTCP:LISTEN 2>/dev/null | tr '\n' ' ')
+        if [ -n "$pids" ]; then
+            printf '%s' "$pids"
+            return 0
+        fi
+    fi
+
+    if command_exists fuser; then
+        pids=$(fuser -n tcp "$port" 2>/dev/null | tr -cs '0-9' ' ' | sed 's/^ *//;s/ *$//')
+        if [ -n "$pids" ]; then
+            printf '%s' "$pids"
+            return 0
+        fi
+    fi
+
+    if command_exists netstat; then
+        pids=$(netstat -lntp 2>/dev/null | awk -v port=":${port}" '
+            $4 ~ port "$" {
+                split($7, parts, "/")
+                if (parts[1] ~ /^[0-9]+$/) {
+                    print parts[1]
+                }
+            }
+        ' | tr '\n' ' ')
+        if [ -n "$pids" ]; then
+            printf '%s' "$pids"
+            return 0
+        fi
+    fi
+
+    if command_exists netstat; then
+        pids=$(netstat -anv -p tcp 2>/dev/null | awk -v suffix=".${port}" '
+            $4 ~ suffix "$" && $6 == "LISTEN" {
+                split($11, parts, ":")
+                if (parts[length(parts)] ~ /^[0-9]+$/) {
+                    print parts[length(parts)]
+                }
+            }
+        ' | tr '\n' ' ')
+        if [ -n "$pids" ]; then
+            printf '%s' "$pids"
+            return 0
+        fi
     fi
 
     return 1
