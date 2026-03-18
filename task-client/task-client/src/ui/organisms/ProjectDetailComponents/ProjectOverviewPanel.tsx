@@ -77,7 +77,6 @@ const formatRelativeDate = (value?: string) => {
 const ProjectOverviewPanel: React.FC<ProjectOverviewPanelProps> = ({
   project,
   onSwitchToTasksTab,
-  onSwitchToTeamTab,
   onCreateTask,
   onTaskClick
 }) => {
@@ -331,51 +330,6 @@ const ProjectOverviewPanel: React.FC<ProjectOverviewPanelProps> = ({
                 </div>
               </button>
             ))}
-          </div>
-        </div>
-      </motion.div>
-
-      <motion.div
-        {...cardMotion}
-        transition={{ duration: 0.28, delay: 0.12 }}
-        className={`overflow-hidden rounded-[28px] border p-5 sm:p-6 ${
-          isDarkMode
-            ? 'border-white/10 bg-slate-900/80'
-            : 'border-slate-200 bg-white'
-        }`}
-      >
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${isDarkMode ? 'bg-white/6 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>
-              工作区重组
-            </div>
-            <h3 className={`mt-3 text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-              详细任务和团队洞察已移动到对应模块
-            </h3>
-            <p className={`mt-1 text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-              概览页只保留项目总览和快捷动作；最近任务在任务页，成员与趋势在团队页，结构会更清晰。
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={onSwitchToTasksTab}
-              className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                isDarkMode ? 'bg-blue-500/12 text-blue-300 hover:bg-blue-500/18' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-              }`}
-            >
-              去看任务
-              <FiArrowRight size={14} />
-            </button>
-            <button
-              onClick={onSwitchToTeamTab}
-              className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                isDarkMode ? 'bg-violet-500/12 text-violet-300 hover:bg-violet-500/18' : 'bg-violet-50 text-violet-600 hover:bg-violet-100'
-              }`}
-            >
-              去看团队
-              <FiArrowRight size={14} />
-            </button>
           </div>
         </div>
       </motion.div>
