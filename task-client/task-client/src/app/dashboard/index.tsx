@@ -493,7 +493,7 @@ function DashboardContent() {
                         </div>
 
                         <ErrorBoundary level="component">
-                          <TaskCalendarPanel tasks={todoTasks} />
+                          <TaskCalendarPanel tasks={todoTasks} className="min-h-[calc(100vh-10rem)]" />
                         </ErrorBoundary>
                       </div>
                     </aside>
