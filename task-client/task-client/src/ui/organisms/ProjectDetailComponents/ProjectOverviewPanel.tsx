@@ -4,7 +4,6 @@ import {motion} from 'framer-motion';
 import {
   FiArrowRight,
   FiBarChart2,
-  FiClock,
   FiDownload,
   FiPlus,
   FiSettings,
@@ -17,6 +16,7 @@ import {useTheme} from '@/ui/theme';
 import ProjectExportModal from '@/ui/organisms/ProjectExportModal';
 import {ExportData} from '@/types/export-types';
 import ProjectSettingsModal from './ProjectSettingsModal';
+import ProjectRecentTasksSection from './ProjectRecentTasksSection';
 
 interface ProjectOverviewPanelProps {
   project: {
@@ -35,6 +35,7 @@ interface ProjectOverviewPanelProps {
     createdAt?: string;
     updatedAt?: string;
   };
+  recentTasks?: ProjectTask[];
   onSwitchToTasksTab?: () => void;
   onSwitchToTeamTab?: () => void;
   onCreateTask?: () => void;
@@ -76,6 +77,7 @@ const formatRelativeDate = (value?: string) => {
 
 const ProjectOverviewPanel: React.FC<ProjectOverviewPanelProps> = ({
   project,
+  recentTasks = [],
   onSwitchToTasksTab,
   onCreateTask,
   onTaskClick
@@ -332,6 +334,22 @@ const ProjectOverviewPanel: React.FC<ProjectOverviewPanelProps> = ({
             ))}
           </div>
         </div>
+      </motion.div>
+
+      <motion.div
+        {...cardMotion}
+        transition={{ duration: 0.28, delay: 0.08 }}
+      >
+        <ProjectRecentTasksSection
+          recentTasks={recentTasks}
+          totalTasks={taskCount}
+          isDarkMode={isDarkMode}
+          onTaskClick={(task) => {
+            if (task.id) {
+              onTaskClick?.(task.id);
+            }
+          }}
+        />
       </motion.div>
 
       {showAddMemberModal && (

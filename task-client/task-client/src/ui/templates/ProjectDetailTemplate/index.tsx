@@ -461,6 +461,7 @@ const ProjectDetailTemplate: React.FC<ProjectDetailTemplateProps> = ({ projectId
                   >
                     <ProjectOverviewPanel
                       project={projectDetail}
+                      recentTasks={recentProjectTasks}
                       onSwitchToTasksTab={() => setSelectedTab('tasks')}
                       onSwitchToTeamTab={() => setSelectedTab('team')}
                       onCreateTask={handleAddTask}
@@ -483,7 +484,6 @@ const ProjectDetailTemplate: React.FC<ProjectDetailTemplateProps> = ({ projectId
                   >
                     <ProjectTasksPanel
                       tasks={shouldUseSubTasks() ? subTasksData?.content || [] : tasksData?.content || []}
-                      recentTasks={recentProjectTasks}
                       onAddTask={handleAddTask}
                       onTaskClick={handleTaskClick}
                       isLoading={shouldUseSubTasks() ? isSubTasksLoading : isTasksLoading}
