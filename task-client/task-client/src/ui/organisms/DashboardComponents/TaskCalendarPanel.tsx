@@ -156,90 +156,87 @@ export function TaskCalendarPanel({tasks, compact = false, className = ''}: Task
 
     return (
       <div
-        className="overflow-hidden rounded-[24px]"
-        style={{backgroundColor: 'var(--theme-card-bg)', border: '1px solid var(--theme-card-border)'}}
+        className="overflow-hidden rounded-[24px] p-px"
+        style={{backgroundColor: 'var(--theme-card-border)'}}
       >
-        <div
-          className="grid grid-cols-7"
-          style={{borderBottom: '1px solid var(--theme-card-border)', backgroundColor: 'var(--theme-neutral-100)'}}
-        >
+        <div className="grid grid-cols-7 gap-px" style={{backgroundColor: 'var(--theme-card-border)'}}>
           {weekdays.map((day) => (
-            <div key={day} className="py-2 text-center text-xs font-medium" style={{color: 'var(--theme-neutral-500)'}}>
+            <div
+              key={day}
+              className="flex h-8 items-center justify-center text-xs font-medium"
+              style={{backgroundColor: 'var(--theme-neutral-100)', color: 'var(--theme-neutral-500)'}}
+            >
               {day}
             </div>
           ))}
         </div>
 
-        <div className="grid grid-cols-7">
+        <div className="grid grid-cols-7 gap-px" style={{backgroundColor: 'var(--theme-card-border)'}}>
           {calendarDays.map((day) => {
             const dayTasks = tasksByDate.get(getDateKey(day)) ?? [];
             const isCurrentDay = isToday(day);
-            const isCurrentMonth = isSameMonth(day, currentMonth);
+            const isCurrentMonthDay = isSameMonth(day, currentMonth);
             const isSelected = isSameDay(day, selectedDate);
+            const visibleDots = Math.min(dayTasks.length, compact ? 2 : 3);
 
             return (
               <button
                 key={getDateKey(day)}
                 type="button"
                 onClick={() => handleDayClick(day)}
-                className="aspect-square p-1.5 text-left align-top transition-colors"
+                className="group relative aspect-square min-h-[52px] p-2 text-left transition-all"
                 style={{
-                  borderRight: '1px solid var(--theme-card-border)',
-                  borderBottom: '1px solid var(--theme-card-border)',
                   backgroundColor: isSelected
                     ? 'rgba(var(--theme-primary-500-rgb), 0.12)'
-                    : isCurrentDay
-                      ? 'rgba(var(--theme-primary-500-rgb), 0.08)'
-                      : 'transparent',
-                  opacity: isCurrentMonth ? 1 : 0.42,
+                    : 'var(--theme-card-bg)',
+                  opacity: isCurrentMonthDay ? 1 : 0.42,
                   boxShadow: isSelected ? 'inset 0 0 0 1px rgba(var(--theme-primary-500-rgb), 0.28)' : 'none',
                 }}
               >
                 <div className="flex h-full flex-col">
-                  <div
-                    className="flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-medium leading-none"
-                    style={{
-                      backgroundColor: isCurrentDay ? 'var(--theme-primary-500)' : 'transparent',
-                      color: isCurrentDay ? '#fff' : 'var(--theme-neutral-700)',
-                    }}
-                  >
-                    {format(day, 'd')}
+                  <div className="flex items-start justify-between gap-1">
+                    <div
+                      className="flex h-7 min-w-7 items-center justify-center rounded-full px-1.5 text-xs font-semibold leading-none"
+                      style={{
+                        backgroundColor: isCurrentDay ? 'var(--theme-primary-500)' : isSelected ? 'rgba(var(--theme-primary-500-rgb), 0.12)' : 'transparent',
+                        color: isCurrentDay ? '#fff' : isSelected ? 'var(--theme-primary-700)' : 'var(--theme-neutral-700)',
+                      }}
+                    >
+                      {format(day, 'd')}
+                    </div>
+
+                    {dayTasks.length > 0 && (
+                      <div
+                        className="rounded-full px-2 py-0.5 text-[10px] font-semibold leading-none"
+                        style={{
+                          backgroundColor: 'rgba(var(--theme-primary-500-rgb), 0.12)',
+                          color: 'var(--theme-primary-700)',
+                        }}
+                      >
+                        {dayTasks.length}
+                      </div>
+                    )}
                   </div>
 
-                  <div className="mt-1 min-h-0 flex-1 overflow-hidden">
-                    {compact ? (
-                      dayTasks.length > 0 && (
-                        <div className="mt-auto inline-flex min-w-4 items-center justify-center rounded-full px-1.5 py-0.5 text-[9px] font-semibold" style={{backgroundColor: 'rgba(var(--theme-primary-500-rgb), 0.12)', color: 'var(--theme-primary-700)'}}>
-                          {dayTasks.length}
-                        </div>
-                      )
-                    ) : (
-                      <>
-                        {dayTasks[0] && (
-                          <div
-                            className="rounded-md px-1.5 py-1 text-[9px] leading-3"
-                            style={{
-                              backgroundColor: 'rgba(var(--theme-primary-500-rgb), 0.1)',
-                              color: 'var(--theme-primary-700)',
-                              border: '1px solid rgba(var(--theme-primary-500-rgb), 0.18)',
-                              display: '-webkit-box',
-                              WebkitLineClamp: 2,
-                              WebkitBoxOrient: 'vertical',
-                              overflow: 'hidden',
-                              wordBreak: 'break-word',
-                            }}
-                            title={dayTasks[0].title}
-                          >
-                            {dayTasks[0].title}
-                          </div>
-                        )}
+                  <div className="mt-auto flex items-end justify-between gap-1">
+                    <div className="flex items-center gap-1">
+                      {Array.from({length: visibleDots}).map((_, index) => (
+                        <span
+                          key={index}
+                          className="h-1.5 w-1.5 rounded-full"
+                          style={{backgroundColor: index === 0 ? 'var(--theme-primary-500)' : 'rgba(var(--theme-primary-500-rgb), 0.45)'}}
+                        />
+                      ))}
+                    </div>
 
-                        {dayTasks.length > 1 && (
-                          <div className="mt-1 px-1 text-[9px] font-medium" style={{color: 'var(--theme-neutral-500)'}}>
-                            +{dayTasks.length - 1} 项
-                          </div>
-                        )}
-                      </>
+                    {!compact && dayTasks[0] && (
+                      <div
+                        className="max-w-[72%] truncate text-[10px] font-medium"
+                        style={{color: 'var(--theme-neutral-500)'}}
+                        title={dayTasks[0].title}
+                      >
+                        {dayTasks[0].title}
+                      </div>
                     )}
                   </div>
                 </div>
@@ -262,7 +259,7 @@ export function TaskCalendarPanel({tasks, compact = false, className = ''}: Task
       : `${format(currentMonth, 'M月', {locale: zhCN})} 即将到期`;
     const agendaHint = selectedDateTasks.length > 0
       ? `共 ${selectedDateTasks.length} 项，点击其他日期可切换`
-      : `当前选中日期暂无任务，展示本月最近任务`;
+      : '当前选中日期暂无任务，展示本月最近任务';
 
     return (
       <div className="mt-4 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[24px] border px-4 py-4" style={{borderColor: 'var(--theme-card-border)', backgroundColor: 'color-mix(in srgb, var(--theme-card-bg) 92%, transparent)'}}>

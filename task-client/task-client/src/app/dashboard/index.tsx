@@ -314,7 +314,7 @@ function DashboardContent() {
           ) : (
             <div className="flex-1 overflow-y-auto px-4 pb-10 pt-5 md:px-6 lg:px-8">
               <div className={`flex w-full flex-col gap-6 ${dashboardContainerClass}`}>
-                <div className={`grid grid-cols-1 items-start gap-6 ${isCalendarRailVisible ? 'xl:grid-cols-[minmax(0,1fr)_360px]' : ''}`}>
+                <div className={`grid grid-cols-1 items-start gap-6 ${isCalendarRailVisible ? 'xl:grid-cols-[minmax(0,1fr)_420px] 2xl:grid-cols-[minmax(0,1fr)_460px]' : ''}`}>
                   <div className="min-w-0 space-y-6">
                     <section className="dashboard-surface px-5 py-5 md:px-7 md:py-7">
                       <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
@@ -463,7 +463,7 @@ function DashboardContent() {
                   </div>
 
                   {isCalendarRailVisible && (
-                    <aside className="hidden xl:block xl:self-start">
+                    <aside className="hidden xl:block xl:self-start xl:w-[420px] 2xl:w-[460px]">
                       <div className="sticky top-5 space-y-4">
                         <div className="surface-card p-4">
                           <div className="flex items-start justify-between gap-3">
