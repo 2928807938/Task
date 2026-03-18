@@ -1,315 +1,152 @@
 'use client';
 
-import React, {useState} from 'react';
-import {FiCalendar, FiChevronRight, FiClock, FiMoreVertical} from 'react-icons/fi';
-import {motion} from 'framer-motion';
-import {useRouter} from 'next/navigation';
-import {ProjectListItem as ProjectListItemType} from '@/types/api-types';
-import {getBgColorClass, getInitials} from '@/utils/avatar-utils';
-import ProjectCardMenu from './ProjectCardMenu';
+import React, { useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
+import { FiCalendar, FiChevronRight, FiClock, FiMoreHorizontal, FiUser } from 'react-icons/fi';
 
-// 项目列表项属性类型
+import { ProjectListItem as ProjectListItemType } from '@/types/api-types';
+import { getBgColorClass, getInitials } from '@/utils/avatar-utils';
+
+import ProjectCardMenu from './ProjectCardMenu';
+import { formatProjectDate, getProgressTone, getProjectDuration, getProjectProgress } from './project-list-utils';
+
 interface ProjectListItemProps {
   project: ProjectListItemType & { archived?: boolean };
 }
 
 const ProjectListItem: React.FC<ProjectListItemProps> = ({ project }) => {
-  project.archived = project.archived;
-  const [isHovered, setIsHovered] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
   const router = useRouter();
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
-  // 处理点击事件 - 导航到项目详情
-  const handleClick = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest('.project-menu-button') ||
-        (e.target as HTMLElement).closest('.project-menu')) {
-      return;
+  const progress = getProjectProgress(project);
+  const duration = getProjectDuration(project.createdAt);
+  const progressTone = getProgressTone(progress);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+
+    if (menuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
     }
+
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [menuOpen]);
+
+  const handleNavigate = () => {
     router.push(`/projects/${project.id}`);
   };
 
-  // 格式化日期
-  const formatDate = (dateStr: string | null | undefined) => {
-    if (!dateStr) return '未设置';
-    const date = new Date(dateStr);
-
-    const year = date.getFullYear();
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-
-    return `${year}.${month}.${day}`;
-  };
-
-  // 计算项目已经运行的天数
-  const getProjectDuration = (createdAt: string | undefined) => {
-    if (!createdAt) return 0;
-    const now = new Date();
-    const created = new Date(createdAt);
-    const diffTime = Math.abs(now.getTime() - created.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
-  };
-
-  // 根据项目任务完成情况计算进度百分比，与网格视图保持一致
-  const calculateProgress = () => {
-    // 如果直接有progress字段且为有效数字，使用它
-    if (typeof project.progress === 'number' && project.progress >= 0) {
-      return project.progress;
-    }
-    
-    // 否则根据任务完成情况计算进度
-    const completedTaskCount = (project as any).completedTaskCount || 0;
-    const taskCount = (project as any).taskCount || 0;
-    
-    if (taskCount > 0) {
-      return Math.round((completedTaskCount / taskCount) * 100);
-    }
-    
-    return 0;
-  };
-
-  const progress = calculateProgress();
-  const duration = getProjectDuration(project.createdAt);
-
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
+    <motion.article
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2 }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      onClick={handleClick}
-      className={`
-        relative overflow-hidden rounded-2xl cursor-pointer transition-all
-        ${isHovered ? 'translate-y-[-2px]' : 'translate-y-0'}
-      `}
-      style={{
-        backgroundColor: 'var(--theme-card-bg)',
-        boxShadow: isHovered
-          ? 'var(--theme-shadow-lg)'
-          : 'var(--theme-shadow-sm)',
-        border: '1px solid var(--theme-card-border)',
-        transition: 'all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1.0)'
-      }}
+      transition={{ duration: 0.25 }}
+      onClick={handleNavigate}
+      className="surface-card group cursor-pointer overflow-visible p-4 sm:p-5"
     >
-      {/* 项目顶部状态指示条 */}
-      <div className="relative h-1 w-full overflow-hidden">
-        <div
-          className="absolute inset-0 rounded-b-xl"
-          style={{
-            background: project.archived === true
-              ? 'linear-gradient(to right, var(--theme-neutral-400), var(--theme-neutral-500))'
-              : 'linear-gradient(to right, var(--theme-primary-500), var(--theme-info-400))'
-          }}
-        />
-      </div>
-
-      <div className="flex items-center p-5 relative">
-        {/* 项目图标 */}
-        <div
-          className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-md text-white font-semibold text-base mr-4"
-          style={{
-            backgroundColor: getBgColorClass(project.id),
-            fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
-          }}
-        >
-          {getInitials(project.name)}
-        </div>
-
-        {/* 项目信息区域 */}
-        <div className="flex-grow min-w-0">
-          <div className="flex justify-between items-center">
-            {/* 归档状态标签 - 已归档时显示 */}
-            {project.archived === true && (
-              <div
-                className="absolute right-4 top-4 z-10 flex items-center px-2 py-1 rounded-md bg-[rgba(255,149,0,0.1)] border border-[rgba(255,149,0,0.2)]"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="w-3 h-3 mr-1"
-                  style={{ color: 'var(--theme-warning-500)' }}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-                </svg>
-                <span
-                  className="text-[11px] font-medium"
-                  style={{
-                    color: 'var(--theme-warning-500)',
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',
-                    letterSpacing: '-0.01em'
-                  }}
-                >
-                  已归档
-                </span>
-              </div>
-            )}
-            <div
-              className="text-[16px] font-semibold truncate mr-2"
-              style={{
-                color: 'var(--foreground)',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif',
-                letterSpacing: '-0.018em',
-                lineHeight: 1.3
-              }}
-            >
-              {project.name}
-            </div>
-
-            {/* 移除状态标签 */}
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex min-w-0 items-start gap-4">
+          <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-sm font-semibold text-white shadow-sm ${getBgColorClass(project.id)}`}>
+            {getInitials(project.name)}
           </div>
 
-          {/* 项目描述 */}
-          <div
-            className="text-[14px] mt-1"
-            style={{
-              color: 'var(--theme-neutral-500)',
-              fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',
-              letterSpacing: '-0.015em',
-              display: '-webkit-box',
-              WebkitLineClamp: 1,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              maxWidth: '90%'
-            }}
-          >
-            {project.description || '无项目描述'}
-          </div>
-        </div>
-
-        {/* 项目指标展示区 */}
-        <div className="flex items-center gap-5 ml-auto">
-          {/* 进度指示器 - 更紧凑的设计 */}
-          <div className="w-32 hidden sm:block">
-            <div className="flex items-center justify-between mb-1">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="truncate text-base font-semibold text-[var(--foreground)] sm:text-lg">{project.name}</h3>
               <span
-                className="text-[13px] font-medium"
+                className="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium"
                 style={{
-                  color: 'var(--theme-neutral-500)',
-                  fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',
-                  letterSpacing: '-0.01em'
+                  color: project.archived ? 'var(--theme-warning-700)' : 'var(--theme-success-700)',
+                  backgroundColor: project.archived ? 'rgba(245, 158, 11, 0.12)' : 'rgba(16, 185, 129, 0.12)',
+                  borderColor: project.archived ? 'rgba(245, 158, 11, 0.2)' : 'rgba(16, 185, 129, 0.18)',
                 }}
               >
-                进度
+                {project.archived ? '已归档' : '活跃'}
               </span>
+            </div>
+
+            <p className="mt-1 line-clamp-1 text-sm text-[var(--theme-neutral-500)]">
+              {project.description?.trim() || '暂无项目描述'}
+            </p>
+
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-[var(--theme-neutral-500)] sm:text-sm">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-black/[0.03] px-3 py-1.5 dark:bg-white/[0.05]">
+                <FiUser className="h-3.5 w-3.5" />
+                {project.ownerName || '未分配负责人'}
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-black/[0.03] px-3 py-1.5 dark:bg-white/[0.05]">
+                <FiCalendar className="h-3.5 w-3.5" />
+                {formatProjectDate(project.createdAt)}
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-black/[0.03] px-3 py-1.5 dark:bg-white/[0.05]">
+                <FiClock className="h-3.5 w-3.5" />
+                {duration} 天周期
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 lg:min-w-[340px] lg:justify-end">
+          <div className="min-w-[170px] flex-1 rounded-2xl border border-white/60 bg-white/60 px-4 py-3 dark:border-white/10 dark:bg-white/5">
+            <div className="mb-2 flex items-center justify-between text-xs text-[var(--theme-neutral-500)]">
+              <span>项目进度</span>
               <span
-                className="text-[13px] font-medium"
+                className="rounded-full border px-2 py-1 font-semibold"
                 style={{
-                  color: progress > 75 ? 'var(--theme-success-500)' : progress > 25 ? 'var(--theme-warning-500)' : 'var(--theme-error-500)',
-                  fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',
-                  letterSpacing: '-0.01em'
+                  color: progressTone.text,
+                  background: progressTone.pillBackground,
+                  borderColor: progressTone.pillBorder,
                 }}
               >
                 {progress}%
               </span>
             </div>
-            <div className="h-1.5 w-full rounded-full overflow-hidden" style={{ backgroundColor: 'var(--theme-neutral-200)' }}>
+            <div className="h-2 overflow-hidden rounded-full bg-[var(--theme-neutral-200)]/80 dark:bg-[var(--theme-neutral-700)]">
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${progress}%` }}
-                transition={{ duration: 0.8, ease: [0.23, 1, 0.32, 1] }}
+                transition={{ duration: 0.7, ease: 'easeOut' }}
                 className="h-full rounded-full"
-                style={{
-                  background: 'linear-gradient(to right, #30D158, #34C759)',
-                }}
+                style={{ background: progressTone.bar }}
               />
             </div>
           </div>
 
-          {/* 时长与日期 */}
-          <div className="flex gap-2 mr-2">
-            <div
-              className="hidden sm:flex items-center px-3 py-1.5 rounded-full text-xs whitespace-nowrap"
-              style={{
-                backgroundColor: 'rgba(0, 122, 255, 0.08)',
-                backdropFilter: 'blur(8px)'
-              }}
-            >
-              <FiClock className="w-3 h-3 mr-1.5" style={{ color: 'var(--theme-primary-500)' }} />
-              <span
-                className="font-medium"
-                style={{
-                  color: 'var(--theme-primary-500)',
-                  fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',
-                  letterSpacing: '-0.01em',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                {duration} 天
-              </span>
-            </div>
-
-            <div
-              className="hidden md:flex items-center px-3 py-1.5 rounded-full text-xs whitespace-nowrap"
-              style={{
-                backgroundColor: 'rgba(88, 86, 214, 0.08)',
-                backdropFilter: 'blur(8px)'
-              }}
-            >
-              <FiCalendar className="w-3 h-3 mr-1.5" style={{ color: 'var(--theme-info-500)' }} />
-              <span
-                className="font-medium"
-                style={{
-                  color: 'var(--theme-info-500)',
-                  fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',
-                  letterSpacing: '-0.01em'
-                }}
-              >
-                {formatDate(project.startDate || project.createdAt)}
-              </span>
-            </div>
+          <div className="hidden text-right text-sm text-[var(--theme-neutral-500)] xl:block">
+            <div className="font-semibold text-[var(--foreground)]">{project.memberCount || 0} 人</div>
+            <div>团队成员</div>
           </div>
 
-          {/* 移除成员数量 */}
-
-          {/* 操作按钮 */}
-          <div className="ml-1 relative">
+          <div ref={menuRef} className="relative shrink-0" onClick={(event) => event.stopPropagation()}>
             <button
-              className="project-menu-button w-7 h-7 flex items-center justify-center rounded-full transition-colors"
-              style={{
-                color: 'var(--theme-neutral-400)'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'var(--theme-neutral-100)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                setMenuOpen(!menuOpen);
-              }}
+              onClick={() => setMenuOpen((value) => !value)}
+              className="project-menu-button flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--theme-card-border)] bg-white/75 text-[var(--theme-neutral-500)] shadow-sm transition hover:text-[var(--foreground)] dark:bg-white/5"
+              aria-label="项目菜单"
             >
-              <FiMoreVertical className="w-4 h-4" style={{ color: 'var(--theme-neutral-400)' }} />
+              <FiMoreHorizontal className="h-4 w-4" />
             </button>
 
-            {menuOpen && (
-              <div className="project-menu absolute right-0 top-full mt-1 z-10">
-                <ProjectCardMenu
-                  project={project}
-                  onClose={() => setMenuOpen(false)}
-                />
-              </div>
-            )}
+            <AnimatePresence>
+              {menuOpen && (
+                <div className="project-menu absolute right-0 top-full mt-2">
+                  <ProjectCardMenu project={{ ...project, archived: !!project.archived }} onClose={() => setMenuOpen(false)} />
+                </div>
+              )}
+            </AnimatePresence>
           </div>
 
-          {/* 指示箭头 - 只在悬停时显示 */}
-          {isHovered && (
-            <motion.div
-              initial={{ opacity: 0, translateX: -5 }}
-              animate={{ opacity: 1, translateX: 0 }}
-              className="ml-0.5"
-            >
-              <FiChevronRight className="w-4 h-4" style={{ color: 'var(--theme-neutral-400)' }} />
-            </motion.div>
-          )}
+          <div className="hidden items-center text-[var(--theme-neutral-400)] transition group-hover:text-[var(--theme-primary-500)] sm:flex">
+            <FiChevronRight className="h-5 w-5" />
+          </div>
         </div>
       </div>
-    </motion.div>
+    </motion.article>
   );
 };
 
