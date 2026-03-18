@@ -38,10 +38,10 @@ const SwipeableTaskRow: React.FC<SwipeableTaskRowProps> = ({
 
   return (
     <tr
-      className={`h-16 border-b border-gray-200 ${task.status === 'COMPLETED' ? 'bg-green-50/20 dark:bg-green-900/5' : ''}`}
+      className={`group h-20 border-b border-slate-200/70 transition-colors hover:bg-slate-50/70 dark:border-white/10 dark:hover:bg-white/[0.03] ${task.status === 'COMPLETED' ? 'bg-emerald-50/40 dark:bg-emerald-500/5' : ''}`}
     >
       {/* 任务标题列 */}
-      <td className="w-[40%] px-4 py-3">
+      <td className="w-[40%] px-4 py-3.5">
         <SwipeableTaskItem
           onSwipeRight={handleCompleteTask}
           onSwipeLeft={handleDeleteTask}
@@ -54,17 +54,20 @@ const SwipeableTaskRow: React.FC<SwipeableTaskRowProps> = ({
           leftActionColor="#ef4444" // 红色
         >
           <div
-            className="flex items-center w-full h-full cursor-pointer"
+            className="flex h-full w-full cursor-pointer items-center"
             onClick={() => onTaskClick && onTaskClick(task)}
           >
             <div className="min-w-0">
-              <div className="font-medium text-gray-900 dark:text-gray-200 truncate">{task.title}</div>
+              <div className="flex items-center gap-2">
+                <div className="h-2.5 w-2.5 rounded-full bg-blue-500/80 shadow-[0_0_0_4px_rgba(59,130,246,0.12)] dark:bg-blue-400 dark:shadow-[0_0_0_4px_rgba(96,165,250,0.16)]" />
+                <div className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{task.title}</div>
+              </div>
               {task.description && (
-                <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{task.description}</div>
+                <div className="mt-1 truncate pl-[18px] text-xs text-slate-500 dark:text-slate-400">{task.description}</div>
               )}
               {/* 如果是子任务，显示父任务信息 */}
               {task.parentTaskId && (
-                <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                <div className="mt-1 pl-[18px] text-xs text-slate-400 dark:text-slate-500">
                   父任务: {tasks.find(t => t.id === task.parentTaskId)?.title || '未知'}
                 </div>
               )}
@@ -76,11 +79,11 @@ const SwipeableTaskRow: React.FC<SwipeableTaskRowProps> = ({
       {/* 任务类型列 */}
       <td className="w-[10%] px-4 py-3 text-sm text-center">
         {!task.parentTaskId ? (
-          <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 border border-blue-200/60 dark:border-blue-800/40">
+          <span className="inline-flex items-center rounded-full border border-blue-200/80 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-300">
             主任务
           </span>
         ) : (
-          <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400 border border-purple-200/60 dark:border-purple-800/40">
+          <span className="inline-flex items-center rounded-full border border-violet-200/80 bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-700 dark:border-violet-500/20 dark:bg-violet-500/10 dark:text-violet-300">
             子任务
           </span>
         )}
@@ -90,7 +93,7 @@ const SwipeableTaskRow: React.FC<SwipeableTaskRowProps> = ({
       <td className="w-[10%] px-4 py-3 text-sm text-center">
         {task.priorityColor ? (
           <span
-            className="inline-flex items-center px-2 py-1 rounded text-xs font-medium border"
+            className="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold shadow-sm"
             style={{
               backgroundColor: `${task.priorityColor}15`,
               color: task.priorityColor,
@@ -100,7 +103,7 @@ const SwipeableTaskRow: React.FC<SwipeableTaskRowProps> = ({
             {task.priority || '无'}
           </span>
         ) : (
-          <span className="text-gray-500 dark:text-gray-400">-</span>
+          <span className="text-slate-400 dark:text-slate-500">-</span>
         )}
       </td>
 
@@ -109,15 +112,15 @@ const SwipeableTaskRow: React.FC<SwipeableTaskRowProps> = ({
         {task.assignee ? (
           <div className="flex items-center justify-center">
             <Avatar name={task.assignee} size="xs" className="mr-2 flex-shrink-0" />
-            <span className="text-gray-600 dark:text-gray-300 truncate max-w-[90px]">{task.assignee}</span>
+            <span className="max-w-[90px] truncate text-slate-600 dark:text-slate-300">{task.assignee}</span>
           </div>
         ) : (
-          <span className="text-gray-400">未分配</span>
+          <span className="text-slate-400 dark:text-slate-500">未分配</span>
         )}
       </td>
 
       {/* 开始时间列 */}
-      <td className="w-[10%] px-4 py-3 text-sm text-gray-600 dark:text-gray-300 text-center">
+      <td className="w-[10%] px-4 py-3 text-center text-sm text-slate-600 dark:text-slate-300">
         {task.startTime && !isNaN(new Date(task.startTime).getTime())
           ? new Date(task.startTime).toLocaleString('zh-CN', {
               year: 'numeric',
@@ -140,12 +143,12 @@ const SwipeableTaskRow: React.FC<SwipeableTaskRowProps> = ({
 
               // 苹果系统颜色
               let dotColor = '';
-              let textColor = 'text-gray-700 dark:text-gray-300';
+              let textColor = 'text-slate-700 dark:text-slate-300';
 
               if (task.status === 'COMPLETED') {
                 // 已完成任务 - 苹果绿色
                 dotColor = 'bg-[#34c759] dark:bg-[#30d158]';
-                textColor = 'text-gray-500 dark:text-gray-400';
+                textColor = 'text-slate-500 dark:text-slate-400';
               } else if (diffDays < 0) {
                 // 已过期 - 苹果红色
                 dotColor = 'bg-[#ff3b30] dark:bg-[#ff453a]';
@@ -211,7 +214,7 @@ const SwipeableTaskRow: React.FC<SwipeableTaskRowProps> = ({
         <div className="group relative w-full px-1 py-1">
           {/* 更加符合进度条 */}
           <div
-            className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2 relative overflow-hidden"
+            className="relative h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800"
             style={{ boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)' }}
           >
             {/* 更新进度条填充部分为苹果系统色 */}
@@ -219,7 +222,7 @@ const SwipeableTaskRow: React.FC<SwipeableTaskRowProps> = ({
               className="absolute inset-y-0 left-0 transition-all duration-300 ease-[cubic-bezier(0.215,0.61,0.355,1)]"
               style={{
                 width: `${task.progress || 0}%`,
-                background: '#007aff',
+                background: 'linear-gradient(90deg, #2563eb 0%, #60a5fa 100%)',
                 borderTopRightRadius: '9999px',
                 borderBottomRightRadius: '9999px'
               }}
@@ -230,7 +233,7 @@ const SwipeableTaskRow: React.FC<SwipeableTaskRowProps> = ({
           </div>
 
           {/* 进度文本放在进度条下方 */}
-          <div className="absolute text-center w-full mt-1 text-xs font-medium text-gray-600 dark:text-gray-400">
+          <div className="absolute mt-1 w-full text-center text-xs font-semibold text-slate-600 dark:text-slate-400">
             {task.progress || 0}%
           </div>
 

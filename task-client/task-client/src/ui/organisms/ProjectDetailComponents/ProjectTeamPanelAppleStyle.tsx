@@ -108,6 +108,9 @@ const AppleStyleProjectTeamPanel: React.FC<ProjectTeamPanelProps> = ({
 
   // 是否有更多成员可以显示
   const hasMoreMembers = !searchText && filteredMembers.length > displayLimit && !showAllMembers;
+  const activeMembersCount = members.filter(member => member.status === 'active').length;
+  const emailReadyMembersCount = members.filter(member => Boolean(member.email)).length;
+  const departmentCount = new Set(members.map(member => member.department).filter(Boolean)).size;
 
   // 根据状态获取指示器颜色
   const getStatusColor = (status?: 'active' | 'offline' | 'busy') => {
@@ -146,38 +149,58 @@ const AppleStyleProjectTeamPanel: React.FC<ProjectTeamPanelProps> = ({
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
-        className={`rounded-xl overflow-hidden shadow-sm border ${
+        className={`overflow-hidden rounded-[32px] border shadow-[0_24px_60px_-32px_rgba(15,23,42,0.45)] ${
           isDarkMode 
-            ? 'bg-gray-800 border-gray-700' 
-            : 'bg-white border-gray-100'
+            ? 'bg-slate-900/85 border-white/10' 
+            : 'bg-white/95 border-slate-200/80'
         }`}
       >
+        <div className={`grid gap-3 border-b px-5 py-4 sm:grid-cols-3 ${
+          isDarkMode ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200/70 bg-slate-50/80'
+        }`}>
+          {[
+            { label: '团队成员', value: members.length, tone: isDarkMode ? 'text-slate-100' : 'text-slate-900' },
+            { label: '在线成员', value: activeMembersCount, tone: 'text-emerald-500 dark:text-emerald-300' },
+            { label: '协作部门', value: departmentCount || '—', tone: isDarkMode ? 'text-slate-200' : 'text-slate-800' }
+          ].map((item) => (
+            <div
+              key={item.label}
+              className={`rounded-2xl border px-4 py-3 ${
+                isDarkMode ? 'border-white/10 bg-white/[0.04]' : 'border-white bg-white/90 shadow-sm'
+              }`}
+            >
+              <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">{item.label}</p>
+              <p className={`mt-2 text-2xl font-semibold ${item.tone}`}>{item.value}</p>
+            </div>
+          ))}
+        </div>
+
         {/* 搜索和操作区域 */}
         <div className={`px-5 py-4 flex flex-wrap items-center justify-between gap-3 border-b apple-blur-bg ${
-          isDarkMode ? 'border-gray-700' : 'border-gray-100'
+          isDarkMode ? 'border-white/10 bg-slate-900/70' : 'border-slate-200/70 bg-white/70'
         }`}>
           <div className="flex items-center flex-1 min-w-[280px] max-w-md">
             <div className="relative flex-1">
               <FiSearch className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${
-                isDarkMode ? 'text-gray-500' : 'text-gray-400'
+                isDarkMode ? 'text-slate-500' : 'text-slate-400'
               }`} size={16} />
               <input
                 type="text"
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
                 placeholder="搜索成员..."
-                className={`w-full pl-10 pr-4 py-2.5 border rounded-full text-sm focus:outline-none focus:ring-2 transition-all ${
+                className={`w-full rounded-full border px-10 py-3 text-sm transition-all focus:outline-none focus:ring-2 ${
                   isDarkMode 
-                    ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400 focus:ring-blue-500/30 focus:border-blue-500' 
-                    : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-500 focus:ring-blue-100 focus:border-blue-300'
+                    ? 'bg-white/[0.04] border-white/10 text-slate-100 placeholder-slate-500 focus:ring-blue-500/20 focus:border-blue-400' 
+                    : 'bg-slate-50/80 border-slate-200 text-slate-900 placeholder-slate-400 focus:ring-blue-100 focus:border-blue-300'
                 }`}
               />
               {searchText && (
                 <button
                   className={`absolute right-3 top-1/2 transform -translate-y-1/2 transition-colors ${
                     isDarkMode 
-                      ? 'text-gray-500 hover:text-gray-300' 
-                      : 'text-gray-400 hover:text-gray-600'
+                      ? 'text-slate-500 hover:text-slate-300' 
+                      : 'text-slate-400 hover:text-slate-600'
                   }`}
                   onClick={() => setSearchText('')}
                 >
@@ -188,19 +211,19 @@ const AppleStyleProjectTeamPanel: React.FC<ProjectTeamPanelProps> = ({
           </div>
 
           <div className="flex items-center space-x-3">
-            <div className={`flex p-0.5 rounded-lg ${
-              isDarkMode ? 'bg-gray-700' : 'bg-gray-100'
+            <div className={`flex rounded-full p-1 ${
+              isDarkMode ? 'bg-white/[0.05]' : 'bg-slate-100/90'
             }`}>
               <button
                 onClick={() => setViewMode('grid')}
-                className={`px-3 py-1.5 text-sm rounded-md transition-colors flex items-center ${
+                className={`flex items-center rounded-full px-3 py-2 text-sm transition-colors ${
                   viewMode === 'grid' 
                     ? isDarkMode 
-                      ? 'bg-gray-600 shadow-sm text-gray-100' 
-                      : 'bg-white shadow-sm text-gray-800'
+                      ? 'bg-blue-500/20 text-blue-100 shadow-sm shadow-blue-500/10' 
+                      : 'bg-white text-slate-800 shadow-sm'
                     : isDarkMode
-                      ? 'text-gray-400 hover:text-gray-200'
-                      : 'text-gray-500 hover:text-gray-700'
+                      ? 'text-slate-400 hover:text-slate-200'
+                      : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
                 <FiGrid className="mr-1.5" size={14} />
@@ -208,14 +231,14 @@ const AppleStyleProjectTeamPanel: React.FC<ProjectTeamPanelProps> = ({
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`px-3 py-1.5 text-sm rounded-md transition-colors flex items-center ${
+                className={`flex items-center rounded-full px-3 py-2 text-sm transition-colors ${
                   viewMode === 'list' 
                     ? isDarkMode 
-                      ? 'bg-gray-600 shadow-sm text-gray-100' 
-                      : 'bg-white shadow-sm text-gray-800'
+                      ? 'bg-blue-500/20 text-blue-100 shadow-sm shadow-blue-500/10' 
+                      : 'bg-white text-slate-800 shadow-sm'
                     : isDarkMode
-                      ? 'text-gray-400 hover:text-gray-200'
-                      : 'text-gray-500 hover:text-gray-700'
+                      ? 'text-slate-400 hover:text-slate-200'
+                      : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
                 <FiList className="mr-1.5" size={14} />
@@ -225,7 +248,7 @@ const AppleStyleProjectTeamPanel: React.FC<ProjectTeamPanelProps> = ({
 
             <button
               onClick={onAddMember}
-              className="apple-button inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-full hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-200 transition-all shadow-sm"
+              className="apple-button inline-flex items-center rounded-full bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-[0_18px_32px_-20px_rgba(37,99,235,0.9)] transition-all hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-200"
             >
               <FiPlus className="mr-1.5" size={15} />
               添加成员
@@ -235,13 +258,21 @@ const AppleStyleProjectTeamPanel: React.FC<ProjectTeamPanelProps> = ({
 
         {/* 成员列表区域 */}
         <div className="p-5">
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300">
+              可联系成员 {emailReadyMembersCount}
+            </span>
+            <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300">
+              当前视图 {viewMode === 'grid' ? '网格' : '列表'}
+            </span>
+          </div>
           {displayedMembers.length > 0 ? (
             <motion.div
               variants={containerVariants}
               initial="hidden"
               animate="visible"
               className={viewMode === 'grid'
-                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+                ? "grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3"
                 : "flex flex-col space-y-3"
               }
             >
@@ -251,11 +282,11 @@ const AppleStyleProjectTeamPanel: React.FC<ProjectTeamPanelProps> = ({
                   variants={itemVariants}
                   className={`${viewMode === 'grid' 
                     ? isDarkMode
-                      ? 'bg-gray-700 rounded-xl p-4 hover:bg-gray-600 transition-all cursor-pointer border border-gray-600 hover:shadow-md'
-                      : 'bg-gray-50 rounded-xl p-4 hover:bg-white transition-all cursor-pointer border border-gray-200 hover:shadow-md'
+                      ? 'rounded-[24px] border border-white/10 bg-white/[0.04] p-4 transition-all cursor-pointer hover:-translate-y-0.5 hover:bg-white/[0.07] hover:shadow-lg'
+                      : 'rounded-[24px] border border-slate-200/80 bg-slate-50/80 p-4 transition-all cursor-pointer hover:-translate-y-0.5 hover:bg-white hover:shadow-lg'
                     : isDarkMode
-                      ? 'bg-gray-700 rounded-xl p-3 hover:bg-gray-600 transition-all cursor-pointer border border-gray-600 hover:shadow-md flex items-center'
-                      : 'bg-gray-50 rounded-xl p-3 hover:bg-white transition-all cursor-pointer border border-gray-200 hover:shadow-md flex items-center'
+                      ? 'flex items-center rounded-[24px] border border-white/10 bg-white/[0.04] p-3 transition-all cursor-pointer hover:bg-white/[0.07] hover:shadow-lg'
+                      : 'flex items-center rounded-[24px] border border-slate-200/80 bg-slate-50/80 p-3 transition-all cursor-pointer hover:bg-white hover:shadow-lg'
                   }`}
                   onClick={(e) => handleMemberClick(member, e)}
                 >
@@ -506,10 +537,7 @@ const AppleStyleProjectTeamPanel: React.FC<ProjectTeamPanelProps> = ({
 
               {/* 查看全部成员按钮 */}
               {hasMoreMembers && (
-                <motion.div
-                  variants={itemVariants}
-                  className="flex justify-center mt-4 pt-2"
-                >
+                <motion.div variants={itemVariants} className="mt-4 flex justify-center pt-2">
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -520,9 +548,9 @@ const AppleStyleProjectTeamPanel: React.FC<ProjectTeamPanelProps> = ({
                         setShowAllMembers(true);
                       }
                     }}
-                    className={`inline-flex items-center px-4 py-2.5 text-sm font-medium rounded-full transition-all ${
+                    className={`inline-flex items-center rounded-full px-4 py-2.5 text-sm font-medium transition-all ${
                       isDarkMode 
-                        ? 'text-blue-400 bg-blue-900/30 hover:bg-blue-900/50' 
+                        ? 'text-blue-300 bg-blue-500/15 hover:bg-blue-500/20' 
                         : 'text-blue-600 bg-blue-50 hover:bg-blue-100'
                     }`}
                   >
@@ -534,8 +562,8 @@ const AppleStyleProjectTeamPanel: React.FC<ProjectTeamPanelProps> = ({
               )}
             </motion.div>
           ) : searchText ? (
-            <div className={`text-center py-12 ${
-              isDarkMode ? 'text-gray-400' : 'text-gray-500'
+            <div className={`rounded-[24px] border py-12 text-center ${
+              isDarkMode ? 'border-white/10 bg-white/[0.03] text-slate-400' : 'border-slate-200/80 bg-slate-50/80 text-slate-500'
             }`}>
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
@@ -543,24 +571,24 @@ const AppleStyleProjectTeamPanel: React.FC<ProjectTeamPanelProps> = ({
                 transition={{ duration: 0.3 }}
                 className="flex justify-center mb-6"
               >
-                <div className={`w-20 h-20 rounded-full flex items-center justify-center ${
-                  isDarkMode ? 'bg-gray-700' : 'bg-gray-100'
+                <div className={`flex h-20 w-20 items-center justify-center rounded-full ${
+                  isDarkMode ? 'bg-white/[0.06]' : 'bg-white shadow-sm'
                 }`}>
                   <FiSearch className={`w-8 h-8 ${
-                    isDarkMode ? 'text-gray-500' : 'text-gray-300'
+                    isDarkMode ? 'text-slate-500' : 'text-slate-300'
                   }`} />
                 </div>
               </motion.div>
               <p className={`text-lg font-medium ${
-                isDarkMode ? 'text-gray-200' : 'text-gray-900'
+                isDarkMode ? 'text-slate-100' : 'text-slate-900'
               }`}>未找到匹配的成员</p>
               <p className={`text-sm mt-1 ${
-                isDarkMode ? 'text-gray-500' : 'text-gray-400'
+                isDarkMode ? 'text-slate-500' : 'text-slate-400'
               }`}>尝试使用其他关键词搜索</p>
             </div>
           ) : (
-            <div className={`text-center py-16 ${
-              isDarkMode ? 'text-gray-400' : 'text-gray-500'
+            <div className={`rounded-[28px] border py-16 text-center ${
+              isDarkMode ? 'border-white/10 bg-white/[0.03] text-slate-400' : 'border-slate-200/80 bg-slate-50/80 text-slate-500'
             }`}>
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
@@ -568,8 +596,8 @@ const AppleStyleProjectTeamPanel: React.FC<ProjectTeamPanelProps> = ({
                 transition={{ duration: 0.3 }}
                 className="flex justify-center mb-6"
               >
-                <div className={`w-24 h-24 rounded-full flex items-center justify-center ${
-                  isDarkMode ? 'bg-blue-900/30' : 'bg-blue-50'
+                <div className={`flex h-24 w-24 items-center justify-center rounded-full ${
+                  isDarkMode ? 'bg-blue-500/15' : 'bg-blue-50'
                 }`}>
                   <svg className={`w-12 h-12 ${
                     isDarkMode ? 'text-blue-400' : 'text-blue-300'
@@ -581,17 +609,17 @@ const AppleStyleProjectTeamPanel: React.FC<ProjectTeamPanelProps> = ({
                   </svg>
                 </div>
               </motion.div>
-              <p className={`text-xl font-medium ${
-                isDarkMode ? 'text-gray-200' : 'text-gray-900'
+              <p className={`text-xl font-semibold ${
+                isDarkMode ? 'text-slate-100' : 'text-slate-900'
               }`}>暂无团队成员</p>
               <p className={`text-sm mt-2 mb-8 ${
-                isDarkMode ? 'text-gray-500' : 'text-gray-400'
+                isDarkMode ? 'text-slate-500' : 'text-slate-400'
               }`}>点击下方按钮邀请团队成员加入</p>
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={onAddMember}
-                className="px-5 py-2.5 bg-blue-500 text-white rounded-full shadow-sm hover:bg-blue-600 transition-colors inline-flex items-center"
+                className="inline-flex items-center rounded-full bg-blue-600 px-5 py-2.5 text-white shadow-[0_18px_32px_-20px_rgba(37,99,235,0.9)] transition-colors hover:bg-blue-700"
               >
                 <FiPlus className="mr-2" size={16} />
                 添加第一个成员

@@ -101,16 +101,16 @@ const AppleStyleTaskHeader: React.FC<AppleStyleTaskHeaderProps> = ({
   };
 
   return (
-    <div className={`shadow-sm border rounded-xl overflow-hidden ${
+    <div className={`overflow-hidden rounded-[28px] border shadow-[0_24px_60px_-32px_rgba(15,23,42,0.45)] ${
       isDarkMode 
-        ? 'bg-gray-800 border-gray-700' 
-        : 'bg-white border-gray-100'
+        ? 'bg-slate-900/80 border-white/10' 
+        : 'bg-white/95 border-slate-200/80'
     }`}>
       {/* 顶部搜索栏和操作区 - 添加sticky定位，吸附在项目tab栏下面 */}
-      <div className={`sticky z-30 px-3 sm:px-5 py-4 flex flex-col sm:flex-row gap-3 border-b backdrop-blur-md ${
+      <div className={`sticky z-30 px-4 sm:px-5 py-4 flex flex-col sm:flex-row gap-3 border-b backdrop-blur-md ${
         isDarkMode 
-          ? 'bg-gray-800/95 border-gray-700' 
-          : 'bg-white/95 border-gray-100'
+          ? 'bg-slate-900/90 border-white/10' 
+          : 'bg-white/90 border-slate-200/80'
       }`} style={{
         top: 'var(--project-header-height, 80px)', // 吸附在项目tab栏下面，动态适配项目头部高度
         WebkitBackdropFilter: 'saturate(180%) blur(20px)',
@@ -119,13 +119,13 @@ const AppleStyleTaskHeader: React.FC<AppleStyleTaskHeaderProps> = ({
         {/* 搜索输入框 - 始终占据最大可用宽度 */}
         <div className="w-full sm:max-w-md">
           <div className="relative">
-            <FiSearch className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} size={16} />
+            <FiSearch className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`} size={16} />
             <input
               type="text"
-              className={`w-full pl-10 pr-4 py-2.5 border rounded-full text-sm focus:outline-none focus:ring-2 transition-all ${
+              className={`w-full rounded-full border px-10 py-3 text-sm transition-all focus:outline-none focus:ring-2 ${
                 isDarkMode 
-                  ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400 focus:ring-blue-500/30 focus:border-blue-500' 
-                  : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-500 focus:ring-blue-100 focus:border-blue-300'
+                  ? 'bg-white/[0.04] border-white/10 text-slate-100 placeholder-slate-500 focus:border-blue-400 focus:ring-blue-500/20' 
+                  : 'bg-slate-50/80 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-blue-300 focus:ring-blue-100'
               }`}
               placeholder="搜索任务..."
               value={searchQuery}
@@ -160,8 +160,8 @@ const AppleStyleTaskHeader: React.FC<AppleStyleTaskHeaderProps> = ({
               <button
                 className={`absolute right-3 top-1/2 transform -translate-y-1/2 transition-colors ${
                   isDarkMode 
-                    ? 'text-gray-500 hover:text-gray-300' 
-                    : 'text-gray-400 hover:text-gray-600'
+                    ? 'text-slate-500 hover:text-slate-300' 
+                    : 'text-slate-400 hover:text-slate-600'
                 }`}
                 onClick={() => {
                   setSearchQuery('');
@@ -175,21 +175,21 @@ const AppleStyleTaskHeader: React.FC<AppleStyleTaskHeaderProps> = ({
         </div>
 
         {/* 操作按钮区域 - 使用flex-wrap允许在必要时自动换行 */}
-        <div className="flex flex-wrap gap-2 sm:gap-3 w-full sm:flex-1 justify-start sm:justify-end items-center">
+        <div className="flex w-full flex-wrap items-center justify-start gap-2 sm:flex-1 sm:justify-end sm:gap-3">
           {/* 视图切换按钮组 */}
-          <div className={`flex flex-nowrap p-0.5 rounded-lg overflow-x-auto no-scrollbar ${
-            isDarkMode ? 'bg-gray-700' : 'bg-gray-100'
+          <div className={`flex flex-nowrap overflow-x-auto rounded-full p-1 no-scrollbar ${
+            isDarkMode ? 'bg-white/[0.05]' : 'bg-slate-100/90'
           }`}>
             <button
               onClick={() => handleViewChange('list')}
-              className={`px-2 sm:px-3 py-1.5 text-xs sm:text-sm rounded-md transition-colors flex flex-row flex-nowrap items-center whitespace-nowrap ${
+              className={`flex flex-row flex-nowrap items-center whitespace-nowrap rounded-full px-3 py-2 text-xs sm:text-sm transition-colors ${
                 actualView === 'list' 
                   ? isDarkMode 
-                    ? 'bg-gray-600 shadow-sm text-gray-100' 
-                    : 'bg-white shadow-sm text-gray-800'
+                    ? 'bg-blue-500/20 text-blue-100 shadow-sm shadow-blue-500/10' 
+                    : 'bg-white text-slate-800 shadow-sm'
                   : isDarkMode
-                    ? 'text-gray-400 hover:text-gray-200'
-                    : 'text-gray-500 hover:text-gray-700'
+                    ? 'text-slate-400 hover:text-slate-200'
+                    : 'text-slate-500 hover:text-slate-700'
               }`}
             >
               <FiList className="mr-1 sm:mr-1.5 flex-shrink-0" size={14} />
@@ -197,14 +197,14 @@ const AppleStyleTaskHeader: React.FC<AppleStyleTaskHeaderProps> = ({
             </button>
             <button
               onClick={() => handleViewChange('board')}
-              className={`px-2 sm:px-3 py-1.5 text-xs sm:text-sm rounded-md transition-colors flex flex-row flex-nowrap items-center whitespace-nowrap ${
+              className={`flex flex-row flex-nowrap items-center whitespace-nowrap rounded-full px-3 py-2 text-xs sm:text-sm transition-colors ${
                 actualView === 'board' 
                   ? isDarkMode 
-                    ? 'bg-gray-600 shadow-sm text-gray-100' 
-                    : 'bg-white shadow-sm text-gray-800'
+                    ? 'bg-blue-500/20 text-blue-100 shadow-sm shadow-blue-500/10' 
+                    : 'bg-white text-slate-800 shadow-sm'
                   : isDarkMode
-                    ? 'text-gray-400 hover:text-gray-200'
-                    : 'text-gray-500 hover:text-gray-700'
+                    ? 'text-slate-400 hover:text-slate-200'
+                    : 'text-slate-500 hover:text-slate-700'
               }`}
             >
               <FiGrid className="mr-1 sm:mr-1.5 flex-shrink-0" size={14} />
@@ -212,14 +212,14 @@ const AppleStyleTaskHeader: React.FC<AppleStyleTaskHeaderProps> = ({
             </button>
             <button
               onClick={() => handleViewChange('calendar')}
-              className={`px-2 sm:px-3 py-1.5 text-xs sm:text-sm rounded-md transition-colors flex flex-row flex-nowrap items-center whitespace-nowrap ${
+              className={`flex flex-row flex-nowrap items-center whitespace-nowrap rounded-full px-3 py-2 text-xs sm:text-sm transition-colors ${
                 actualView === 'calendar' 
                   ? isDarkMode 
-                    ? 'bg-gray-600 shadow-sm text-gray-100' 
-                    : 'bg-white shadow-sm text-gray-800'
+                    ? 'bg-blue-500/20 text-blue-100 shadow-sm shadow-blue-500/10' 
+                    : 'bg-white text-slate-800 shadow-sm'
                   : isDarkMode
-                    ? 'text-gray-400 hover:text-gray-200'
-                    : 'text-gray-500 hover:text-gray-700'
+                    ? 'text-slate-400 hover:text-slate-200'
+                    : 'text-slate-500 hover:text-slate-700'
               }`}
             >
               <FiCalendar className="mr-1 sm:mr-1.5 flex-shrink-0" size={14} />
@@ -227,14 +227,14 @@ const AppleStyleTaskHeader: React.FC<AppleStyleTaskHeaderProps> = ({
             </button>
             <button
               onClick={() => handleViewChange('gantt')}
-              className={`px-2 sm:px-3 py-1.5 text-xs sm:text-sm rounded-md transition-colors flex flex-row flex-nowrap items-center whitespace-nowrap ${
+              className={`flex flex-row flex-nowrap items-center whitespace-nowrap rounded-full px-3 py-2 text-xs sm:text-sm transition-colors ${
                 actualView === 'gantt' 
                   ? isDarkMode 
-                    ? 'bg-gray-600 shadow-sm text-gray-100' 
-                    : 'bg-white shadow-sm text-gray-800'
+                    ? 'bg-blue-500/20 text-blue-100 shadow-sm shadow-blue-500/10' 
+                    : 'bg-white text-slate-800 shadow-sm'
                   : isDarkMode
-                    ? 'text-gray-400 hover:text-gray-200'
-                    : 'text-gray-500 hover:text-gray-700'
+                    ? 'text-slate-400 hover:text-slate-200'
+                    : 'text-slate-500 hover:text-slate-700'
               }`}
             >
               <FiBarChart2 className="mr-1 sm:mr-1.5 flex-shrink-0" size={14} />
@@ -247,10 +247,10 @@ const AppleStyleTaskHeader: React.FC<AppleStyleTaskHeaderProps> = ({
             <div className="relative">
               <button
                 ref={filterButtonRef}
-                className={`inline-flex flex-row flex-nowrap items-center whitespace-nowrap px-2 sm:px-3 py-1.5 text-xs sm:text-sm rounded-md transition-colors border cursor-not-allowed opacity-80 ${
+                className={`inline-flex flex-row flex-nowrap items-center whitespace-nowrap rounded-full border px-3 py-2 text-xs sm:text-sm transition-colors cursor-not-allowed opacity-80 ${
                   isDarkMode 
-                    ? 'bg-gray-700 text-gray-400 border-gray-600' 
-                    : 'bg-gray-50 text-gray-500 border-gray-200'
+                    ? 'bg-white/[0.04] text-slate-400 border-white/10' 
+                    : 'bg-slate-50 text-slate-500 border-slate-200'
                 }`}
                 title="高级筛选功能，敬请期待"
               >
@@ -267,14 +267,14 @@ const AppleStyleTaskHeader: React.FC<AppleStyleTaskHeaderProps> = ({
 
             <button
               onClick={() => setShowStats(!showStats)}
-              className={`inline-flex flex-row flex-nowrap items-center whitespace-nowrap px-2 sm:px-3 py-1.5 text-xs sm:text-sm rounded-md transition-colors ${
+              className={`inline-flex flex-row flex-nowrap items-center whitespace-nowrap rounded-full px-3 py-2 text-xs sm:text-sm transition-colors ${
                 showStats 
                   ? isDarkMode
-                    ? 'bg-blue-600/20 text-blue-400'
+                    ? 'bg-blue-500/20 text-blue-300'
                     : 'bg-blue-50 text-blue-600'
                   : isDarkMode
-                    ? 'bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600'
-                    : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
+                    ? 'bg-white/[0.04] text-slate-300 border border-white/10 hover:bg-white/[0.08]'
+                    : 'bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100'
               }`}
             >
               <FiPieChart size={14} className="mr-1 sm:mr-1.5 flex-shrink-0" />
@@ -288,7 +288,7 @@ const AppleStyleTaskHeader: React.FC<AppleStyleTaskHeaderProps> = ({
           {/* 添加任务按钮 */}
           <button
             onClick={onAddTask}
-            className="inline-flex flex-row flex-nowrap items-center whitespace-nowrap px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-white bg-blue-500 rounded-full hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-200 transition-all shadow-sm"
+            className="inline-flex flex-row flex-nowrap items-center whitespace-nowrap rounded-full bg-blue-600 px-4 py-2 text-xs font-medium text-white shadow-[0_18px_32px_-20px_rgba(37,99,235,0.9)] transition-all hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-200 sm:px-4 sm:py-2 sm:text-sm"
           >
             <FiPlusCircle className="mr-1 sm:mr-1.5 flex-shrink-0" size={14} />
             <span className="truncate">添加任务</span>

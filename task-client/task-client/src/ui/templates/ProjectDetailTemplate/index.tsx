@@ -1,6 +1,6 @@
 "use client";
 
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import MainLayout from '@/ui/templates/MainLayout';
 import {ProjectTask} from '@/types/api-types';
 import {useQueryClient} from '@tanstack/react-query';
@@ -176,6 +176,28 @@ const ProjectDetailTemplate: React.FC<ProjectDetailTemplateProps> = ({ projectId
   );
 
   // 注意：currentView已在上方声明
+
+  const allProjectTasks = useMemo<ProjectTask[]>(() => {
+    if (Array.isArray(projectDetail?.tasks) && projectDetail.tasks.length > 0) {
+      return projectDetail.tasks;
+    }
+
+    if (shouldUseSubTasks()) {
+      return subTasksData?.content || [];
+    }
+
+    return tasksData?.content || [];
+  }, [projectDetail?.tasks, subTasksData?.content, tasksData?.content, currentView]);
+
+  const recentProjectTasks = useMemo<ProjectTask[]>(() => {
+    return [...allProjectTasks]
+      .sort((left, right) => {
+        const leftValue = new Date(left.dueDate || left.createdAt || 0).getTime();
+        const rightValue = new Date(right.dueDate || right.createdAt || 0).getTime();
+        return rightValue - leftValue;
+      })
+      .slice(0, 5);
+  }, [allProjectTasks]);
 
   // 不再在这里获取任务详情，改为在TaskDetailModal组件内部获取
 
@@ -461,6 +483,7 @@ const ProjectDetailTemplate: React.FC<ProjectDetailTemplateProps> = ({ projectId
                   >
                     <ProjectTasksPanel
                       tasks={shouldUseSubTasks() ? subTasksData?.content || [] : tasksData?.content || []}
+                      recentTasks={recentProjectTasks}
                       onAddTask={handleAddTask}
                       onTaskClick={handleTaskClick}
                       isLoading={shouldUseSubTasks() ? isSubTasksLoading : isTasksLoading}
@@ -508,6 +531,8 @@ const ProjectDetailTemplate: React.FC<ProjectDetailTemplateProps> = ({ projectId
                   >
                     <ProjectTeamPanel
                       members={projectMembersToTeamMembers(projectDetail?.members || [])}
+                      tasks={allProjectTasks}
+                      taskStatusTrend={projectDetail?.taskStatusTrend}
                       onAddMember={() => console.log('添加成员')}
                       projectId={projectId}
                       onRemoveMember={() => {
@@ -561,7 +586,7 @@ const ProjectDetailTemplate: React.FC<ProjectDetailTemplateProps> = ({ projectId
               isOpen={isCreateTaskModalOpen}
               onClose={handleTaskModalClose}
               projectId={projectId}
-              initialData={taskAnalysisData}
+              initialData={taskAnalysisData ?? undefined}
               onConfirm={() => {
                 // 标记需要刷新任务列表
                 setShouldRefreshTasks(true);

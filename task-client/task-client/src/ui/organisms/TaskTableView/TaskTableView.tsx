@@ -83,6 +83,7 @@ export function TaskTableView({
 
   // 完成任务计数
   const [completedTasksCount, setCompletedTasksCount] = useState(0);
+  const activeView = onViewChange ? currentView : innerCurrentView;
 
   // 计算完成任务数量
   useEffect(() => {
@@ -235,7 +236,7 @@ export function TaskTableView({
           }
         }}
         onViewChange={handleViewChange}
-        currentView={onViewChange ? currentView : innerCurrentView} // 使用外部或内部当前视图
+        currentView={activeView} // 使用外部或内部当前视图
         taskDistribution={taskDistribution}
         isLoading={isLoading}
         projectProgress={projectProgress}
@@ -244,13 +245,35 @@ export function TaskTableView({
 
 
       {/* 根据当前视图类型渲染不同视图组件 */}
-      {(onViewChange ? currentView : innerCurrentView) === 'list' && (
-        <div className="overflow-x-auto" style={{ minWidth: '768px' }}>
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
-            <thead className="bg-gray-50 dark:bg-gray-800/30 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700/50">
+      {activeView === 'list' && (
+        <div className={`mt-4 overflow-hidden rounded-[28px] border ${isLoading ? '' : 'shadow-[0_18px_50px_-30px_rgba(15,23,42,0.35)]'} ${
+          'border-slate-200/80 bg-white/90 dark:border-white/10 dark:bg-slate-950/75'
+        }`}>
+          <div className={`flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3 sm:px-5 ${
+            'border-slate-200/70 bg-slate-50/80 dark:border-white/10 dark:bg-white/[0.03]'
+          }`}>
+            <div>
+              <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">任务列表</p>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                当前显示 {sortedTasks.length} 条，已完成 {projectCompletedTaskCount ?? completedTasksCount} 条
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center rounded-full border border-emerald-200/80 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300">
+                完成率 {Math.round(((projectCompletedTaskCount ?? completedTasksCount) / Math.max(projectTaskCount ?? tasks.length, 1)) * 100)}%
+              </span>
+              <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300">
+                共 {(projectTaskCount ?? totalItems) || tasks.length} 个任务
+              </span>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto" style={{ minWidth: '768px' }}>
+            <table className="min-w-full divide-y divide-slate-200/80 dark:divide-white/10">
+            <thead className="bg-slate-50/80 dark:bg-white/[0.02] backdrop-blur-sm border-b border-slate-200/70 dark:border-white/10">
               <tr>
                 <th
-                  className="w-[40%] px-4 py-4 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase tracking-wide cursor-pointer whitespace-nowrap select-none"
+                  className="w-[40%] px-4 py-4 text-left text-[11px] font-semibold text-slate-500 dark:text-slate-300 uppercase tracking-[0.18em] cursor-pointer whitespace-nowrap select-none"
                   onClick={() => handleSort('title')}
                 >
                   <div className="flex items-center">
@@ -259,14 +282,14 @@ export function TaskTableView({
                   </div>
                 </th>
                 <th
-                  className="w-[10%] px-4 py-4 text-center text-xs font-medium text-gray-600 dark:text-gray-300 uppercase tracking-wide whitespace-nowrap select-none"
+                  className="w-[10%] px-4 py-4 text-center text-[11px] font-semibold text-slate-500 dark:text-slate-300 uppercase tracking-[0.18em] whitespace-nowrap select-none"
                 >
                   <div className="flex items-center justify-center">
                     任务类型
                   </div>
                 </th>
                 <th
-                  className="w-[10%] px-4 py-4 text-center text-xs font-medium text-gray-600 dark:text-gray-300 uppercase tracking-wide cursor-pointer whitespace-nowrap select-none"
+                  className="w-[10%] px-4 py-4 text-center text-[11px] font-semibold text-slate-500 dark:text-slate-300 uppercase tracking-[0.18em] cursor-pointer whitespace-nowrap select-none"
                   onClick={() => handleSort('priority')}
                 >
                   <div className="flex items-center justify-center">
@@ -275,7 +298,7 @@ export function TaskTableView({
                   </div>
                 </th>
                 <th
-                  className="w-[10%] px-4 py-4 text-center text-xs font-medium text-gray-600 dark:text-gray-300 uppercase tracking-wide cursor-pointer whitespace-nowrap select-none"
+                  className="w-[10%] px-4 py-4 text-center text-[11px] font-semibold text-slate-500 dark:text-slate-300 uppercase tracking-[0.18em] cursor-pointer whitespace-nowrap select-none"
                   onClick={() => handleSort('assignee')}
                 >
                   <div className="flex items-center justify-center">
@@ -284,7 +307,7 @@ export function TaskTableView({
                   </div>
                 </th>
                 <th
-                  className="w-[10%] px-4 py-4 text-center text-xs font-medium text-gray-600 dark:text-gray-300 uppercase tracking-wide cursor-pointer whitespace-nowrap select-none"
+                  className="w-[10%] px-4 py-4 text-center text-[11px] font-semibold text-slate-500 dark:text-slate-300 uppercase tracking-[0.18em] cursor-pointer whitespace-nowrap select-none"
                   onClick={() => handleSort('startTime')}
                 >
                   <div className="flex items-center justify-center">
@@ -293,7 +316,7 @@ export function TaskTableView({
                   </div>
                 </th>
                 <th
-                  className="w-[10%] px-4 py-4 text-center text-xs font-medium text-gray-600 dark:text-gray-300 uppercase tracking-wide cursor-pointer whitespace-nowrap select-none"
+                  className="w-[10%] px-4 py-4 text-center text-[11px] font-semibold text-slate-500 dark:text-slate-300 uppercase tracking-[0.18em] cursor-pointer whitespace-nowrap select-none"
                   onClick={() => handleSort('dueDate')}
                 >
                   <div className="flex items-center justify-center">
@@ -301,12 +324,12 @@ export function TaskTableView({
                     {renderSortIndicator('dueDate')}
                   </div>
                 </th>
-                <th className="w-[8%] px-4 py-4 text-center text-xs font-medium text-gray-600 dark:text-gray-300 uppercase tracking-wide whitespace-nowrap select-none">
+                <th className="w-[8%] px-4 py-4 text-center text-[11px] font-semibold text-slate-500 dark:text-slate-300 uppercase tracking-[0.18em] whitespace-nowrap select-none">
                   进度
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
+            <tbody className="bg-white/90 dark:bg-slate-950/60 divide-y divide-slate-200/70 dark:divide-white/10">
               {/* 显示所有任务，并标识主任务和子任务 */}
               {isLoading ? (
                 <tr>
@@ -352,14 +375,14 @@ export function TaskTableView({
 
           {/* 如果存在分页信息，显示分页组件 */}
           {totalPages > 1 && (
-            <div className="flex justify-between items-center bg-white dark:bg-gray-900 px-4 py-3 border-t border-gray-200 dark:border-gray-800">
-              <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
+            <div className="flex flex-col gap-3 border-t border-slate-200/70 bg-slate-50/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between dark:border-white/10 dark:bg-white/[0.03]">
+              <div className="flex items-center text-sm text-slate-500 dark:text-slate-400">
                 显示 {(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, totalItems)} 条，共 {totalItems} 条
               </div>
 
-              <div className="flex justify-center space-x-1">
+              <div className="flex flex-wrap items-center justify-center gap-1.5">
                 <button
-                  className={`px-2 py-1 rounded-md ${currentPage === 1 ? 'text-gray-400 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'}`}
+                  className={`rounded-full px-3 py-1.5 text-sm ${currentPage === 1 ? 'cursor-not-allowed text-slate-400' : 'text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-white/5'}`}
                   disabled={currentPage === 1}
                   onClick={() => onPageChange && onPageChange(currentPage - 1)}
                 >
@@ -378,9 +401,9 @@ export function TaskTableView({
                     return (
                       <button
                         key={pageNum}
-                        className={`w-8 h-8 flex items-center justify-center rounded-md ${pageNum === currentPage
-                          ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
-                          : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'
+                        className={`flex h-9 w-9 items-center justify-center rounded-full text-sm ${pageNum === currentPage
+                          ? 'bg-blue-600 text-white shadow-[0_10px_20px_-12px_rgba(37,99,235,0.9)] dark:bg-blue-500 dark:text-white'
+                          : 'text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-white/5'
                         }`}
                         onClick={() => onPageChange && onPageChange(pageNum)}
                       >
@@ -398,7 +421,7 @@ export function TaskTableView({
                 })}
 
                 <button
-                  className={`px-2 py-1 rounded-md ${currentPage === totalPages ? 'text-gray-400 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'}`}
+                  className={`rounded-full px-3 py-1.5 text-sm ${currentPage === totalPages ? 'cursor-not-allowed text-slate-400' : 'text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-white/5'}`}
                   disabled={currentPage === totalPages}
                   onClick={() => onPageChange && onPageChange(currentPage + 1)}
                 >
@@ -408,9 +431,9 @@ export function TaskTableView({
 
               {/* 每页显示数量选择器 */}
               <div className="flex items-center">
-                <span className="text-sm text-gray-500 dark:text-gray-400 mr-2">每页显示</span>
+                <span className="mr-2 text-sm text-slate-500 dark:text-slate-400">每页显示</span>
                 <select
-                  className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md text-sm py-1 px-2 text-gray-600 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-600"
+                  className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-300 dark:focus:ring-blue-400"
                   value={pageSize}
                   onChange={(e) => onPageSizeChange && onPageSizeChange(Number(e.target.value))}
                 >
@@ -422,10 +445,11 @@ export function TaskTableView({
             </div>
           )}
         </div>
+        </div>
       )}
 
       {/* 看板视图 */}
-      {(onViewChange ? currentView : innerCurrentView) === 'board' && (
+      {activeView === 'board' && (
         <TaskBoardView
           tasks={sortedTasks}
           onTaskClick={onTaskClick}
@@ -436,7 +460,7 @@ export function TaskTableView({
       )}
 
       {/* 日历视图 */}
-      {(onViewChange ? currentView : innerCurrentView) === 'calendar' && (
+      {activeView === 'calendar' && (
         <TaskCalendarView
           tasks={sortedTasks}
           onTaskClick={onTaskClick}
@@ -445,7 +469,7 @@ export function TaskTableView({
       )}
 
       {/* 甘特图视图 */}
-      {(onViewChange ? currentView : innerCurrentView) === 'gantt' && (
+      {activeView === 'gantt' && (
         <TaskGanttView
           tasks={sortedTasks}
           onTaskClick={onTaskClick}
@@ -455,9 +479,9 @@ export function TaskTableView({
 
       {/* 空状态展示 - 支持所有视图 */}
       {sortedTasks.length === 0 && !isLoading && (
-        <div className="mt-4 text-center py-12 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg">
+        <div className="mt-4 rounded-[28px] border border-slate-200/80 bg-white/90 py-14 text-center shadow-[0_18px_50px_-30px_rgba(15,23,42,0.35)] dark:border-white/10 dark:bg-slate-950/70">
           <svg
-            className="mx-auto h-16 w-16 text-gray-300 dark:text-gray-600"
+            className="mx-auto h-16 w-16 text-slate-300 dark:text-slate-600"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -470,10 +494,10 @@ export function TaskTableView({
               d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
             />
           </svg>
-          <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-gray-100">
+          <h3 className="mt-4 text-lg font-semibold text-slate-900 dark:text-slate-100">
             {tasks.length === 0 ? '没有任务' : '没有匹配的任务'}
           </h3>
-          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto">
+          <p className="mx-auto mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">
             {tasks.length === 0 
               ? '这个项目中尚未创建任何任务。点击下方按钮开始创建您的第一个任务。'
               : `没有找到匹配 "${searchKeyword}" 的任务。请尝试其他搜索关键词或清除搜索条件。`
@@ -484,7 +508,7 @@ export function TaskTableView({
             {tasks.length > 0 && searchKeyword.trim() && (
               <button
                 type="button"
-                className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
+                className="inline-flex items-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition-all duration-200 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:border-white/10 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
                 onClick={() => setSearchKeyword('')}
               >
                 清除搜索条件
@@ -495,7 +519,7 @@ export function TaskTableView({
             {onAddTask && tasks.length === 0 && (
               <button
                 type="button"
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-full shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
+                className="inline-flex items-center rounded-full border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-[0_18px_32px_-20px_rgba(37,99,235,0.9)] transition-all duration-200 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                 onClick={onAddTask}
               >
                 <FiPlus className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />

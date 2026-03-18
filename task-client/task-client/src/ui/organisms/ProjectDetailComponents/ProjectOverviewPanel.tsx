@@ -4,19 +4,14 @@ import {motion} from 'framer-motion';
 import {
   FiArrowRight,
   FiBarChart2,
-  FiCheckCircle,
   FiClock,
   FiDownload,
   FiPlus,
   FiSettings,
-  FiTrendingUp,
   FiUsers
 } from 'react-icons/fi';
 import {ProjectMember, ProjectTask} from '@/types/api-types';
-import TaskTrend from '@/ui/organisms/TaskTrend';
 import AddMemberModal from './AddMemberModal';
-import Card from '@/ui/molecules/Card';
-import {Avatar} from '@/ui/atoms/Avatar';
 import {TaskStatusTrend} from '@/types/task-status-trend';
 import {useTheme} from '@/ui/theme';
 import ProjectExportModal from '@/ui/organisms/ProjectExportModal';
@@ -49,50 +44,6 @@ interface ProjectOverviewPanelProps {
 const cardMotion = {
   initial: { opacity: 0, y: 14 },
   animate: { opacity: 1, y: 0 }
-};
-
-const getRoleLabel = (role?: string) => {
-  switch ((role || '').toUpperCase()) {
-    case 'OWNER':
-      return '项目负责人';
-    case 'ADMIN':
-      return '管理员';
-    case 'MEMBER':
-      return '成员';
-    default:
-      return role || '成员';
-  }
-};
-
-const getStatusLabel = (status?: string) => {
-  switch ((status || '').toUpperCase()) {
-    case 'WAITING':
-      return '待处理';
-    case 'IN_PROGRESS':
-      return '进行中';
-    case 'BLOCKED':
-      return '已阻塞';
-    case 'COMPLETED':
-      return '已完成';
-    case 'CANCELLED':
-      return '已取消';
-    case 'OVERDUE':
-      return '已逾期';
-    default:
-      return status || '待处理';
-  }
-};
-
-const getPriorityLabel = (priority?: string) => {
-  switch ((priority || '').toUpperCase()) {
-    case 'HIGH':
-      return '高优先级';
-    case 'LOW':
-      return '低优先级';
-    case 'MEDIUM':
-    default:
-      return '中优先级';
-  }
 };
 
 const formatRelativeDate = (value?: string) => {
@@ -147,16 +98,6 @@ const ProjectOverviewPanel: React.FC<ProjectOverviewPanelProps> = ({
   const progress = typeof project.progress === 'number'
     ? Math.max(0, Math.min(project.progress, 100))
     : (taskCount > 0 ? Math.round((completedTaskCount / taskCount) * 100) : 0);
-
-  const recentTasks = useMemo(() => {
-    return [...tasks]
-      .sort((left, right) => {
-        const leftValue = new Date(left.dueDate || left.createdAt || 0).getTime();
-        const rightValue = new Date(right.dueDate || right.createdAt || 0).getTime();
-        return rightValue - leftValue;
-      })
-      .slice(0, 5);
-  }, [tasks]);
 
   const overdueCount = useMemo(() => {
     const now = Date.now();
@@ -394,197 +335,50 @@ const ProjectOverviewPanel: React.FC<ProjectOverviewPanelProps> = ({
         </div>
       </motion.div>
 
-      <Card
-        title="任务趋势"
-        delay={0.15}
-        icon={<FiTrendingUp size={18} />}
-        className={isDarkMode ? 'bg-slate-900/80' : 'bg-white'}
+      <motion.div
+        {...cardMotion}
+        transition={{ duration: 0.28, delay: 0.12 }}
+        className={`overflow-hidden rounded-[28px] border p-5 sm:p-6 ${
+          isDarkMode
+            ? 'border-white/10 bg-slate-900/80'
+            : 'border-slate-200 bg-white'
+        }`}
       >
-        <TaskTrend
-          tasks={tasks}
-          projectId={project.id}
-          taskStatusTrend={project.taskStatusTrend}
-        />
-      </Card>
-
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr),minmax(0,0.9fr)]">
-        <Card
-          title="最近任务"
-          delay={0.2}
-          actionText={taskCount > 0 ? '查看全部' : undefined}
-          onAction={taskCount > 0 ? onSwitchToTasksTab : undefined}
-          icon={<FiCheckCircle size={18} />}
-          className={isDarkMode ? 'bg-slate-900/80' : 'bg-white'}
-          headerExtra={
-            taskCount > 0 ? (
-              <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${isDarkMode ? 'bg-white/6 text-slate-300' : 'bg-slate-100 text-slate-500'}`}>
-                共 {taskCount} 个任务
-              </span>
-            ) : null
-          }
-        >
-          {recentTasks.length > 0 ? (
-            <div className="space-y-3">
-              {recentTasks.map((task, index) => {
-                const dueTime = task.dueDate ? new Date(task.dueDate).getTime() : null;
-                const isOverdue = task.status !== 'COMPLETED' && !!dueTime && dueTime < Date.now();
-                const statusColor = task.statusColor || (isOverdue ? '#EF4444' : '#3B82F6');
-                const priorityColor = task.priorityColor || '#F59E0B';
-
-                return (
-                  <button
-                    key={task.id || `${task.title}-${index}`}
-                    onClick={() => task.id && onTaskClick?.(task.id)}
-                    className={`group flex w-full items-start gap-4 rounded-2xl border p-4 text-left transition-all ${
-                      isDarkMode
-                        ? 'border-white/8 bg-white/[0.03] hover:bg-white/[0.05]'
-                        : 'border-slate-200 bg-slate-50/80 hover:border-slate-300 hover:bg-white'
-                    }`}
-                  >
-                    <div className="mt-0.5 h-10 w-1 shrink-0 rounded-full" style={{ backgroundColor: priorityColor }} />
-
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className={`line-clamp-1 text-sm font-semibold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                          {task.title || '无标题任务'}
-                        </h3>
-                        <span
-                          className="rounded-full px-2 py-0.5 text-[11px] font-medium"
-                          style={{
-                            backgroundColor: `${statusColor}1A`,
-                            color: statusColor
-                          }}
-                        >
-                          {getStatusLabel(task.status)}
-                        </span>
-                        <span
-                          className="rounded-full px-2 py-0.5 text-[11px] font-medium"
-                          style={{
-                            backgroundColor: `${priorityColor}1A`,
-                            color: priorityColor
-                          }}
-                        >
-                          {getPriorityLabel(task.priority)}
-                        </span>
-                      </div>
-
-                      <p className={`mt-1 line-clamp-2 text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                        {task.description?.trim() || '还没有补充任务描述。'}
-                      </p>
-
-                      <div className={`mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                        <span className="inline-flex items-center gap-1.5">
-                          <FiUsers size={13} />
-                          {task.assignee || '暂未分配负责人'}
-                        </span>
-                        <span className="inline-flex items-center gap-1.5">
-                          <FiClock size={13} />
-                          {task.dueDate ? `截止 ${formatRelativeDate(task.dueDate)}` : `创建于 ${formatRelativeDate(task.createdAt)}`}
-                        </span>
-                        {isOverdue && (
-                          <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500/10 px-2 py-0.5 font-medium text-red-500">
-                            需要优先处理
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <FiArrowRight className={`mt-1 shrink-0 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'} transition-transform group-hover:translate-x-0.5`} />
-                  </button>
-                );
-              })}
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${isDarkMode ? 'bg-white/6 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>
+              工作区重组
             </div>
-          ) : (
-            <div className={`flex flex-col items-center justify-center rounded-2xl border border-dashed px-6 py-12 text-center ${isDarkMode ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-slate-50/70'}`}>
-              <div className={`mb-4 flex h-14 w-14 items-center justify-center rounded-2xl ${isDarkMode ? 'bg-blue-500/10 text-blue-300' : 'bg-blue-50 text-blue-600'}`}>
-                <FiCheckCircle size={24} />
-              </div>
-              <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>还没有任务</h3>
-              <p className={`mt-2 max-w-md text-sm leading-6 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                从第一条任务开始，把目标拆成可执行步骤。新建任务后，这里会自动展示最新的工作进展。
-              </p>
-              <button
-                onClick={() => onCreateTask?.()}
-                className="mt-5 inline-flex items-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
-              >
-                <FiPlus size={15} />
-                创建第一条任务
-              </button>
-            </div>
-          )}
-        </Card>
+            <h3 className={`mt-3 text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+              详细任务和团队洞察已移动到对应模块
+            </h3>
+            <p className={`mt-1 text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+              概览页只保留项目总览和快捷动作；最近任务在任务页，成员与趋势在团队页，结构会更清晰。
+            </p>
+          </div>
 
-        <Card
-          title="团队成员"
-          delay={0.25}
-          actionText={memberCount > 0 ? '管理团队' : undefined}
-          onAction={memberCount > 0 ? onSwitchToTeamTab : undefined}
-          icon={<FiUsers size={18} />}
-          className={isDarkMode ? 'bg-slate-900/80' : 'bg-white'}
-          headerExtra={
-            memberCount > 0 ? (
-              <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${isDarkMode ? 'bg-white/6 text-slate-300' : 'bg-slate-100 text-slate-500'}`}>
-                {memberCount} 位成员
-              </span>
-            ) : null
-          }
-        >
-          {members.length > 0 ? (
-            <div className="space-y-3">
-              {members.slice(0, 6).map((member, index) => (
-                <div
-                  key={member.id || `${member.name}-${index}`}
-                  className={`flex items-center justify-between gap-3 rounded-2xl border p-3 ${
-                    isDarkMode ? 'border-white/8 bg-white/[0.03]' : 'border-slate-200 bg-slate-50/80'
-                  }`}
-                >
-                  <div className="flex min-w-0 items-center gap-3">
-                    <Avatar
-                      src={member.avatar}
-                      name={member.name || '成员'}
-                      className="h-10 w-10 rounded-full border border-white/60 shadow-sm"
-                    />
-                    <div className="min-w-0">
-                      <div className={`truncate text-sm font-semibold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                        {member.name || '未命名成员'}
-                      </div>
-                      <div className={`truncate text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                        {member.email || '未提供邮箱'}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="shrink-0 text-right">
-                    <div className={`text-xs font-medium ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
-                      {getRoleLabel(member.role)}
-                    </div>
-                    <div className={`mt-1 text-[11px] ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                      {member.taskCount ? `负责 ${member.taskCount} 个任务` : '待分配任务'}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className={`flex flex-col items-center justify-center rounded-2xl border border-dashed px-6 py-12 text-center ${isDarkMode ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-slate-50/70'}`}>
-              <div className={`mb-4 flex h-14 w-14 items-center justify-center rounded-2xl ${isDarkMode ? 'bg-violet-500/10 text-violet-300' : 'bg-violet-50 text-violet-600'}`}>
-                <FiUsers size={24} />
-              </div>
-              <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>团队协作还没开始</h3>
-              <p className={`mt-2 max-w-md text-sm leading-6 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                邀请成员加入项目后，可以更快地分配任务、同步状态和明确负责人。
-              </p>
-              <button
-                onClick={() => setShowAddMemberModal(true)}
-                className="mt-5 inline-flex items-center gap-2 rounded-full bg-violet-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-violet-700"
-              >
-                <FiPlus size={15} />
-                添加团队成员
-              </button>
-            </div>
-          )}
-        </Card>
-      </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={onSwitchToTasksTab}
+              className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                isDarkMode ? 'bg-blue-500/12 text-blue-300 hover:bg-blue-500/18' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+              }`}
+            >
+              去看任务
+              <FiArrowRight size={14} />
+            </button>
+            <button
+              onClick={onSwitchToTeamTab}
+              className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                isDarkMode ? 'bg-violet-500/12 text-violet-300 hover:bg-violet-500/18' : 'bg-violet-50 text-violet-600 hover:bg-violet-100'
+              }`}
+            >
+              去看团队
+              <FiArrowRight size={14} />
+            </button>
+          </div>
+        </div>
+      </motion.div>
 
       {showAddMemberModal && (
         <AddMemberModal
