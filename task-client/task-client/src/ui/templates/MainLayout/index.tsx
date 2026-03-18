@@ -1,6 +1,8 @@
 'use client';
 
 import React, {ReactNode} from 'react';
+import {useNavigationMode} from '@/hooks/use-navigation-mode';
+import DesktopSidebarNav from '../../organisms/DesktopSidebarNav';
 import RadialMenu from '../../organisms/RadialMenu';
 
 interface MainLayoutProps {
@@ -9,17 +11,21 @@ interface MainLayoutProps {
 }
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
+  const {navigationMode, setNavigationMode, isSidebarDesktop} = useNavigationMode('radial');
+
   return (
-    <div className="min-h-screen h-screen overflow-hidden" style={{ backgroundColor: 'var(--background)' }}>
-      {/* 内容区域 - 全屏布局，采用 */}
-      <div className="flex flex-col h-full overflow-hidden">
-        {/* 内容区域 - 优化内边距，提供更多呼吸空间 */}
-        <div className="flex-1 p-4 sm:p-6 md:p-8 overflow-auto" style={{ color: 'var(--foreground)' }}>
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--background)' }}>
+      {isSidebarDesktop && <DesktopSidebarNav mode={navigationMode} onModeChange={setNavigationMode} />}
+
+      <div className={`relative flex min-h-screen flex-col overflow-hidden ${isSidebarDesktop ? 'lg:pl-[336px]' : ''}`}>
+        <div
+          className={`flex-1 overflow-auto p-4 sm:p-6 md:p-8 ${isSidebarDesktop ? '' : 'pb-24 md:pb-8'}`}
+          style={{ color: 'var(--foreground)' }}
+        >
           {children}
         </div>
 
-        {/* 环形菜单 - 使用fixed定位，完全负责导航功能 */}
-        <RadialMenu />
+        {!isSidebarDesktop && <RadialMenu />}
       </div>
     </div>
   );

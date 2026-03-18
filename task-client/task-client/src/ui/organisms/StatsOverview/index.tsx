@@ -34,6 +34,7 @@ interface StatCard {
     value: number;
     isPositive: boolean;
     label: string;
+    suffix?: string;
   };
   onClick?: () => void;
 }
@@ -119,7 +120,8 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
       trend: stats.totalTasks > 0 ? {
         value: stats.completionRate,
         isPositive: stats.completionRate > 50,
-        label: '完成率'
+        label: '完成率',
+        suffix: '%'
       } : undefined
     },
     {
@@ -142,7 +144,8 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
       trend: stats.overdueTasks > 0 ? {
         value: stats.overdueTasks,
         isPositive: false,
-        label: '逾期'
+        label: '逾期',
+        suffix: '项'
       } : undefined
     },
     {
@@ -182,14 +185,14 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: index * 0.1 }}
       className={`
-        relative overflow-hidden rounded-xl p-4 cursor-pointer transition-all duration-200 
-        hover:shadow-md hover:scale-[1.02] active:scale-[0.98]
+        relative overflow-hidden rounded-[26px] p-5 cursor-pointer transition-all duration-200 
+        hover:shadow-md hover:scale-[1.01] active:scale-[0.98]
         ${card.onClick ? 'cursor-pointer' : ''}
       `}
       style={{ 
-        backgroundColor: 'var(--theme-card-bg)',
-        border: '1px solid var(--theme-card-border)',
-        boxShadow: 'var(--theme-shadow-sm)'
+        background: `linear-gradient(180deg, color-mix(in srgb, ${card.bgColor} 26%, var(--theme-card-bg)) 0%, var(--theme-card-bg) 72%)`,
+        border: '1px solid color-mix(in srgb, var(--theme-card-border) 78%, transparent)',
+        boxShadow: '0 16px 36px rgba(15, 23, 42, 0.06)'
       }}
       onClick={card.onClick}
       whileHover={{ y: -2 }}
@@ -197,16 +200,19 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
     >
       {/* 背景装饰 */}
       <div 
-        className="absolute top-0 right-0 w-16 h-16 rounded-full opacity-10 transform translate-x-4 -translate-y-4"
+        className="absolute -right-5 -top-5 h-24 w-24 rounded-full opacity-20"
         style={{ backgroundColor: card.color }}
+      />
+      <div 
+        className="absolute inset-x-0 top-0 h-px"
+        style={{ background: `linear-gradient(90deg, transparent, ${card.color}, transparent)` }}
       />
       
       <div className="relative z-10">
-        {/* 图标和数值 */}
-        <div className="flex items-start justify-between mb-2">
+        <div className="mb-6 flex items-start justify-between">
           <div 
-            className="w-10 h-10 rounded-lg flex items-center justify-center"
-            style={{ backgroundColor: card.bgColor }}
+            className="flex h-11 w-11 items-center justify-center rounded-2xl"
+            style={{ backgroundColor: `color-mix(in srgb, ${card.bgColor} 82%, white)` }}
           >
             <card.icon 
               className="h-5 w-5" 
@@ -216,25 +222,24 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
           
           {card.trend && (
             <div className={`
-              flex items-center px-2 py-1 rounded-full text-xs font-medium
+              flex items-center rounded-full px-2.5 py-1 text-xs font-semibold
               ${card.trend.isPositive ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'}
             `}>
               <FiTrendingUp className={`h-3 w-3 mr-1 ${card.trend.isPositive ? '' : 'rotate-180'}`} />
-              {card.trend.value}%
+              {card.trend.value}{card.trend.suffix || ''}
             </div>
           )}
         </div>
 
-        {/* 主要数值 */}
-        <div className="mb-1">
+        <div className="mb-2">
           <div 
-            className="text-2xl font-bold leading-none"
+            className="text-3xl font-semibold leading-none tracking-tight"
             style={{ color: 'var(--foreground)' }}
           >
             {card.value}
           </div>
           <div 
-            className="text-sm font-medium mt-1"
+            className="mt-2 text-sm font-medium"
             style={{ color: 'var(--theme-neutral-600)' }}
           >
             {card.title}
@@ -267,24 +272,29 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
   return (
     <div className={`${className}`}>
       {/* 标题 */}
-      <div className="flex items-center justify-between mb-4">
-        <h2 
-          className="text-lg font-semibold"
-          style={{ color: 'var(--foreground)' }}
-        >
-          数据概览
-        </h2>
-        <div className="flex items-center text-xs" style={{ color: 'var(--theme-neutral-500)' }}>
+      <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <div>
+          <h2 
+            className="text-lg font-semibold"
+            style={{ color: 'var(--foreground)' }}
+          >
+            数据概览
+          </h2>
+          <p className="mt-1 text-sm" style={{ color: 'var(--theme-neutral-500)' }}>
+            以更清晰的方式查看任务节奏、优先级和团队在线状态
+          </p>
+        </div>
+        <div className="flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium" style={{ color: 'var(--theme-neutral-500)', backgroundColor: 'color-mix(in srgb, var(--theme-card-bg) 78%, transparent)', border: '1px solid color-mix(in srgb, var(--theme-card-border) 80%, transparent)' }}>
           <div className={`
-            w-2 h-2 rounded-full mr-2 animate-pulse
+            h-2 w-2 rounded-full animate-pulse
             ${isConnected ? 'bg-green-500' : 'bg-gray-400'}
           `} />
-          {isConnected ? '实时数据' : '离线数据'}
+          {isConnected ? '实时数据已同步' : '当前显示离线数据'}
         </div>
       </div>
 
       {/* 统计卡片网格 */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-6">
         {statCards.map((card, index) => renderStatCard(card, index))}
       </div>
 
@@ -294,10 +304,10 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.6 }}
-          className="mt-4 p-3 rounded-lg"
+          className="mt-5 rounded-[24px] p-4"
           style={{ 
-            backgroundColor: 'var(--theme-neutral-50)',
-            border: '1px solid var(--theme-neutral-100)'
+            background: 'linear-gradient(135deg, rgba(var(--theme-primary-500-rgb), 0.08), rgba(var(--theme-info-500-rgb), 0.04))',
+            border: '1px solid color-mix(in srgb, var(--theme-card-border) 70%, transparent)'
           }}
         >
           <div className="flex items-center">

@@ -260,20 +260,22 @@ export function UpcomingTasksPanel({ tasks, onTaskClick }: { tasks: TodoTask[]; 
   };
 
   return (
-    <div className="rounded-xl shadow-sm border overflow-hidden h-full" 
+    <div className="h-full overflow-hidden rounded-[28px] border shadow-sm" 
       style={{ 
         backgroundColor: 'var(--theme-card-bg)', 
         borderColor: 'var(--theme-card-border)',
-        boxShadow: 'var(--theme-shadow-sm)'
+        boxShadow: '0 18px 42px rgba(15, 23, 42, 0.06)'
       }}>
-      {/* 苹果风格的标题栏 - 更紧凑简洁 */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b" style={{ borderColor: 'var(--theme-card-border)' }}>
+      <div className="flex items-center justify-between border-b px-5 py-4" style={{ borderColor: 'color-mix(in srgb, var(--theme-card-border) 75%, transparent)' }}>
         <div className="flex items-center">
-          <div className="flex-shrink-0 mr-2 w-5 h-5 rounded-full flex items-center justify-center" 
+          <div className="mr-3 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl" 
             style={{ backgroundColor: 'var(--theme-error-100)' }}>
-            <FiClock className="h-3 w-3" style={{ color: 'var(--theme-error-500)' }} />
+            <FiClock className="h-4 w-4" style={{ color: 'var(--theme-error-500)' }} />
           </div>
-          <h2 className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>临期任务</h2>
+          <div>
+            <h2 className="text-base font-semibold" style={{ color: 'var(--foreground)' }}>临期任务</h2>
+            <p className="mt-0.5 text-xs" style={{ color: 'var(--theme-neutral-500)' }}>优先处理今天、明天和逾期事项</p>
+          </div>
         </div>
 
         {/* 逾期任务标识 - 集成到标题栏中 */}
@@ -292,8 +294,8 @@ export function UpcomingTasksPanel({ tasks, onTaskClick }: { tasks: TodoTask[]; 
       </div>
 
       {/* 任务列表区域 */}
-      <div className="px-2 pt-2 pb-1">
-        <div className="space-y-1.5 max-h-[380px] overflow-y-auto pr-1 hide-scrollbar">
+      <div className="px-3 pb-3 pt-3">
+        <div className="hide-scrollbar max-h-[420px] space-y-2 overflow-y-auto pr-1">
           {sortedTasks.map(task => {
             const dateInfo = getDateInfo(task.dueDate);
             // 进度条计算逾期任务显示很短的进度条

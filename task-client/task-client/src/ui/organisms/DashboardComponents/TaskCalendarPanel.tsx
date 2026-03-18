@@ -166,11 +166,11 @@ export function TaskCalendarPanel({ tasks, className = '' }: TaskCalendarProps) 
 
   return (
     <div 
-      className={`rounded-lg pt-5 px-5 pb-6 ${className}`}
+      className={`rounded-[28px] pt-5 px-5 pb-6 ${className}`}
       style={{ 
         backgroundColor: 'var(--theme-card-bg)',
         border: '1px solid var(--theme-card-border)',
-        boxShadow: 'var(--theme-shadow-sm)'
+        boxShadow: '0 18px 42px rgba(15, 23, 42, 0.06)'
       }}
     >
       {renderHeader()}

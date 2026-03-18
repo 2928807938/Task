@@ -1,42 +1,173 @@
 'use client';
 
-import React, {useState} from 'react';
-import {FiCalendar, FiCheckCircle, FiClock, FiMessageSquare, FiRefreshCw} from 'react-icons/fi';
+import React, {useMemo, useState} from 'react';
+import {
+  FiActivity,
+  FiArrowUpRight,
+  FiCalendar,
+  FiCheckCircle,
+  FiClock,
+  FiRefreshCw,
+  FiTarget,
+  FiTrendingUp,
+  FiUsers,
+  FiZap,
+} from 'react-icons/fi';
 import MyTasksPanel from '@/ui/organisms/DashboardComponents/MyTasksPanel';
-import { TodoTask } from '@/types/dashboard-types';
+import {CollaborationActivity} from '@/types/dashboard-types';
 import UpcomingTasksPanel from '@/ui/organisms/DashboardComponents/UpcomingTasksPanel';
 import TaskCalendarPanel from '@/ui/organisms/DashboardComponents/TaskCalendarPanel';
-import { CollaborationTimeline } from '@/ui/organisms/CollaborationTimeline';
-import RecentCommunications from '@/ui/organisms/RecentCommunications';
 import RadialMenu from '@/ui/organisms/RadialMenu';
 import {DashboardSkeleton} from '@/ui/atoms/Skeleton';
-import { useWebSocket } from '@/contexts/WebSocketProvider';
-import { useDashboardData } from '@/hooks/use-dashboard-data';
-import { EmptyStateCard } from '@/ui/molecules/EmptyStateCard';
-import ErrorBoundary, { ErrorMessage } from '@/ui/organisms/ErrorBoundary';
+import {useWebSocket} from '@/contexts/WebSocketProvider';
+import {useDashboardData} from '@/hooks/use-dashboard-data';
+import {EmptyStateCard} from '@/ui/molecules/EmptyStateCard';
+import ErrorBoundary, {ErrorMessage} from '@/ui/organisms/ErrorBoundary';
 import StatsOverview from '@/ui/organisms/StatsOverview';
-import CollapsibleSidebar from '@/ui/organisms/CollapsibleSidebar';
-import BottomTabs from '@/ui/organisms/BottomTabs';
 import MobileBottomNav from '@/ui/organisms/MobileBottomNav';
 import LayoutSwitcher from '@/ui/organisms/LayoutSwitcher';
-import { LayoutProvider, useLayout } from '@/contexts/LayoutContext';
-// 导入已使用的组件
-import Link from 'next/link';
-import {motion, AnimatePresence} from 'framer-motion';
+import {LayoutProvider, useLayout} from '@/contexts/LayoutContext';
+import {AnimatePresence} from 'framer-motion';
 import SubTaskDetailModal from '@/ui/organisms/SubTaskDetailModal';
+import NavigationModeToggle from '@/ui/organisms/NavigationModeToggle';
+import {useNavigationMode} from '@/hooks/use-navigation-mode';
+import DesktopSidebarNav from '@/ui/organisms/DesktopSidebarNav';
 
-// Dashboard内容组件（使用布局上下文）
+function getGreeting() {
+  const hour = new Date().getHours();
+
+  if (hour < 6) return '夜深了';
+  if (hour < 12) return '早上好';
+  if (hour < 18) return '下午好';
+  return '晚上好';
+}
+
+function formatActivityTime(value?: string) {
+  if (!value) return '刚刚';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '刚刚';
+
+  const diff = Date.now() - date.getTime();
+
+  if (diff < 60_000) return '刚刚';
+  if (diff < 3_600_000) return `${Math.max(1, Math.floor(diff / 60_000))} 分钟前`;
+  if (diff < 86_400_000) return `${Math.max(1, Math.floor(diff / 3_600_000))} 小时前`;
+
+  return date.toLocaleDateString('zh-CN', {
+    month: 'numeric',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function getActivityStyle(type: string) {
+  if (type.includes('COMMENT')) {
+    return {
+      icon: FiActivity,
+      chip: '评论',
+      iconBg: 'var(--theme-warning-100)',
+      iconColor: 'var(--theme-warning-500)',
+    };
+  }
+
+  if (type.includes('STATUS') || type.includes('UPDATED')) {
+    return {
+      icon: FiTrendingUp,
+      chip: '变更',
+      iconBg: 'var(--theme-info-100)',
+      iconColor: 'var(--theme-info-500)',
+    };
+  }
+
+  if (type.includes('ASSIGNED') || type.includes('JOINED')) {
+    return {
+      icon: FiUsers,
+      chip: '协作',
+      iconBg: 'rgba(139, 92, 246, 0.14)',
+      iconColor: '#8B5CF6',
+    };
+  }
+
+  return {
+    icon: FiCheckCircle,
+    chip: '任务',
+    iconBg: 'var(--theme-success-100)',
+    iconColor: 'var(--theme-success-500)',
+  };
+}
+
+function ActivityFeedPanel({
+  activities,
+  onTaskClick,
+}: {
+  activities: CollaborationActivity[];
+  onTaskClick: (taskId: string) => void;
+}) {
+  const visibleActivities = useMemo(() => activities.slice(0, 6), [activities]);
+
+  return (
+    <div className="dashboard-surface p-5 md:p-6">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <div className="text-xs font-semibold uppercase tracking-[0.2em]" style={{color: 'var(--theme-neutral-400)'}}>团队动态</div>
+          <h3 className="mt-2 text-xl font-semibold" style={{color: 'var(--foreground)'}}>近期协作更新</h3>
+          <p className="mt-1 text-sm leading-6" style={{color: 'var(--theme-neutral-500)'}}>这里保留你当前接口返回的活动数据，只重新组织展示方式。</p>
+        </div>
+        <div className="rounded-full px-3 py-1.5 text-xs font-medium" style={{backgroundColor: 'var(--theme-primary-50)', color: 'var(--theme-primary-700)'}}>
+          {visibleActivities.length} 条动态
+        </div>
+      </div>
+
+      <div className="mt-5 space-y-3">
+        {visibleActivities.length > 0 ? visibleActivities.map((activity) => {
+          const style = getActivityStyle(activity.type || '');
+          const Icon = style.icon;
+
+          return (
+            <button
+              key={activity.id}
+              type="button"
+              onClick={() => activity.taskId && onTaskClick(activity.taskId)}
+              className="flex w-full items-start gap-3 rounded-[22px] border px-4 py-4 text-left transition hover:-translate-y-0.5"
+              style={{borderColor: 'color-mix(in srgb, var(--theme-card-border) 72%, transparent)', backgroundColor: 'color-mix(in srgb, var(--theme-card-bg) 88%, transparent)'}}
+            >
+              <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl" style={{backgroundColor: style.iconBg}}>
+                <Icon className="h-5 w-5" style={{color: style.iconColor}} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-semibold" style={{color: 'var(--foreground)'}}>{activity.userName || activity.username || '团队成员'}</span>
+                  <span className="rounded-full px-2 py-0.5 text-[11px] font-medium" style={{backgroundColor: 'var(--theme-neutral-100)', color: 'var(--theme-neutral-600)'}}>{style.chip}</span>
+                </div>
+                <p className="mt-1 line-clamp-2 text-sm leading-6" style={{color: 'var(--theme-neutral-500)'}}>{activity.content || activity.taskTitle || '有新的协作动态'}</p>
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-xs" style={{color: 'var(--theme-neutral-400)'}}>
+                  <span>{activity.projectName || '未归属项目'}</span>
+                  <span>·</span>
+                  <span>{formatActivityTime(activity.timestamp)}</span>
+                </div>
+              </div>
+              <FiArrowUpRight className="mt-0.5 h-4 w-4 flex-shrink-0" style={{color: 'var(--theme-neutral-400)'}} />
+            </button>
+          );
+        }) : (
+          <div className="rounded-[22px] border border-dashed px-4 py-10 text-center" style={{borderColor: 'var(--theme-card-border)', color: 'var(--theme-neutral-500)'}}>
+            暂无最新协作动态
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function DashboardContent() {
-  const { mode, config } = useLayout();
-  // 使用统一的WebSocket连接
-  const { 
-    isConnected, 
-    connectionStatus,
+  const {config} = useLayout();
+  const {
+    isConnected,
     onlineCount,
-    unreadActivityCount
+    unreadActivityCount,
   } = useWebSocket();
-
-  // 使用Dashboard数据管理Hook
   const {
     tasks: todoTasks,
     activities,
@@ -46,71 +177,79 @@ function DashboardContent() {
     isLoading,
     isRefreshing,
     error,
-    refreshData
+    refreshData,
   } = useDashboardData({
-    enableAutoRefresh: false, // 禁用自动刷新，只允许手动刷新
-    staleTime: Infinity
+    enableAutoRefresh: false,
+    staleTime: Infinity,
   });
+  const {navigationMode, setNavigationMode, isDesktop, isSidebarDesktop} = useNavigationMode('radial');
 
-  // 任务详情弹窗状态
   const [isTaskDetailModalOpen, setIsTaskDetailModalOpen] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-  
-  // 移动端状态管理
   const [isMobile, setIsMobile] = useState(false);
+  const [isCalendarRailVisible, setIsCalendarRailVisible] = useState(true);
 
-  // 检测移动端设备
   React.useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768); // md breakpoint
+      setIsMobile(window.innerWidth < 768);
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
-    
+
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // 处理移动端快捷操作
+  React.useEffect(() => {
+    try {
+      const savedVisibility = localStorage.getItem('dashboard-calendar-rail-visible');
+      if (savedVisibility !== null) {
+        setIsCalendarRailVisible(savedVisibility === 'true');
+      }
+    } catch (error) {
+      console.warn('Failed to load calendar rail visibility from localStorage:', error);
+    }
+  }, []);
+
+  const dashboardHighlights = useMemo(() => {
+    const weekEnd = new Date();
+    weekEnd.setDate(weekEnd.getDate() + 7);
+
+    return [
+      {
+        icon: FiZap,
+        label: '临期推进',
+        value: `${upcomingTasks.length} 项待关注`,
+      },
+      {
+        icon: FiUsers,
+        label: '协作状态',
+        value: isConnected ? `${onlineCount} 人在线` : '当前离线模式',
+      },
+      {
+        icon: FiCalendar,
+        label: '近期排期',
+        value: `${todoTasks.filter((task) => task.dueDate && new Date(task.dueDate) <= weekEnd).length} 项 7 天内到期`,
+      },
+    ];
+  }, [isConnected, onlineCount, todoTasks, upcomingTasks.length]);
+
   const handleMobileQuickAction = (action: string) => {
     console.log('Mobile quick action:', action);
-    switch (action) {
-      case 'create-task':
-        // 打开新建任务弹窗
-        break;
-      case 'search':
-        // 打开搜索面板
-        break;
-      case 'messages':
-        // 打开消息面板
-        break;
-      case 'settings':
-        // 打开设置面板
-        break;
-      default:
-        break;
-    }
   };
 
-  // 处理点击任务
   const handleTaskClick = (taskId: string) => {
     setSelectedTaskId(taskId);
     setIsTaskDetailModalOpen(true);
   };
 
-  // 关闭任务详情弹窗
   const handleCloseTaskDetail = () => {
     setIsTaskDetailModalOpen(false);
-    // 延迟清空选中的任务ID，确保动画完成后再清空
     setTimeout(() => {
       setSelectedTaskId(null);
     }, 300);
   };
 
-  // 检查是否有任务数据 - 现在使用hook提供的状态
-  const hasNoData = !hasData;
-
-  // 错误恢复处理
   const handleErrorRetry = async () => {
     try {
       await refreshData();
@@ -119,227 +258,253 @@ function DashboardContent() {
     }
   };
 
+  const toggleCalendarRail = () => {
+    setIsCalendarRailVisible((previous) => {
+      const next = !previous;
+
+      try {
+        localStorage.setItem('dashboard-calendar-rail-visible', String(next));
+      } catch (error) {
+        console.warn('Failed to save calendar rail visibility to localStorage:', error);
+      }
+
+      return next;
+    });
+  };
+
   return (
-    <ErrorBoundary 
-      level="page" 
-      onError={(error, errorInfo) => {
-        console.error('[Dashboard] Error boundary caught error:', error, errorInfo);
-        // 这里可以发送错误到监控服务
+    <ErrorBoundary
+      level="page"
+      onError={(pageError, errorInfo) => {
+        console.error('[Dashboard] Error boundary caught error:', pageError, errorInfo);
       }}
     >
-      {/* 新的Flex布局结构 */}
-      <div className="flex h-screen overflow-hidden">
-        {/* 主要内容区域 */}
-        <div className="flex-1 flex flex-col min-w-0">
-          {/* 移动端适配：添加底部安全区域 */}
-          {isMobile && (
-            <div 
-              className="flex-shrink-0" 
-              style={{ height: 'calc(5rem + env(safe-area-inset-bottom))' }}
-            />
-          )}
-          {/* 添加环形导航菜单 */}
-          <ErrorBoundary level="component">
-            <RadialMenu />
-          </ErrorBoundary>
+      <div className="dashboard-shell relative min-h-screen overflow-hidden">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-gradient-to-b from-white/40 to-transparent dark:from-white/5" />
+        <div className="pointer-events-none absolute left-[-80px] top-24 h-56 w-56 rounded-full bg-indigo-400/10 blur-3xl dark:bg-indigo-500/20" />
+        <div className="pointer-events-none absolute right-[-40px] top-14 h-56 w-56 rounded-full bg-sky-400/10 blur-3xl dark:bg-sky-500/20" />
 
-          {/* 处理不同的状态 */}
+        {isSidebarDesktop && <DesktopSidebarNav mode={navigationMode} onModeChange={setNavigationMode} />}
+
+        <div className={`relative flex min-h-screen flex-col ${isSidebarDesktop ? 'lg:pl-[336px]' : ''}`}>
+          {isMobile && (
+            <div className="flex-shrink-0" style={{height: 'calc(5rem + env(safe-area-inset-bottom))'}} />
+          )}
+
+          {!isSidebarDesktop && (
+            <ErrorBoundary level="component">
+              <RadialMenu />
+            </ErrorBoundary>
+          )}
+
           {error ? (
-            /* 错误状态 */
-            <div className="flex-1 flex items-center justify-center">
-              <ErrorMessage 
-                error={error} 
-                onRetry={handleErrorRetry}
-              />
+            <div className="flex flex-1 items-center justify-center px-4 py-10">
+              <ErrorMessage error={error} onRetry={handleErrorRetry} />
             </div>
           ) : isLoading ? (
-            <div className="flex-1">
-              {/* 仪表盘页面只使用龙骨屏加载效果 */}
+            <div className="flex-1 px-4 py-6 md:px-6 lg:px-8">
               <DashboardSkeleton animation="shimmer" />
             </div>
           ) : (
-            /* 主要内容区域 */
-            <div className="flex-1 flex flex-col overflow-hidden">
-              {/* 顶部内容区域 */}
-              <div className="flex-1 overflow-y-auto px-4 pt-4 pb-2">
-                <div className={`max-w-[1440px] mx-auto ${config.spacing}`}>
-                  {/* 页面标题和操作栏 */}
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <h1 className="text-2xl font-semibold tracking-tight" style={{ color: 'var(--foreground)' }}>
-                        仪表盘
-                      </h1>
-                      <p className="text-sm mt-1" style={{ color: 'var(--theme-neutral-500)' }}>
-                        任务和团队协作概览
-                      </p>
-                    </div>
-                    <div className="flex items-center space-x-2 md:space-x-3">
-                      {/* 连接状态指示器 - 移动端简化显示 */}
-                      <div className="flex items-center space-x-1 md:space-x-2">
-                        <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-gray-400'} ${isConnected ? '' : 'animate-pulse'}`} />
-                        {!isMobile && (
-                          <>
-                            <span className="text-xs" style={{ color: 'var(--theme-neutral-500)' }}>
-                              {isConnected ? '实时连接' : '离线模式'}
-                            </span>
-                            {onlineCount > 0 && (
-                              <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'var(--theme-neutral-100)', color: 'var(--theme-neutral-600)' }}>
-                                {onlineCount} 在线
-                              </span>
-                            )}
-                          </>
-                        )}
-                      </div>
-                      
-                      {/* 布局切换器 - 桌面端显示 */}
-                      {!isMobile && (
-                        <ErrorBoundary level="component">
-                          <LayoutSwitcher 
-                            showLabel={false}
-                            onModeChange={(newMode) => {
-                              console.log('Layout mode changed to:', newMode);
-                            }}
-                          />
-                        </ErrorBoundary>
-                      )}
-                      
-                      {/* 刷新按钮 */}
-                      <button
-                        onClick={() => refreshData()}
-                        disabled={isRefreshing}
-                        className="p-2 rounded-lg transition-colors duration-200 hover:bg-opacity-80 disabled:opacity-50"
-                        style={{ backgroundColor: 'var(--theme-neutral-100)', color: 'var(--theme-neutral-600)' }}
-                        title="刷新数据"
-                      >
-                        <FiRefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                      </button>
-                      
-                      {/* 日期显示 - 桌面端显示 */}
-                      {!isMobile && (
-                        <div className="px-3 py-1.5 rounded-full text-xs flex items-center shadow-sm" style={{ backgroundColor: 'var(--theme-neutral-100)', color: 'var(--theme-neutral-600)' }}>
-                          <FiCalendar className="h-3 w-3 mr-1.5" style={{ color: 'var(--theme-primary-500)' }} />
-                          {new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}
+            <div className="flex-1 overflow-y-auto px-4 pb-10 pt-5 md:px-6 lg:px-8">
+              <div className="mr-auto flex w-full max-w-[1760px] flex-col gap-6">
+                <div className={`grid grid-cols-1 items-start gap-6 ${isCalendarRailVisible ? 'xl:grid-cols-[minmax(0,1fr)_360px]' : ''}`}>
+                  <div className="min-w-0 space-y-6">
+                    <section className="dashboard-surface px-5 py-5 md:px-7 md:py-7">
+                      <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
+                        <div className="max-w-3xl">
+                          <div className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em]" style={{backgroundColor: 'rgba(var(--theme-primary-500-rgb), 0.1)', color: 'var(--theme-primary-700)'}}>
+                            {getGreeting()}
+                          </div>
+                          <h1 className="mt-4 text-3xl font-semibold tracking-tight md:text-4xl" style={{color: 'var(--foreground)'}}>
+                            仪表盘
+                          </h1>
+                          <p className="mt-3 max-w-2xl text-sm leading-7 md:text-base" style={{color: 'var(--theme-neutral-500)'}}>
+                            在这里快速查看任务进度、协作状态和近期安排，把今天最重要的信息集中呈现。
+                          </p>
+
+                          <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                            {dashboardHighlights.map((item) => {
+                              const Icon = item.icon;
+
+                              return (
+                                <div
+                                  key={item.label}
+                                  className="rounded-[22px] border px-4 py-4"
+                                  style={{borderColor: 'color-mix(in srgb, var(--theme-card-border) 75%, transparent)', backgroundColor: 'color-mix(in srgb, var(--theme-card-bg) 88%, transparent)'}}
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl" style={{backgroundColor: 'rgba(var(--theme-primary-500-rgb), 0.12)'}}>
+                                      <Icon className="h-4 w-4" style={{color: 'var(--theme-primary-600)'}} />
+                                    </div>
+                                    <div>
+                                      <div className="text-xs font-medium" style={{color: 'var(--theme-neutral-400)'}}>{item.label}</div>
+                                      <div className="mt-1 text-sm font-semibold" style={{color: 'var(--foreground)'}}>{item.value}</div>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
-                      )}
-                    </div>
+
+                        <div className="flex w-full flex-col gap-3 xl:w-auto xl:min-w-[360px]">
+                          <div className="flex flex-wrap items-center gap-3 xl:justify-end">
+                            <div className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-medium" style={{backgroundColor: isConnected ? 'var(--theme-success-50)' : 'var(--theme-neutral-100)', color: isConnected ? 'var(--theme-success-700)' : 'var(--theme-neutral-600)'}}>
+                              <span className={`h-2 w-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-gray-400'} ${isConnected ? '' : 'animate-pulse'}`} />
+                              {isConnected ? '实时连接正常' : '当前离线模式'}
+                            </div>
+
+                            {!isMobile && isDesktop && (
+                              <NavigationModeToggle mode={navigationMode} onChange={setNavigationMode} />
+                            )}
+
+                            {!isMobile && (
+                              <ErrorBoundary level="component">
+                                <LayoutSwitcher
+                                  showLabel={false}
+                                  onModeChange={(newMode) => {
+                                    console.log('Layout mode changed to:', newMode);
+                                  }}
+                                />
+                              </ErrorBoundary>
+                            )}
+
+                            <button
+                              onClick={toggleCalendarRail}
+                              className="hidden items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition xl:inline-flex"
+                              style={{backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-neutral-600)', border: '1px solid color-mix(in srgb, var(--theme-card-border) 80%, transparent)'}}
+                              title={isCalendarRailVisible ? '隐藏右侧日历' : '显示右侧日历'}
+                            >
+                              <FiCalendar className="h-4 w-4" />
+                              {isCalendarRailVisible ? '隐藏日历' : '显示日历'}
+                            </button>
+
+                            <button
+                              onClick={() => refreshData()}
+                              disabled={isRefreshing}
+                              className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition disabled:opacity-50"
+                              style={{backgroundColor: 'var(--theme-card-bg)', color: 'var(--theme-neutral-600)', border: '1px solid color-mix(in srgb, var(--theme-card-border) 80%, transparent)'}}
+                              title="刷新数据"
+                            >
+                              <FiRefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                              刷新
+                            </button>
+                          </div>
+
+                          <div className="dashboard-surface px-5 py-4">
+                            <div className="flex items-center justify-between gap-4">
+                              <div>
+                                <div className="text-xs font-semibold uppercase tracking-[0.2em]" style={{color: 'var(--theme-neutral-400)'}}>今日日期</div>
+                                <div className="mt-2 text-lg font-semibold" style={{color: 'var(--foreground)'}}>
+                                  {new Date().toLocaleDateString('zh-CN', {year: 'numeric', month: 'long', day: 'numeric'})}
+                                </div>
+                              </div>
+                              <div className="flex h-12 w-12 items-center justify-center rounded-2xl" style={{backgroundColor: 'rgba(var(--theme-info-500-rgb), 0.12)'}}>
+                                <FiCalendar className="h-5 w-5" style={{color: 'var(--theme-info-500)'}} />
+                              </div>
+                            </div>
+                            <div className="mt-4 flex items-center justify-between rounded-[18px] px-3 py-3" style={{backgroundColor: 'color-mix(in srgb, var(--theme-card-bg) 88%, transparent)', border: '1px solid color-mix(in srgb, var(--theme-card-border) 74%, transparent)'}}>
+                              <div>
+                                <div className="text-xs" style={{color: 'var(--theme-neutral-400)'}}>未读活动</div>
+                                <div className="mt-1 text-base font-semibold" style={{color: 'var(--foreground)'}}>{unreadActivityCount}</div>
+                              </div>
+                              <div>
+                                <div className="text-xs" style={{color: 'var(--theme-neutral-400)'}}>布局密度</div>
+                                <div className="mt-1 text-base font-semibold capitalize" style={{color: 'var(--foreground)'}}>{config.gap.replace('gap-', '')}</div>
+                              </div>
+                              <div>
+                                <div className="text-xs" style={{color: 'var(--theme-neutral-400)'}}>导航模式</div>
+                                <div className="mt-1 text-base font-semibold" style={{color: 'var(--foreground)'}}>{navigationMode === 'radial' ? '环形' : '侧边'}</div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </section>
+
+                    <section className="dashboard-surface p-5 md:p-6">
+                      <ErrorBoundary level="component">
+                        <StatsOverview tasks={todoTasks} onlineCount={onlineCount} isConnected={isConnected} />
+                      </ErrorBoundary>
+                    </section>
+
+                    {hasData ? (
+                      <>
+                        <div className={`grid grid-cols-1 ${config.gap} xl:grid-cols-[minmax(320px,0.92fr)_minmax(0,1.08fr)]`}>
+                          <ErrorBoundary level="component">
+                            <UpcomingTasksPanel tasks={upcomingTasks} onTaskClick={handleTaskClick} />
+                          </ErrorBoundary>
+
+                          <ErrorBoundary level="component">
+                            <MyTasksPanel tasks={myTasks} onTaskClick={handleTaskClick} />
+                          </ErrorBoundary>
+                        </div>
+
+                        <ErrorBoundary level="component">
+                          <ActivityFeedPanel activities={activities} onTaskClick={handleTaskClick} />
+                        </ErrorBoundary>
+                      </>
+                    ) : (
+                      <>
+                        <div className={`grid grid-cols-1 ${config.gap} xl:grid-cols-3`}>
+                          <EmptyStateCard icon={FiClock} title="暂无临期任务" description="即将到期的任务会在这里出现。" className="dashboard-surface h-56 border-0 shadow-none" />
+                          <EmptyStateCard icon={FiTarget} title="暂无任务数据" description="当前接口返回为空时，这里会展示更优雅的空状态。" className="dashboard-surface h-56 border-0 shadow-none" />
+                          <EmptyStateCard icon={FiUsers} title="等待协作动态" description="团队更新将在有数据后自动呈现。" className="dashboard-surface h-56 border-0 shadow-none" />
+                        </div>
+                      </>
+                    )}
                   </div>
 
-                  {/* 统计概览 */}
-                  <ErrorBoundary level="component">
-                    <StatsOverview 
-                      tasks={todoTasks}
-                      onlineCount={onlineCount}
-                      isConnected={isConnected}
-                    />
-                  </ErrorBoundary>
+                  {isCalendarRailVisible && (
+                    <aside className="hidden xl:block xl:self-start">
+                      <div className="sticky top-5 space-y-4">
+                        <div className="surface-card p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <div className="flex items-center gap-2 text-sm font-semibold" style={{color: 'var(--foreground)'}}>
+                                <FiCalendar className="h-4 w-4" style={{color: 'var(--theme-primary-500)'}} />
+                                任务日历
+                              </div>
+                              <p className="mt-1 text-xs leading-5" style={{color: 'var(--theme-neutral-500)'}}>
+                                固定在右侧，随时查看日期上的任务安排。
+                              </p>
+                            </div>
 
-                  {/* 任务面板区域 */}
-                  {hasNoData ? (
-                    /* 空状态显示 */
-                    <div className={`flex ${isMobile ? `flex-col ${config.gap}` : `flex-col lg:flex-row ${config.gap}`}`}>
-                      <div className="flex-1">
-                        <EmptyStateCard
-                          icon={FiClock}
-                          title="暂无临期任务"
-                          description="您目前没有即将到期的任务。"
-                          className={isMobile ? "h-48" : "h-64"}
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <EmptyStateCard
-                          icon={FiCheckCircle}
-                          title="暂无任务"
-                          description="您的任务列表当前为空。"
-                          className={isMobile ? "h-48" : "h-64"}
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    /* 任务面板 */
-                    <div className={`flex ${isMobile ? `flex-col ${config.gap}` : `flex-col lg:flex-row ${config.gap}`}`}>
-                      {/* 临期任务面板 */}
-                      <div className={isMobile ? "w-full" : "lg:w-2/5"}>
+                            <button
+                              type="button"
+                              onClick={toggleCalendarRail}
+                              className="rounded-full px-3 py-1.5 text-xs font-medium transition"
+                              style={{
+                                backgroundColor: 'color-mix(in srgb, var(--theme-card-bg) 88%, transparent)',
+                                color: 'var(--theme-neutral-600)',
+                                border: '1px solid color-mix(in srgb, var(--theme-card-border) 78%, transparent)',
+                              }}
+                            >
+                              隐藏
+                            </button>
+                          </div>
+                        </div>
+
                         <ErrorBoundary level="component">
-                          <UpcomingTasksPanel 
-                            tasks={upcomingTasks} 
-                            onTaskClick={handleTaskClick} 
-                          />
+                          <TaskCalendarPanel tasks={todoTasks} />
                         </ErrorBoundary>
                       </div>
-
-                      {/* 我的任务面板 */}
-                      <div className={isMobile ? "w-full" : "lg:w-3/5"}>
-                        <ErrorBoundary level="component">
-                          <MyTasksPanel 
-                            tasks={myTasks} 
-                            onTaskClick={handleTaskClick} 
-                          />
-                        </ErrorBoundary>
-                      </div>
-                    </div>
+                    </aside>
                   )}
                 </div>
               </div>
-
-              {/* 底部标签页区域 - 桌面端显示 */}
-              {!isMobile && (
-                <ErrorBoundary level="component">
-                  <BottomTabs
-                    onActivityClick={(activity) => {
-                      if (activity.taskId) {
-                        handleTaskClick(activity.taskId.toString());
-                      }
-                    }}
-                    onCommunicationClick={(communication) => {
-                      console.log('Communication clicked:', communication);
-                    }}
-                    defaultTab="activities"
-                    collapsible={true}
-                    defaultCollapsed={false}
-                  />
-                </ErrorBoundary>
-              )}
             </div>
           )}
         </div>
-
-        {/* 可折叠侧边栏 - 桌面端显示 */}
-        {!isMobile && (
-          <ErrorBoundary level="component">
-            <CollapsibleSidebar
-              tasks={todoTasks}
-              defaultCollapsed={false}
-              onQuickAction={(action) => {
-                console.log('Quick action:', action);
-                // 处理快捷操作
-                switch (action) {
-                  case 'create-task':
-                    // 打开新建任务弹窗
-                    break;
-                  case 'search-tasks':
-                    // 打开搜索面板
-                    break;
-                  default:
-                    break;
-                }
-              }}
-            />
-          </ErrorBoundary>
-        )}
       </div>
 
-      {/* 移动端底部导航 */}
       {isMobile && (
         <ErrorBoundary level="component">
-          <MobileBottomNav
-            currentPath="/dashboard"
-            onQuickAction={handleMobileQuickAction}
-            unreadCount={unreadActivityCount}
-          />
+          <MobileBottomNav currentPath="/dashboard" onQuickAction={handleMobileQuickAction} unreadCount={unreadActivityCount} />
         </ErrorBoundary>
       )}
 
-      {/* 任务详情弹窗 */}
       <AnimatePresence>
         {isTaskDetailModalOpen && selectedTaskId && (
           <ErrorBoundary level="component">
@@ -348,7 +513,6 @@ function DashboardContent() {
               onClose={handleCloseTaskDetail}
               taskId={selectedTaskId}
               onTaskUpdated={() => {
-                // 任务更新后刷新数据
                 handleErrorRetry();
               }}
               projectMembers={[]}
@@ -363,7 +527,6 @@ function DashboardContent() {
   );
 }
 
-// 主Dashboard组件（包裹布局提供者）
 export default function Dashboard() {
   return (
     <LayoutProvider defaultMode="comfortable">

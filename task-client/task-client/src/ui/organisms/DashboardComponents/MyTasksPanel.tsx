@@ -423,17 +423,17 @@ export function MyTasksPanel({ tasks, onTaskClick }: { tasks: TodoTask[]; onTask
   ];
 
   return (
-    <div className="rounded-lg shadow-sm border pt-5 px-5 pb-6"
+    <div className="rounded-[28px] border px-5 pb-6 pt-5 shadow-sm"
       style={{ 
         backgroundColor: 'var(--theme-card-bg)',
         borderColor: 'var(--theme-card-border)',
-        boxShadow: 'var(--theme-shadow-sm)'
+        boxShadow: '0 18px 42px rgba(15, 23, 42, 0.06)'
       }}
     >
       {/* 面板头部 */}
       <div className="flex justify-between items-center mb-3.5">
         <div>
-          <h2 className="text-lg font-medium" style={{ color: 'var(--foreground)' }}>我的任务</h2>
+          <h2 className="text-lg font-semibold" style={{ color: 'var(--foreground)' }}>我的任务</h2>
           <p className="text-xs mt-0.5 opacity-80" style={{ color: 'var(--theme-neutral-500)' }}>近期需要完成的任务和活动</p>
         </div>
 

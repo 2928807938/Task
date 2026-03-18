@@ -141,7 +141,7 @@ const ProjectListContent = () => {
   };
 
   return (
-    <div className="w-full px-4 py-6 max-w-[1600px] mx-auto">
+    <div className="mx-auto w-full max-w-[1360px] px-4 py-6">
       <div className="flex flex-col space-y-6">
         {/* 标题和操作区 */}
         <ProjectListHeader onCreateProject={() => setIsCreateModalOpen(true)} />
