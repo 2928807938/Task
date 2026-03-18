@@ -122,7 +122,7 @@ const ProjectListContent = () => {
 
     if (viewMode === 'grid') {
       return (
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(320px,1fr))] gap-6 xl:grid-cols-[repeat(auto-fit,minmax(340px,1fr))]">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
           <AnimatePresence mode="popLayout">
             {filteredProjects.map((project, index) => (
               <motion.div
