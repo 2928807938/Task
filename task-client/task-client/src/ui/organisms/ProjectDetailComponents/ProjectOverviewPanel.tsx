@@ -366,7 +366,7 @@ const ProjectOverviewPanel: React.FC<ProjectOverviewPanelProps> = ({
         <div className={`border-b px-5 py-4 ${isDarkMode ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200/80 bg-slate-50/80'}`}>
           <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${isDarkMode ? 'bg-blue-500/10 text-blue-300' : 'bg-blue-50 text-blue-600'}`}>
             <FiActivity size={13} />
-            团队趋势
+            任务趋势
           </div>
           <h3 className={`mt-3 text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>任务趋势</h3>
           <p className={`mt-1 text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
@@ -378,6 +378,7 @@ const ProjectOverviewPanel: React.FC<ProjectOverviewPanelProps> = ({
             tasks={tasks}
             projectId={project.id}
             taskStatusTrend={project.taskStatusTrend}
+            hideTitle
           />
         </div>
       </motion.div>

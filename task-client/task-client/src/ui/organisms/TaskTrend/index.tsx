@@ -21,6 +21,7 @@ interface TaskTrendProps {
   tasks?: ProjectTask[];
   projectId?: string;
   taskStatusTrend?: TaskStatusTrend;
+  hideTitle?: boolean;
 }
 
 const CustomTooltip = ({ active, payload, label, isDarkMode }: any) => {
@@ -58,7 +59,7 @@ const CustomTooltip = ({ active, payload, label, isDarkMode }: any) => {
   return null;
 };
 
-const TaskTrend: React.FC<TaskTrendProps> = ({ tasks = [], projectId, taskStatusTrend: initialTaskStatusTrend }) => {
+const TaskTrend: React.FC<TaskTrendProps> = ({ tasks = [], projectId, taskStatusTrend: initialTaskStatusTrend, hideTitle = false }) => {
   const { isDark } = useTheme();
   const isDarkMode = isDark;
   const [timeRange, setTimeRange] = useState('近6个月');
@@ -259,8 +260,10 @@ const TaskTrend: React.FC<TaskTrendProps> = ({ tasks = [], projectId, taskStatus
   return (
     <div className="p-0 font-['SF_Pro_Display',-apple-system,BlinkMacSystemFont,sans-serif]">
       {/* 顶部区域：标题和时间选择器 */}
-      <div className="flex justify-between items-center mb-6 flex-nowrap min-w-0 w-full">
-        <h3 className={`text-base font-medium tracking-tight whitespace-nowrap ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>任务状态分布趋势</h3>
+      <div className={`flex justify-between items-center flex-nowrap min-w-0 w-full ${hideTitle ? 'mb-4' : 'mb-6'}`}>
+        {!hideTitle && (
+          <h3 className={`text-base font-medium tracking-tight whitespace-nowrap ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>任务状态分布趋势</h3>
+        )}
         <div className="flex items-center space-x-3 flex-nowrap">
           {/* 图表类型切换按钮 */}
           <div className={`flex rounded-full p-0.5 flex-shrink-0 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
