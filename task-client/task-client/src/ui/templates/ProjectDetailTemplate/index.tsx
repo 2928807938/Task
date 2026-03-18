@@ -1,7 +1,6 @@
 "use client";
 
 import React, {useEffect, useState} from 'react';
-import {useRouter} from 'next/navigation';
 import MainLayout from '@/ui/templates/MainLayout';
 import {ProjectTask} from '@/types/api-types';
 import {useQueryClient} from '@tanstack/react-query';
@@ -13,11 +12,12 @@ import {AnimatePresence, motion} from 'framer-motion';
 import {useTheme} from '@/ui/theme';
 import {useToast} from '@/ui/molecules/Toast';
 import CreateTaskConfirmModal from '@/ui/organisms/CreateTaskConfirmModal';
+import type {TaskSplitData} from '@/ui/organisms/CreateTaskConfirmModal/types/types';
 import {
     ANALYSIS_COMPLETE_EVENT,
     analysisEventEmitter
 } from '@/ui/organisms/CreateTaskConfirmModal/utils/analysisEventEmitter';
-import {FiChevronLeft, FiPlus, FiShare2} from 'react-icons/fi';
+import {FiShare2} from 'react-icons/fi';
 import TaskDetailModal from '@/ui/organisms/TaskDetailModal';
 import SubTaskDetailModal from '@/ui/organisms/SubTaskDetailModal';
 import ComingSoonModal from '@/ui/molecules/ComingSoonModal';
@@ -41,42 +41,18 @@ interface ProjectDetailTemplateProps {
   projectId: string;
 }
 
-// 自定义媒体查询hook
-const useMediaQuery = (query: string): boolean => {
-  const [matches, setMatches] = useState(false);
-
-  useEffect(() => {
-    // 服务器端渲染时避免执行
-    if (typeof window !== 'undefined') {
-      const media = window.matchMedia(query);
-      // 初始化匹配状态
-      setMatches(media.matches);
-
-      const listener = () => setMatches(media.matches);
-      media.addEventListener('change', listener);
-      return () => media.removeEventListener('change', listener);
-    }
-    return undefined;
-  }, [query]); // 只依赖于query变化
-
-  return matches;
-};
-
 const ProjectDetailTemplate: React.FC<ProjectDetailTemplateProps> = ({ projectId }) => {
-  const router = useRouter();
   const queryClient = useQueryClient(); // 获取 queryClient 实例
   const [selectedTab, setSelectedTab] = useState<TabType>('overview');
   const [isAiAnalysisModalOpen, setIsAiAnalysisModalOpen] = useState(false);
   const [isPreparingAiAnalysis, setIsPreparingAiAnalysis] = useState(false);
   const [conversationListId, setConversationListId] = useState<string | null>(null);
   const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
-  const [taskAnalysisData, setTaskAnalysisData] = useState<any>(null);
+  const [taskAnalysisData, setTaskAnalysisData] = useState<TaskSplitData | null>(null);
   const [taskPage, setTaskPage] = useState(1);
   const [taskPageSize, setTaskPageSize] = useState(10);
   // 当前视图状态
   const [currentView, setCurrentView] = useState<'list' | 'board' | 'calendar' | 'gantt'>('list');
-  const isMobile = useMediaQuery('(max-width: 768px)');
-  const isTablet = useMediaQuery('(max-width: 1024px)');
   const { isDark } = useTheme();
   const isDarkMode = isDark;
   const { addToast } = useToast();
@@ -92,11 +68,11 @@ const ProjectDetailTemplate: React.FC<ProjectDetailTemplateProps> = ({ projectId
   // 监听分析完成事件
   useEffect(() => {
     // 添加分析完成事件监听器
-    const handleAnalysisComplete = (data: any) => {
+    const handleAnalysisComplete = (data: TaskSplitData & { content?: string }) => {
       console.log('收到分析完成事件:', data);
       
       // 解析分析数据
-      let parsedData = data;
+      let parsedData: TaskSplitData = data;
       if (data.content && typeof data.content === 'string') {
         try {
           parsedData = JSON.parse(data.content);
@@ -153,7 +129,7 @@ const ProjectDetailTemplate: React.FC<ProjectDetailTemplateProps> = ({ projectId
   }, [projectDetail]);
 
   // 使用任务API获取项目任务列表和任务详情
-  const { useGetProjectTasks, useGetTaskWithSubtasks } = useTaskHook();
+  const { useGetProjectTasks } = useTaskHook();
 
   // 判断当前视图是否应该显示子任务
   const shouldUseSubTasks = () => {
@@ -227,7 +203,7 @@ const ProjectDetailTemplate: React.FC<ProjectDetailTemplateProps> = ({ projectId
   // 监听分析完成事件 - 优化逻辑避免重复请求
   useEffect(() => {
     // 添加事件监听
-    const unsubscribe = analysisEventEmitter.on(ANALYSIS_COMPLETE_EVENT, (data) => {
+    const unsubscribe = analysisEventEmitter.on(ANALYSIS_COMPLETE_EVENT, () => {
       // 切换到任务标签页并标记需要刷新
       setSelectedTab('tasks');
       setShouldRefreshTasks(true);
@@ -292,12 +268,6 @@ const ProjectDetailTemplate: React.FC<ProjectDetailTemplateProps> = ({ projectId
     } finally {
       setIsPreparingAiAnalysis(false);
     }
-  };
-
-  // 处理直接创建任务（不通过AI分析）
-  const handleDirectCreateTask = () => {
-    // 直接打开创建任务弹窗
-    setIsCreateTaskModalOpen(true);
   };
 
   // 判断是否应该使用子任务详情弹窗
@@ -406,43 +376,6 @@ const ProjectDetailTemplate: React.FC<ProjectDetailTemplateProps> = ({ projectId
     );
   };
 
-  // 滚动状态监听 - 确保在组件顶层调用useState
-  const [isScrolled, setIsScrolled] = useState(false);
-
-  // 监听滚动事件，用于切换简洁模式
-  useEffect(() => {
-    // 只在客户端执行
-    if (typeof window !== 'undefined') {
-      // 初始检查滚动位置
-      setIsScrolled(window.scrollY > 60);
-
-      const handleScroll = () => {
-        setIsScrolled(window.scrollY > 60);
-      };
-
-      // 设置CSS变量到根元素，确保全局可用
-      const updateHeaderHeight = () => {
-        const height = window.scrollY > 60 ? '80px' : '140px';
-        document.documentElement.style.setProperty('--project-header-height', height);
-      };
-
-      // 初始设置
-      updateHeaderHeight();
-      
-      const scrollHandler = () => {
-        setIsScrolled(window.scrollY > 60);
-        updateHeaderHeight();
-      };
-
-      window.addEventListener('scroll', scrollHandler);
-      return () => {
-        window.removeEventListener('scroll', scrollHandler);
-        // 清理CSS变量
-        document.documentElement.style.removeProperty('--project-header-height');
-      };
-    }
-  }, []);
-
   // 渲染加载状态
   if (isLoading) {
     return (
@@ -464,220 +397,152 @@ const ProjectDetailTemplate: React.FC<ProjectDetailTemplateProps> = ({ projectId
   return (
     <MainLayout title={projectDetail?.name || "项目详情"}>
       <>
-        {/* 全尺寸头部容器 - 作为一个整体吸顶，使用毛玻璃效果 */}
-        <div
-          className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 backdrop-blur-md ${
-            isDarkMode 
-              ? 'bg-gray-900/90 border-b border-gray-800' 
-              : 'bg-white/90 border-b border-gray-200'
-          }`}
-          id="projectDetailHeader"
-          style={{
-            WebkitBackdropFilter: 'saturate(180%) blur(20px)',
-            backdropFilter: 'saturate(180%) blur(20px)',
-            // 设置CSS变量供搜索框使用，根据滚动状态调整高度
-            '--project-header-height': isScrolled ? '80px' : '140px'
-          } as React.CSSProperties}
-        >
-          {/* 简洁模式头部 - 在滚动时显示 */}
-          {isScrolled && (
-            <div className="compact-header px-4 py-2 flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <button
-                  onClick={() => router.push('/projects')}
-                  className={`flex items-center text-sm ${isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}
-                >
-                  <FiChevronLeft className="mr-1" size={16} />
-                  <span className="font-medium truncate max-w-[200px]">{projectDetail?.name}</span>
-                </button>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={handleAddTask}
-                  className={`inline-flex items-center px-2.5 py-1 text-xs rounded-full ${
-                    isDarkMode 
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                      : 'bg-blue-500 hover:bg-blue-600 text-white'
-                  } transition-colors shadow-sm`}
-                >
-                  <FiPlus className="mr-1" size={12} />
-                  <span>添加任务</span>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* 常规头部 - 在非滚动状态显示 */}
-          <div className={`header-content transition-all duration-300 ${isScrolled ? 'max-h-0 opacity-0 overflow-hidden' : 'max-h-[500px] opacity-100'}`}>
-            <ProjectDetailHeader
-              projectName={localProjectName}
-              projectDescription={localProjectDescription}
-              onAddTask={handleAddTask}
-              projectId={projectId}
-              projectDetail={projectDetail}
-              onProjectUpdated={(updatedName, updatedDescription) => {
-                // 编辑项目成功后直接更新本地状态，而不是刷新数据
-                setLocalProjectName(updatedName);
-                setLocalProjectDescription(updatedDescription);
-              }}
-              onShare={() => setIsShareModalOpen(true)}
-            />
-
-            {/* 项目详情标签页 - 始终显示 */}
-            <ProjectDetailTabs
-              selectedTab={selectedTab}
-              onTabChange={(tab) => {
-                setSelectedTab(tab);
-                // 当切换到任务标签页时，会自动触发useGetProjectTasks查询
-                // 因为我们设置了enabled依赖于标签页值
-              }}
-            />
-          </div>
-
-          {/* 标签页导航 - 在简洁模式下显示 */}
-          {isScrolled && (
-            <div className="tabs-container px-4 py-1">
-              <ProjectDetailTabs
-                selectedTab={selectedTab}
-                onTabChange={(tab) => {
-                  setSelectedTab(tab);
+        <div className={`-m-4 min-h-full sm:-m-6 md:-m-8 ${isDarkMode ? 'bg-slate-950' : 'bg-slate-50'}`}>
+          <div className="mx-auto flex min-h-full w-full max-w-7xl flex-col gap-6 px-4 py-4 sm:px-6 sm:py-6 md:px-8 md:py-8">
+            <div className="sticky top-0 z-30 space-y-4 pb-1">
+              <ProjectDetailHeader
+                projectName={localProjectName}
+                projectDescription={localProjectDescription}
+                onAddTask={handleAddTask}
+                projectId={projectId}
+                projectDetail={projectDetail}
+                onProjectUpdated={(updatedName, updatedDescription) => {
+                  setLocalProjectName(updatedName);
+                  setLocalProjectDescription(updatedDescription);
                 }}
-                isCompact={true}
+                onShare={() => setIsShareModalOpen(true)}
               />
+
+              <div className={`rounded-[24px] border p-3 shadow-sm backdrop-blur ${isDarkMode ? 'border-white/10 bg-slate-900/80' : 'border-slate-200/80 bg-white/90'}`}>
+                <ProjectDetailTabs
+                  selectedTab={selectedTab}
+                  onTabChange={(tab) => {
+                    setSelectedTab(tab);
+                  }}
+                />
+              </div>
             </div>
-          )}
-        </div>
 
-        {/* 内容区域 - 添加适当的顶部内边距，避免被固定头部遮挡 */}
-        <div className={`flex-1 content-area ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`} style={{
-          paddingTop: isScrolled ? '80px' : '140px', // 根据头部高度动态调整
-          transition: 'padding-top 0.3s ease'
-        }}>
-          <div className={`container mx-auto p-4 ${isMobile ? 'px-2' : ''}`}>
-            <AnimatePresence mode="wait">
-              {selectedTab === 'overview' && (
-                <motion.div
-                  key="overview"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{
-                    type: "spring",
-                    stiffness: 300,
-                    damping: 30
-                  }}
-                >
-                  <ProjectOverviewPanel
-                    project={projectDetail}
-                    onSwitchToTasksTab={() => setSelectedTab('tasks')}
-                    onSwitchToTeamTab={() => setSelectedTab('team')}
-                    onCreateTask={handleAddTask}
-                    onTaskClick={(taskId) => handleTaskClick(taskId, 'overview')}
-                  />
-                </motion.div>
-              )}
+            <div className="pb-6">
+              <AnimatePresence mode="wait">
+                {selectedTab === 'overview' && (
+                  <motion.div
+                    key="overview"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{
+                      type: 'spring',
+                      stiffness: 300,
+                      damping: 30
+                    }}
+                  >
+                    <ProjectOverviewPanel
+                      project={projectDetail}
+                      onSwitchToTasksTab={() => setSelectedTab('tasks')}
+                      onSwitchToTeamTab={() => setSelectedTab('team')}
+                      onCreateTask={handleAddTask}
+                      onTaskClick={(taskId) => handleTaskClick(taskId, 'overview')}
+                    />
+                  </motion.div>
+                )}
 
-            {selectedTab === 'tasks' && (
-              <motion.div
-                key="tasks"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{
-                  type: "spring",
-                  stiffness: 300,
-                  damping: 30
-                }}
-              >
-                <ProjectTasksPanel
-                  tasks={shouldUseSubTasks() ? subTasksData?.content || [] : tasksData?.content || []}
-                  onAddTask={handleAddTask}
-                  onTaskClick={handleTaskClick}
-                  isLoading={shouldUseSubTasks() ? isSubTasksLoading : isTasksLoading}
-                  error={shouldUseSubTasks() ? subTasksError as Error : tasksError as Error}
-                  currentView={currentView}
-                  onViewChange={setCurrentView}
-                  pagination={{
-                    current: taskPage,
-                    pageSize: taskPageSize,
-                    total: tasksData?.total || 0,
-                    onChange: handleTaskPageChange,
-                    onPageSizeChange: handleTaskPageSizeChange
-                  }}
-                  projectId={projectId}
-                  projectProgress={projectDetail?.progress} // 传递项目进度
-                  projectTaskCount={projectDetail?.taskCount} // 传递项目任务总数
-                  projectCompletedTaskCount={projectDetail?.completedTaskCount} // 传递项目已完成任务数
-                  onTaskUpdate={() => {
-                    // 任务更新后刷新任务列表
-                    if (shouldUseSubTasks()) {
-                      if (refetchSubTasks) {
-                        refetchSubTasks();
-                      }
-                    } else {
-                      if (refetchTasks) {
-                        refetchTasks();
-                      }
-                    }
-                    // 同时刷新项目详情（更新进度等信息）
-                    refetchProjectDetail();
-                  }}
-                />
-              </motion.div>
-            )}
+                {selectedTab === 'tasks' && (
+                  <motion.div
+                    key="tasks"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{
+                      type: 'spring',
+                      stiffness: 300,
+                      damping: 30
+                    }}
+                  >
+                    <ProjectTasksPanel
+                      tasks={shouldUseSubTasks() ? subTasksData?.content || [] : tasksData?.content || []}
+                      onAddTask={handleAddTask}
+                      onTaskClick={handleTaskClick}
+                      isLoading={shouldUseSubTasks() ? isSubTasksLoading : isTasksLoading}
+                      error={shouldUseSubTasks() ? subTasksError as Error : tasksError as Error}
+                      currentView={currentView}
+                      onViewChange={setCurrentView}
+                      pagination={{
+                        current: taskPage,
+                        pageSize: taskPageSize,
+                        total: tasksData?.total || 0,
+                        onChange: handleTaskPageChange,
+                        onPageSizeChange: handleTaskPageSizeChange
+                      }}
+                      projectId={projectId}
+                      projectProgress={projectDetail?.progress}
+                      projectTaskCount={projectDetail?.taskCount}
+                      projectCompletedTaskCount={projectDetail?.completedTaskCount}
+                      onTaskUpdate={() => {
+                        if (shouldUseSubTasks()) {
+                          if (refetchSubTasks) {
+                            refetchSubTasks();
+                          }
+                        } else {
+                          if (refetchTasks) {
+                            refetchTasks();
+                          }
+                        }
+                        refetchProjectDetail();
+                      }}
+                    />
+                  </motion.div>
+                )}
 
-            {selectedTab === 'team' && (
-              <motion.div
-                key="team"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{
-                  type: "spring",
-                  stiffness: 300,
-                  damping: 30
-                }}
-              >
-                <ProjectTeamPanel
-                  members={projectMembersToTeamMembers(projectDetail?.members || [])}
-                  onAddMember={() => console.log('添加成员')}
-                  projectId={projectId}
-                  onRemoveMember={(memberId) => {
-                    // 刷新项目详情数据以更新成员列表
-                    if (projectDetail) {
-                      // 使用延迟时间，确保后端已处理完毕
-                      setTimeout(() => {
-                        // 使用不会触发额外提示的方式刷新数据
-                        queryClient.refetchQueries({ queryKey: ['project', projectId], exact: true });
-                      }, 500);
-                    }
-                  }}
-                  onSwitchToTeamTab={() => setSelectedTab('team')}
-                />
-              </motion.div>
-            )}
+                {selectedTab === 'team' && (
+                  <motion.div
+                    key="team"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{
+                      type: 'spring',
+                      stiffness: 300,
+                      damping: 30
+                    }}
+                  >
+                    <ProjectTeamPanel
+                      members={projectMembersToTeamMembers(projectDetail?.members || [])}
+                      onAddMember={() => console.log('添加成员')}
+                      projectId={projectId}
+                      onRemoveMember={() => {
+                        if (projectDetail) {
+                          setTimeout(() => {
+                            queryClient.refetchQueries({ queryKey: ['project', projectId], exact: true });
+                          }, 500);
+                        }
+                      }}
+                      onSwitchToTeamTab={() => setSelectedTab('team')}
+                    />
+                  </motion.div>
+                )}
 
-            {selectedTab === 'files' && (
-              <motion.div
-                key="files"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{
-                  type: "spring",
-                  stiffness: 300,
-                  damping: 30
-                }}
-              >
-                <ProjectFilesPanel
-                  files={[]}
-                  onUploadFile={() => console.log('上传文件')}
-                  onCreateFolder={() => console.log('创建文件夹')}
-                />
-              </motion.div>
-            )}
-            </AnimatePresence>
+                {selectedTab === 'files' && (
+                  <motion.div
+                    key="files"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{
+                      type: 'spring',
+                      stiffness: 300,
+                      damping: 30
+                    }}
+                  >
+                    <ProjectFilesPanel
+                      files={[]}
+                      onUploadFile={() => console.log('上传文件')}
+                      onCreateFolder={() => console.log('创建文件夹')}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
 
@@ -724,7 +589,7 @@ const ProjectDetailTemplate: React.FC<ProjectDetailTemplateProps> = ({ projectId
                   onClose={handleCloseTaskDetail}
                   taskId={selectedTaskId}
                   projectId={projectId}
-                  onTaskUpdated={(updatedTask) => {
+                  onTaskUpdated={() => {
                     // 标记需要刷新任务列表
                     setShouldRefreshTasks(true);
                   }}
@@ -738,7 +603,7 @@ const ProjectDetailTemplate: React.FC<ProjectDetailTemplateProps> = ({ projectId
                   onClose={handleCloseTaskDetail}
                   taskId={selectedTaskId}
                   projectId={projectId}
-                  onTaskUpdated={(updatedTask) => {
+                  onTaskUpdated={() => {
                     // 标记需要刷新任务列表
                     setShouldRefreshTasks(true);
                   }}

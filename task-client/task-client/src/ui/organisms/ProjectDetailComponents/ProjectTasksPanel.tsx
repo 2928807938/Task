@@ -58,12 +58,12 @@ const ProjectTasksPanel: React.FC<ProjectTasksPanelProps> = ({
   const { data: taskDistribution, isLoading: isDistributionLoading } = useTaskDistributionHook(projectId);
 
   return (
-    <div className="mt-2">
+    <div>
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl overflow-hidden`}
+        className={`overflow-hidden rounded-[28px] border shadow-sm ${isDarkMode ? 'border-white/10 bg-slate-900/80' : 'border-slate-200 bg-white'}`}
       >
         {/* 错误提示 */}
         {error && (

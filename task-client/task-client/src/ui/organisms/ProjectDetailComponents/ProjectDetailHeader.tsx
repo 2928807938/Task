@@ -1,7 +1,20 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import {useRouter} from 'next/navigation';
-import {motion, useScroll, useSpring, useTransform} from 'framer-motion';
-import {FiChevronLeft, FiEdit2, FiShare2} from 'react-icons/fi';
+import {motion} from 'framer-motion';
+import {
+  FiBriefcase,
+  FiCalendar,
+  FiCheckCircle,
+  FiChevronLeft,
+  FiEdit2,
+  FiFolder,
+  FiGlobe,
+  FiLock,
+  FiPlus,
+  FiShare2,
+  FiTarget,
+  FiUsers
+} from 'react-icons/fi';
 import {ProjectDetailResponse} from '@/types/api-types';
 import {useTheme} from '@/ui/theme';
 import EditProjectModal from '@/ui/organisms/ProjectListComponents/EditProjectModal';
@@ -12,9 +25,37 @@ interface ProjectDetailHeaderProps {
   onAddTask: () => void;
   projectId?: string;
   projectDetail?: ProjectDetailResponse;
-  onProjectUpdated?: (updatedName: string, updatedDescription: string) => void; // 更新回调函数签名
-  onShare?: () => void; // 分享按钮点击回调
+  onProjectUpdated?: (updatedName: string, updatedDescription: string) => void;
+  onShare?: () => void;
 }
+
+const formatRelativeDate = (value?: string) => {
+  if (!value) {
+    return '刚刚更新';
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return '刚刚更新';
+  }
+
+  const now = Date.now();
+  const diff = Math.floor((now - date.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (diff <= 0) {
+    return '今天更新';
+  }
+
+  if (diff === 1) {
+    return '昨天更新';
+  }
+
+  if (diff < 7) {
+    return `${diff} 天前更新`;
+  }
+
+  return `${date.getMonth() + 1} 月 ${date.getDate()} 日更新`;
+};
 
 const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({
   projectName,
@@ -26,42 +67,13 @@ const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({
   onShare
 }) => {
   const router = useRouter();
-  const [isHovering, setIsHovering] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const { isDark } = useTheme();
   const isDarkMode = isDark;
-  const headerRef = useRef(null);
 
-  // 滚动交互效果
-  const { scrollY } = useScroll();
-  // 增强弹性反馈，让动作更自然
-  const scrollYSpring = useSpring(scrollY, { stiffness: 400, damping: 35, mass: 0.8 });
-
-  // 缩略模式相关的动画值 - 微调滚动阈值
-  const headerHeight = useTransform(scrollYSpring, [0, 50], ['auto', '48px']);
-  const descriptionOpacity = useTransform(scrollYSpring, [0, 35], [1, 0]);
-  const descriptionHeight = useTransform(scrollYSpring, [0, 35], ['auto', '0px']);
-  const metadataOpacity = useTransform(scrollYSpring, [0, 35], [1, 0]);
-
-  // 计算是否已滚动（用于条件渲染）
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [isCompactMode, setIsCompactMode] = useState(false);
-
-  useEffect(() => {
-    // 增强的滚动响应逻辑，更符合苹果的交互体验
-    const unsubscribe = scrollY.onChange((latest) => {
-      setIsScrolled(latest > 15);  // 更早地触发滚动效果
-      setIsCompactMode(latest > 35); // 调整压缩模式的触发点
-    });
-
-    return () => unsubscribe();
-  }, [scrollY]);
-
-  // 键盘快捷键处理
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      // 添加任务快捷键: ⌘+N
-      if ((event.metaKey || event.ctrlKey) && event.key === 'n') {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'n') {
         event.preventDefault();
         onAddTask();
       }
@@ -71,170 +83,234 @@ const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onAddTask]);
 
+  const completionRate = useMemo(() => {
+    if (typeof projectDetail?.progress === 'number') {
+      return Math.max(0, Math.min(projectDetail.progress, 100));
+    }
+
+    if (!projectDetail?.taskCount) {
+      return 0;
+    }
+
+    return Math.round(((projectDetail.completedTaskCount || 0) / projectDetail.taskCount) * 100);
+  }, [projectDetail?.completedTaskCount, projectDetail?.progress, projectDetail?.taskCount]);
+
+  const summaryItems = [
+    {
+      label: '完成进度',
+      value: `${completionRate}%`,
+      icon: <FiTarget size={16} />,
+      accent: isDarkMode ? 'from-blue-500/20 to-cyan-500/10' : 'from-blue-100 to-cyan-50'
+    },
+    {
+      label: '任务数量',
+      value: `${projectDetail?.completedTaskCount || 0}/${projectDetail?.taskCount || 0}`,
+      icon: <FiCheckCircle size={16} />,
+      accent: isDarkMode ? 'from-emerald-500/20 to-green-500/10' : 'from-emerald-100 to-green-50'
+    },
+    {
+      label: '团队成员',
+      value: `${projectDetail?.memberCount || 0} 人`,
+      icon: <FiUsers size={16} />,
+      accent: isDarkMode ? 'from-violet-500/20 to-fuchsia-500/10' : 'from-violet-100 to-fuchsia-50'
+    },
+    {
+      label: '所属团队',
+      value: projectDetail?.teamName || '未分组',
+      icon: <FiFolder size={16} />,
+      accent: isDarkMode ? 'from-amber-500/20 to-orange-500/10' : 'from-amber-100 to-orange-50'
+    }
+  ];
+
+  const visibilityLabel = projectDetail?.visibility === 'PUBLIC' ? '公开项目' : '私有项目';
+  const visibilityIcon = projectDetail?.visibility === 'PUBLIC' ? <FiGlobe size={14} /> : <FiLock size={14} />;
+
   return (
     <>
       <motion.div
-        ref={headerRef}
-        onMouseEnter={() => setIsHovering(true)}
-        onMouseLeave={() => setIsHovering(false)}
-        className="w-full transition-all duration-300"
-        style={{
-          height: isCompactMode && !isHovering ? '48px' : 'auto',
-          overflow: 'hidden'
-        }}
-        aria-label="项目详情头部"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35 }}
+        className={`relative overflow-hidden rounded-[28px] border px-5 py-5 sm:px-6 sm:py-6 ${
+          isDarkMode
+            ? 'border-white/10 bg-slate-900/90 text-white'
+            : 'border-slate-200/80 bg-white/95 text-slate-900'
+        }`}
       >
-      {/* 项目导航行 - 根据滚动状态切换显示模式 */}
-      <motion.div
-        className="w-full px-4 lg:px-6"
-        transition={{ duration: 0.2 }}
-      >
-        <div className="h-12 flex items-center justify-between">
-          {/* 左侧：导航与项目标题 */}
-          <div className="flex items-center gap-2 overflow-hidden">
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              whileHover={{ scale: 1.02 }}
-              onClick={() => router.push('/projects')}
-              className={`flex items-center justify-center h-8 w-8 rounded-full ${
-                isDarkMode 
-                  ? 'bg-gray-800/70 text-gray-200 hover:bg-gray-700/80' 
-                  : 'bg-gray-100/80 text-gray-600 hover:bg-gray-200/90'
-              } transition-all duration-150 shadow-sm`}
-              aria-label="返回项目列表"
-            >
-              <FiChevronLeft size={15} />
-            </motion.button>
+        <div
+          className={`absolute inset-0 ${
+            isDarkMode
+              ? 'bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.24),transparent_36%),radial-gradient(circle_at_top_right,rgba(168,85,247,0.18),transparent_32%)]'
+              : 'bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.12),transparent_34%),radial-gradient(circle_at_top_right,rgba(168,85,247,0.10),transparent_30%)]'
+          }`}
+        />
 
-            <div className="flex items-center overflow-hidden">
-              <h1 className={`text-base font-semibold truncate max-w-md ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                {projectName}
-              </h1>
+        <div className="relative space-y-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0 flex-1 space-y-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => router.push('/projects')}
+                  className={`inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                    isDarkMode
+                      ? 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
+                      : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <FiChevronLeft size={14} />
+                  返回项目
+                </button>
 
-              <div className="ml-3 flex items-center">
-                {/* 项目状态标签 - 已归档或进行中 */}
                 <span
-                  className="px-2 py-0.5 rounded-full text-xs font-medium"
-                  style={{
-                    backgroundColor: projectDetail?.archived
-                      ? isDarkMode ? 'rgba(245, 158, 11, 0.15)' : 'rgba(245, 158, 11, 0.1)'
-                      : isDarkMode ? 'rgba(16, 185, 129, 0.15)' : 'rgba(16, 185, 129, 0.1)',
-                    color: projectDetail?.archived
-                      ? isDarkMode ? '#F59E0B' : '#D97706'
-                      : isDarkMode ? '#10B981' : '#059669'
-                  }}
+                  className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold ${
+                    projectDetail?.archived
+                      ? isDarkMode
+                        ? 'bg-amber-500/15 text-amber-300'
+                        : 'bg-amber-100 text-amber-700'
+                      : isDarkMode
+                        ? 'bg-emerald-500/15 text-emerald-300'
+                        : 'bg-emerald-100 text-emerald-700'
+                  }`}
                 >
                   <span
-                    className="mr-1 inline-block h-1.5 w-1.5 rounded-full"
-                    style={{
-                      backgroundColor: projectDetail?.archived
-                        ? '#F59E0B' // 已归档使用黄色
-                        : '#10B981'  // 进行中使用绿色
-                    }}
-                  ></span>
+                    className={`h-1.5 w-1.5 rounded-full ${projectDetail?.archived ? 'bg-amber-400' : 'bg-emerald-400'}`}
+                  />
                   {projectDetail?.archived ? '已归档' : '进行中'}
                 </span>
+
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold ${
+                    isDarkMode ? 'bg-white/6 text-slate-300' : 'bg-slate-100 text-slate-600'
+                  }`}
+                >
+                  {visibilityIcon}
+                  {visibilityLabel}
+                </span>
               </div>
+
+              <div className="flex items-start gap-4">
+                <div
+                  className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border ${
+                    isDarkMode
+                      ? 'border-white/10 bg-white/6 text-blue-300'
+                      : 'border-blue-100 bg-blue-50 text-blue-600'
+                  }`}
+                >
+                  <FiBriefcase size={24} />
+                </div>
+
+                <div className="min-w-0 space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h1 className="truncate text-2xl font-semibold tracking-tight sm:text-[30px]">
+                      {projectName || '未命名项目'}
+                    </h1>
+                  </div>
+
+                  <p className={`max-w-3xl text-sm leading-6 sm:text-[15px] ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                    {projectDescription?.trim() || '还没有项目描述，建议补充目标、协作方式和关键里程碑。'}
+                  </p>
+
+                  <div className={`flex flex-wrap items-center gap-x-4 gap-y-2 text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    <span className="inline-flex items-center gap-1.5">
+                      <FiUsers size={14} />
+                      负责人 {projectDetail?.ownerName || '未设置'}
+                    </span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <FiFolder size={14} />
+                      团队 {projectDetail?.teamName || '未分组'}
+                    </span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <FiCalendar size={14} />
+                      {formatRelativeDate(projectDetail?.updatedAt)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setIsEditModalOpen(true)}
+                className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+                  isDarkMode
+                    ? 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
+                    : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                <FiEdit2 size={15} />
+                编辑项目
+              </motion.button>
+
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                onClick={onShare}
+                className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+                  isDarkMode
+                    ? 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10'
+                    : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                <FiShare2 size={15} />
+                分享
+              </motion.button>
+
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                onClick={onAddTask}
+                className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 transition-colors hover:bg-blue-700"
+              >
+                <FiPlus size={15} />
+                新建任务
+              </motion.button>
             </div>
           </div>
 
-          {/* 右侧区域 - 按钮组 */}
-          <div className="flex items-center space-x-2">
-            {/* 编辑按钮 */}
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              whileHover={{ scale: 1.02 }}
-              onClick={() => setIsEditModalOpen(true)}
-              className={`flex items-center justify-center h-8 w-8 rounded-full ${
-                isDarkMode 
-                  ? 'bg-gray-800/70 text-gray-200 hover:bg-gray-700/80' 
-                  : 'bg-gray-100/80 text-gray-600 hover:bg-gray-200/90'
-              } transition-all duration-150 shadow-sm`}
-              aria-label="编辑项目"
-              title="编辑项目"
-            >
-              <FiEdit2 size={15} />
-            </motion.button>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {summaryItems.map((item) => (
+              <div
+                key={item.label}
+                className={`rounded-2xl border bg-gradient-to-br p-4 ${item.accent} ${
+                  isDarkMode ? 'border-white/10' : 'border-white/80'
+                }`}
+              >
+                <div className={`mb-3 inline-flex h-9 w-9 items-center justify-center rounded-xl ${isDarkMode ? 'bg-white/8 text-white' : 'bg-white text-slate-700'}`}>
+                  {item.icon}
+                </div>
+                <div className={`text-xs font-medium ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                  {item.label}
+                </div>
+                <div className="mt-1 line-clamp-1 text-lg font-semibold">
+                  {item.value}
+                </div>
+              </div>
+            ))}
+          </div>
 
-            {/* 分享按钮 */}
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              whileHover={{ scale: 1.02 }}
-              onClick={() => {
-                // 调用父组件传递的分享函数
-                if (onShare) {
-                  onShare();
-                }
-              }}
-              className={`flex items-center justify-center h-8 w-8 rounded-full ${
-                isDarkMode 
-                  ? 'bg-blue-600/90 text-white hover:bg-blue-500' 
-                  : 'bg-blue-500 text-white hover:bg-blue-600'
-              } transition-all duration-150 shadow-sm`}
-              aria-label="分享项目"
-              title="分享项目"
-            >
-              <FiShare2 size={15} />
-            </motion.button>
+          <div className={`rounded-2xl border p-4 ${isDarkMode ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200 bg-slate-50/80'}`}>
+            <div className="mb-2 flex items-center justify-between gap-4">
+              <div>
+                <div className={`text-sm font-medium ${isDarkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                  项目整体完成度
+                </div>
+                <div className={`text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                  已完成 {projectDetail?.completedTaskCount || 0} / {projectDetail?.taskCount || 0} 个任务
+                </div>
+              </div>
+              <div className="text-right text-2xl font-semibold tracking-tight">{completionRate}%</div>
+            </div>
+
+            <div className={`h-2 overflow-hidden rounded-full ${isDarkMode ? 'bg-white/10' : 'bg-slate-200'}`}>
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-blue-500 via-cyan-500 to-emerald-500 transition-all duration-500"
+                style={{ width: `${completionRate}%` }}
+              />
+            </div>
           </div>
         </div>
       </motion.div>
 
-      {/* 项目描述区域 - 滚动时渐隐 */}
-      <motion.div
-        className="w-full px-4 lg:px-6 pb-2 overflow-hidden"
-        style={{
-          opacity: descriptionOpacity,
-          height: isCompactMode && !isHovering ? '0px' : 'auto',
-          marginTop: isCompactMode && !isHovering ? '0' : '0px'
-        }}
-      >
-        {/* 项目描述 - 改进悬停效果和可访问性 */}
-        {projectDescription && (
-          <div
-            className="group relative cursor-pointer"
-            title="点击展开完整描述"
-          >
-            <p className={`text-xs sm:text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} line-clamp-1 group-hover:line-clamp-none transition-all duration-300`}>
-              {projectDescription}
-            </p>
-            <div className={`absolute bottom-0 right-0 w-12 h-full bg-gradient-to-l ${isDarkMode ? 'from-gray-900' : 'from-white'} to-transparent pointer-events-none group-hover:opacity-0 transition-opacity duration-300`}></div>
-          </div>
-        )}
-
-        {/* 项目元数据 - 极简版本 */}
-        <motion.div
-          className="mt-1 flex items-center text-xs text-gray-400 dark:text-gray-500"
-          style={{ opacity: metadataOpacity }}
-        >
-          {/* 任务进度 */}
-          <span className="flex items-center">
-            <span className="font-medium">{projectDetail?.completedTaskCount || 0}/{projectDetail?.taskCount || 0}</span>
-          </span>
-
-          {/* 分隔点 */}
-          <span className="mx-1.5 text-gray-300 dark:text-gray-600">•</span>
-
-          {/* 最后更新时间 */}
-          <span>
-            {projectDetail?.updatedAt ? (() => {
-              const date = new Date(projectDetail.updatedAt);
-              const now = new Date();
-              const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 3600 * 24));
-              if (diffDays === 0) return '今天';
-              if (diffDays === 1) return '昨天';
-              if (diffDays < 7) return `${diffDays}天前`;
-              return `${date.getMonth() + 1}月${date.getDate()}日`;
-            })() : ''}
-          </span>
-        </motion.div>
-      </motion.div>
-
-      </motion.div>
-
-      {/* 编辑项目模态框放在最外层，避免被overflow:hidden影响，且不进行条件判断 */}
-      {/* 编辑项目模态框使用自定义包装组件，确保展示在最顶层 */}
-      <div className="relative" style={{ zIndex: 9999 }}>
+      <div className="relative z-[9999]">
         <EditProjectModal
           isOpen={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}
@@ -244,10 +320,7 @@ const ProjectDetailHeader: React.FC<ProjectDetailHeaderProps> = ({
             description: projectDescription || ''
           } : null}
           onSuccess={(updatedName: string, updatedDescription: string) => {
-            // 调用回调函数更新项目信息，传递更新后的项目名称和描述
-            if (onProjectUpdated) {
-              onProjectUpdated(updatedName, updatedDescription);
-            }
+            onProjectUpdated?.(updatedName, updatedDescription);
             setIsEditModalOpen(false);
           }}
         />
