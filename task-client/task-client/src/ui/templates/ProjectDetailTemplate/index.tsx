@@ -1,6 +1,7 @@
 "use client";
 
 import React, {useEffect, useMemo, useState} from 'react';
+import {useSearchParams} from 'next/navigation';
 import MainLayout from '@/ui/templates/MainLayout';
 import {ProjectTask} from '@/types/api-types';
 import {useQueryClient} from '@tanstack/react-query';
@@ -43,7 +44,10 @@ interface ProjectDetailTemplateProps {
 
 const ProjectDetailTemplate: React.FC<ProjectDetailTemplateProps> = ({ projectId }) => {
   const queryClient = useQueryClient(); // 获取 queryClient 实例
-  const [selectedTab, setSelectedTab] = useState<TabType>('overview');
+  const searchParams = useSearchParams();
+  const initialTab = searchParams?.get('tab');
+  const isValidInitialTab = initialTab === 'overview' || initialTab === 'tasks' || initialTab === 'team';
+  const [selectedTab, setSelectedTab] = useState<TabType>(isValidInitialTab ? (initialTab as TabType) : 'overview');
   const [isAiAnalysisModalOpen, setIsAiAnalysisModalOpen] = useState(false);
   const [isPreparingAiAnalysis, setIsPreparingAiAnalysis] = useState(false);
   const [conversationListId, setConversationListId] = useState<string | null>(null);
@@ -64,6 +68,14 @@ const ProjectDetailTemplate: React.FC<ProjectDetailTemplateProps> = ({ projectId
 
   // 分享模态框状态
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+
+  useEffect(() => {
+    const tab = searchParams?.get('tab');
+
+    if (tab === 'overview' || tab === 'tasks' || tab === 'team') {
+      setSelectedTab(tab as TabType);
+    }
+  }, [searchParams]);
 
   // 监听分析完成事件
   useEffect(() => {

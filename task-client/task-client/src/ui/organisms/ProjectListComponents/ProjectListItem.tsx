@@ -48,7 +48,7 @@ const ProjectListItem: React.FC<ProjectListItemProps> = ({ project }) => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
       onClick={handleNavigate}
-      className="surface-card group cursor-pointer overflow-visible p-4 sm:p-5"
+      className={`surface-card group relative cursor-pointer overflow-visible p-4 sm:p-5 ${menuOpen ? 'z-30' : 'z-0'}`}
     >
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex min-w-0 items-start gap-4">
@@ -123,18 +123,20 @@ const ProjectListItem: React.FC<ProjectListItemProps> = ({ project }) => {
             <div>团队成员</div>
           </div>
 
-          <div ref={menuRef} className="relative shrink-0" onClick={(event) => event.stopPropagation()}>
+          <div ref={menuRef} className="relative z-20 shrink-0" onClick={(event) => event.stopPropagation()}>
             <button
               onClick={() => setMenuOpen((value) => !value)}
               className="project-menu-button flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--theme-card-border)] bg-white/75 text-[var(--theme-neutral-500)] shadow-sm transition hover:text-[var(--foreground)] dark:bg-white/5"
               aria-label="项目菜单"
+              aria-expanded={menuOpen}
+              aria-haspopup="menu"
             >
               <FiMoreHorizontal className="h-4 w-4" />
             </button>
 
             <AnimatePresence>
               {menuOpen && (
-                <div className="project-menu absolute right-0 top-full mt-2">
+                <div className="project-menu absolute right-0 top-full z-30 mt-2 origin-top-right">
                   <ProjectCardMenu project={{ ...project, archived: !!project.archived }} onClose={() => setMenuOpen(false)} />
                 </div>
               )}

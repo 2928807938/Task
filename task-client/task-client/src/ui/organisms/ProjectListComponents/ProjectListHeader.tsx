@@ -32,7 +32,7 @@ const ProjectListHeader: React.FC<ProjectListHeaderProps> = ({ onCreateProject, 
             项目空间
           </h1>
           <p className="mt-3 max-w-xl text-sm leading-6 text-[var(--theme-neutral-500)] sm:text-base">
-            重新梳理后的项目页更强调概览、筛选和重点项目，单个项目也能自然占满布局，不再显得零碎空洞。
+            在这里统一查看项目进展、成员协作与关键节点，先聚焦正在推进的事项，也能快速回到需要继续跟进的项目。
           </p>
         </div>
 

@@ -1,6 +1,7 @@
 'use client';
 
 import React, {useEffect, useRef, useState} from 'react';
+import {createPortal} from 'react-dom';
 import {AnimatePresence, motion} from 'framer-motion';
 import {FiArchive, FiRefreshCw, FiX} from 'react-icons/fi';
 
@@ -8,7 +9,7 @@ interface ArchiveReasonModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (reason: string) => void;
-  isArchiving: boolean; // true为归档，false为取消归档
+  isArchiving: boolean;
   projectName: string;
 }
 
@@ -19,22 +20,38 @@ const ArchiveReasonModal: React.FC<ArchiveReasonModalProps> = ({
   isArchiving,
   projectName
 }) => {
+  const [mounted, setMounted] = useState(false);
   const [reason, setReason] = useState('');
   const modalRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // 模态框关闭时清空原因
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+
   useEffect(() => {
     if (isOpen) {
       setReason('');
-      // 自动聚焦到输入框
       setTimeout(() => {
         inputRef.current?.focus();
       }, 100);
     }
   }, [isOpen]);
 
-  // 点击外部关闭模态框
+  useEffect(() => {
+    if (!mounted || !isOpen) {
+      return;
+    }
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isOpen, mounted]);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
@@ -51,7 +68,6 @@ const ArchiveReasonModal: React.FC<ArchiveReasonModalProps> = ({
     };
   }, [isOpen, onClose]);
 
-  // 处理ESC键关闭模态框
   useEffect(() => {
     const handleEscKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -68,7 +84,6 @@ const ArchiveReasonModal: React.FC<ArchiveReasonModalProps> = ({
     };
   }, [isOpen, onClose]);
 
-  // 处理回车键提交表单
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && e.metaKey) {
       handleConfirm();
@@ -76,16 +91,19 @@ const ArchiveReasonModal: React.FC<ArchiveReasonModalProps> = ({
   };
 
   const handleConfirm = () => {
-    // 如果没有输入原因，使用默认原因
     const finalReason = reason.trim() || (isArchiving ? '用户手动归档' : '用户手动取消归档');
     onConfirm(finalReason);
     onClose();
   };
 
-  return (
+  if (!mounted) {
+    return null;
+  }
+
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0, 0, 0, 0.25)' }}>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0, 0, 0, 0.25)' }}>
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -99,8 +117,7 @@ const ArchiveReasonModal: React.FC<ArchiveReasonModalProps> = ({
               border: '1px solid var(--theme-card-border)'
             }}
           >
-            {/* 模态框标题栏*/}
-            <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: 'var(--theme-card-border)' }}>
+            <div className="flex items-center justify-between border-b px-5 py-4" style={{ borderColor: 'var(--theme-card-border)' }}>
               <h3
                 className="text-[17px] font-semibold"
                 style={{
@@ -115,32 +132,29 @@ const ArchiveReasonModal: React.FC<ArchiveReasonModalProps> = ({
                 whileHover={{ backgroundColor: 'var(--theme-neutral-100)' }}
                 whileTap={{ scale: 0.95 }}
                 onClick={onClose}
-                className="flex items-center justify-center w-8 h-8 rounded-full transition-colors"
+                className="flex h-8 w-8 items-center justify-center rounded-full transition-colors"
               >
-                <FiX className="w-5 h-5" style={{ color: 'var(--theme-neutral-400)' }} />
+                <FiX className="h-5 w-5" style={{ color: 'var(--theme-neutral-400)' }} />
               </motion.button>
             </div>
 
-            {/* 模态框内容 */}
             <div className="px-5 py-4">
-              <div className="flex items-center mb-4">
+              <div className="mb-4 flex items-center">
                 <div
-                  className="flex items-center justify-center w-10 h-10 rounded-full mr-3"
+                  className="mr-3 flex h-10 w-10 items-center justify-center rounded-full"
                   style={{
-                    backgroundColor: isArchiving
-                      ? 'var(--theme-warning-100)'
-                      : 'var(--theme-primary-100)'
+                    backgroundColor: isArchiving ? 'var(--theme-warning-100)' : 'var(--theme-primary-100)'
                   }}
                 >
                   {isArchiving ? (
-                    <FiArchive className="w-5 h-5" style={{ color: 'var(--theme-warning-500)' }} />
+                    <FiArchive className="h-5 w-5" style={{ color: 'var(--theme-warning-500)' }} />
                   ) : (
-                    <FiRefreshCw className="w-5 h-5" style={{ color: 'var(--theme-primary-500)' }} />
+                    <FiRefreshCw className="h-5 w-5" style={{ color: 'var(--theme-primary-500)' }} />
                   )}
                 </div>
                 <div>
                   <p
-                    className="text-[15px] font-medium mb-1"
+                    className="mb-1 text-[15px] font-medium"
                     style={{
                       color: 'var(--foreground)',
                       fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif'
@@ -160,11 +174,10 @@ const ArchiveReasonModal: React.FC<ArchiveReasonModalProps> = ({
                 </div>
               </div>
 
-              {/* 原因输入框*/}
               <div className="mb-4">
                 <textarea
                   ref={inputRef}
-                  className="w-full h-24 p-3 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent resize-none transition-colors"
+                  className="h-24 w-full resize-none rounded-lg p-3 transition-colors focus:border-transparent focus:outline-none focus:ring-2"
                   style={{
                     backgroundColor: 'var(--theme-card-bg)',
                     border: '1px solid var(--theme-neutral-300)',
@@ -185,7 +198,7 @@ const ArchiveReasonModal: React.FC<ArchiveReasonModalProps> = ({
                   onChange={(e) => setReason(e.target.value)}
                   onKeyDown={handleKeyDown}
                 />
-                <div className="flex justify-end mt-1">
+                <div className="mt-1 flex justify-end">
                   <span
                     className="text-[12px]"
                     style={{
@@ -198,13 +211,12 @@ const ArchiveReasonModal: React.FC<ArchiveReasonModalProps> = ({
                 </div>
               </div>
 
-              {/* 按钮组 - 确认和取消按钮 */}
-              <div className="flex justify-end gap-3 mt-2">
+              <div className="mt-2 flex justify-end gap-3">
                 <motion.button
                   whileHover={{ backgroundColor: 'var(--theme-neutral-100)' }}
                   whileTap={{ scale: 0.98 }}
                   onClick={onClose}
-                  className="px-4 py-2 rounded-lg font-medium transition-colors"
+                  className="rounded-lg px-4 py-2 font-medium transition-colors"
                   style={{
                     color: 'var(--foreground)',
                     fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',
@@ -217,7 +229,7 @@ const ArchiveReasonModal: React.FC<ArchiveReasonModalProps> = ({
                   whileHover={{ opacity: 0.85 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={handleConfirm}
-                  className="px-4 py-2 rounded-lg text-white font-medium transition-colors"
+                  className="rounded-lg px-4 py-2 font-medium text-white transition-colors"
                   style={{
                     backgroundColor: isArchiving ? 'var(--theme-warning-500)' : 'var(--theme-primary-500)',
                     fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',
@@ -234,7 +246,8 @@ const ArchiveReasonModal: React.FC<ArchiveReasonModalProps> = ({
           </motion.div>
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
 
