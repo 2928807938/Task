@@ -259,10 +259,10 @@ const SubTaskDetailModal: React.FC<SubTaskDetailModalProps> = ({
         >
           {/* 毛玻璃背景 */}
           <div 
-            className="absolute inset-0 bg-black/20 dark:bg-black/40"
+            className="absolute inset-0 bg-slate-950/28 dark:bg-black/55"
             style={{
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)'
+              backdropFilter: 'blur(22px)',
+              WebkitBackdropFilter: 'blur(22px)'
             }}
           />
           
@@ -270,13 +270,12 @@ const SubTaskDetailModal: React.FC<SubTaskDetailModalProps> = ({
           <motion.div
             ref={modalRef}
             className={`
-              relative w-full max-w-2xl mx-auto
-              ${isDark ? 'bg-gray-900/95' : 'bg-white/95'}
-              sm:rounded-2xl sm:max-h-[90vh]
-              rounded-t-2xl sm:rounded-b-2xl
-              shadow-2xl
-              overflow-hidden
-              border border-gray-200/20 dark:border-gray-700/30
+              relative mx-auto flex w-full max-w-[920px] flex-col overflow-hidden
+              rounded-t-[28px] border shadow-[0_28px_80px_rgba(15,23,42,0.24)]
+              sm:max-h-[92vh] sm:rounded-[32px]
+              ${isDark
+                ? 'border-slate-700/40 bg-slate-950/92'
+                : 'border-white/60 bg-white/88'}
             `}
             style={{
               backdropFilter: 'blur(40px)',
@@ -296,13 +295,14 @@ const SubTaskDetailModal: React.FC<SubTaskDetailModalProps> = ({
 
             {/* 顶部操作栏 */}
             <div className={`
-              flex items-center justify-between px-6 py-4 
-              border-b border-gray-200/30 dark:border-gray-700/30
-              ${isDark ? 'bg-gradient-to-r from-gray-800/60 to-slate-800/50' : 'bg-gradient-to-r from-gray-50/80 to-slate-50/60'}
+              flex items-center justify-between border-b px-6 py-4
+              ${isDark
+                ? 'border-slate-800/80 bg-slate-950/70'
+                : 'border-card-border/70 bg-white/78'}
             `}
             style={{
-              backdropFilter: 'blur(12px)',
-              WebkitBackdropFilter: 'blur(12px)'
+              backdropFilter: 'blur(16px)',
+              WebkitBackdropFilter: 'blur(16px)'
             }}>
               {/* 左侧：标题信息 */}
               <div className="flex-1">
@@ -325,12 +325,12 @@ const SubTaskDetailModal: React.FC<SubTaskDetailModalProps> = ({
                   onClick={() => setIsEditing(!isEditing)}
                   disabled={isLoading}
                   className={`
-                    px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
-                    ${isLoading 
-                      ? 'opacity-50 cursor-not-allowed text-gray-400' 
+                    rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200
+                    ${isLoading
+                      ? 'cursor-not-allowed text-gray-400 opacity-50'
                       : isEditing
-                        ? 'bg-blue-500 text-white hover:bg-blue-600 shadow-sm' 
-                        : 'text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                        ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/20 hover:bg-primary-700'
+                        : 'border border-primary-200 bg-primary-50 text-primary-700 hover:bg-primary-100 dark:border-primary-800/70 dark:bg-primary-900/30 dark:text-primary-300 dark:hover:bg-primary-900/40'
                     }
                   `}
                   aria-label={isEditing ? "完成编辑" : "编辑任务"}
@@ -342,12 +342,10 @@ const SubTaskDetailModal: React.FC<SubTaskDetailModalProps> = ({
                 <button
                   onClick={onClose}
                   className={`
-                    p-2.5 rounded-full transition-all duration-200 group
-                    ${isDark 
-                      ? 'hover:bg-red-900/30 text-gray-400 hover:text-red-400' 
-                      : 'hover:bg-red-50 text-gray-500 hover:text-red-600'
-                    }
-                    hover:scale-105
+                    group rounded-full p-2.5 transition-all duration-200
+                    ${isDark
+                      ? 'text-gray-400 hover:bg-slate-800 hover:text-white'
+                      : 'text-gray-500 hover:bg-neutral-100 hover:text-neutral-800'}
                   `}
                   aria-label="关闭"
                 >
@@ -359,14 +357,14 @@ const SubTaskDetailModal: React.FC<SubTaskDetailModalProps> = ({
             {/* 内容区域 */}
             <div 
               ref={contentRef}
-              className="flex-1 overflow-y-auto overscroll-contain"
+              className="flex-1 overflow-y-auto overscroll-contain bg-neutral-50/70 dark:bg-slate-950/70"
               style={{ maxHeight: 'calc(90vh - 140px)' }}
             >
               {isLoading && renderLoadingState()}
               {error && renderErrorState()}
               
               {taskData && !isLoading && !error && (
-                <div className="p-6 space-y-6">
+                <div className="space-y-5 p-5 sm:p-6">
                   {/* 父任务信息 - 仅在子任务优先视图且为子任务时显示 */}
                   {isSubTaskFocused && isSubTask && (
                     <ParentTaskInfo 

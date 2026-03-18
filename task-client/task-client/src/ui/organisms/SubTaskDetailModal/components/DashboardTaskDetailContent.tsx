@@ -380,35 +380,34 @@ const DashboardTaskDetailContent: React.FC<DashboardTaskDetailContentProps> = ({
       <motion.div
         layout
         className={`
-          relative transition-all duration-200 ease-out
-          ${hasError 
-            ? 'bg-red-50/50 dark:bg-red-900/10' 
-            : isEditing 
-              ? 'bg-blue-50/30 dark:bg-blue-900/20' 
-              : isFieldDisabled 
-                ? 'bg-gray-50/30 dark:bg-gray-800/20' 
-                : ''
+          relative overflow-hidden rounded-[24px] border transition-all duration-200 ease-out
+          ${hasError
+            ? 'border-red-200 bg-red-50/70 dark:border-red-800/40 dark:bg-red-900/10'
+            : isEditing
+              ? 'border-primary-200 bg-primary-50/40 dark:border-primary-800/40 dark:bg-primary-900/10'
+              : 'border-card-border/70 bg-white/82 dark:border-slate-800/80 dark:bg-slate-950/72'
           }
-          ${isLast ? '' : 'border-b border-gray-200/60 dark:border-gray-700/40'}
-          ${isFieldDisabled ? 'opacity-60' : ''}
+          ${isFieldDisabled ? 'opacity-60' : 'shadow-sm'}
         `}
       >
-        <div className="px-5 py-4">
-          <div className="flex items-center">
+        <div className="px-4 py-4 sm:px-5">
+          <div className="grid gap-4 sm:grid-cols-[132px_minmax(0,1fr)] sm:items-center">
             {/* 图标 */}
-            <div className="flex-shrink-0 w-6 h-6 flex items-center justify-center mr-4">
-              {icon}
-            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-neutral-50 dark:bg-slate-900/70">
+                {icon}
+              </div>
 
-            {/* 标签 */}
-            <div className="flex-shrink-0 w-20">
-              <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                {label}
-              </span>
+              {/* 标签 */}
+              <div>
+                <span className={`text-sm font-semibold ${isDark ? 'text-neutral-200' : 'text-neutral-700'}`}>
+                  {label}
+                </span>
+              </div>
             </div>
 
             {/* 内容区域 - 苹果风格编辑模式 */}
-            <div className="flex-1 min-w-0">
+            <div className="min-w-0">
               {canEdit ? (
                 // 编辑模式：直接显示编辑控件
                 <div className="space-y-1">
@@ -441,7 +440,7 @@ const DashboardTaskDetailContent: React.FC<DashboardTaskDetailContentProps> = ({
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.2, ease: 'easeOut' }}
-                className="mt-2 px-10"
+                className="px-4 pb-4 sm:px-5"
               >
                 <div className="flex items-center space-x-2 text-sm text-red-500">
                   <FiAlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -456,7 +455,7 @@ const DashboardTaskDetailContent: React.FC<DashboardTaskDetailContentProps> = ({
   };
 
   return (
-    <div className="overflow-hidden">
+    <div className="space-y-4">
       {/* 基本信息区域 */}
       {/* 任务标题 */}
       <FormRow

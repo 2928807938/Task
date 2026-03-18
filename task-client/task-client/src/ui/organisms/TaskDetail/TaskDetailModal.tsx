@@ -165,7 +165,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="fixed inset-0 z-[9000] flex items-center justify-center bg-black/30 backdrop-blur-sm p-4 sm:p-6 md:p-0"
+          className="fixed inset-0 z-[9000] flex items-center justify-center bg-slate-950/38 p-4 backdrop-blur-md sm:p-6"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0, transition: { duration: 0.2 } }}
@@ -173,7 +173,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
           onClick={onClose}
         >
           <motion.div
-            className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-xl w-full max-h-[90vh] flex flex-col overflow-hidden border border-gray-200/40 dark:border-gray-700/40"
+            className="flex max-h-[92vh] w-full max-w-[880px] flex-col overflow-hidden rounded-[30px] border border-card-border/70 bg-white/88 shadow-[0_28px_90px_rgba(15,23,42,0.22)] backdrop-blur-2xl dark:border-slate-800/80 dark:bg-slate-950/82"
             initial={{ scale: 0.98, opacity: 0, y: 5 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.98, opacity: 0, y: 5 }}
@@ -191,7 +191,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
                   }}
                   showEditButton={false}
                 />
-                <div className="flex-1 overflow-y-auto p-4">
+                <div className="flex-1 overflow-y-auto bg-neutral-50/70 p-4 dark:bg-slate-950/70">
                   {/* 确保task属性总是有一个有效的ProjectTask对象 */}
                   {(editingSubtask || taskData?.mainTask) && (
                     <TaskEditor
@@ -228,8 +228,9 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
                   <>
                     {/* 标题栏 */}
                     <TaskDetailHeader
-                      title={taskData.mainTask.title}
+                      title="任务详情"
                       id={taskData.mainTask.id}
+                      meta={`创建于 ${new Intl.DateTimeFormat('zh-CN', { month: 'numeric', day: 'numeric' }).format(new Date(taskData.mainTask.createdAt || Date.now()))}`}
                       onClose={onClose}
                       onEdit={() => setIsEditorOpen(true)}
                       showEditButton={!!projectId}
@@ -244,7 +245,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
                     />
 
                     {/* 内容区域 */}
-                    <div ref={contentRef} className="flex-1 overflow-y-auto">
+                    <div ref={contentRef} className="flex-1 overflow-y-auto bg-neutral-50/70 dark:bg-slate-950/70">
                       <AnimatePresence mode="wait">
                         {activeTab === 'details' ? (
                           <motion.div
