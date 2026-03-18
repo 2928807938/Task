@@ -79,9 +79,6 @@ const ProjectRecentTasksSection: React.FC<ProjectRecentTasksSectionProps> = ({
         {recentTasks.length > 0 && (
           <div className="flex flex-wrap gap-2">
             <span className={`rounded-full px-3 py-1 text-xs font-medium ${isDarkMode ? 'bg-white/6 text-slate-300' : 'bg-white text-slate-600 border border-slate-200'}`}>
-              最近 {recentTasks.length} 条
-            </span>
-            <span className={`rounded-full px-3 py-1 text-xs font-medium ${isDarkMode ? 'bg-white/6 text-slate-300' : 'bg-white text-slate-600 border border-slate-200'}`}>
               全部 {totalTasks ?? recentTasks.length} 条
             </span>
           </div>
@@ -89,63 +86,70 @@ const ProjectRecentTasksSection: React.FC<ProjectRecentTasksSectionProps> = ({
       </div>
 
       {recentTasks.length > 0 ? (
-        <div className="mt-5 grid gap-3 lg:grid-cols-3">
-          {recentTasks.slice(0, 3).map((task, index) => {
-            const dueTime = task.dueDate ? new Date(task.dueDate).getTime() : null;
-            const isOverdue = task.status !== 'COMPLETED' && !!dueTime && dueTime < Date.now();
-            const statusColor = task.statusColor || (isOverdue ? '#EF4444' : '#3B82F6');
-            const priorityColor = task.priorityColor || '#F59E0B';
+        <div className="relative mt-5">
+          <div className={`pointer-events-none absolute inset-y-0 left-0 z-10 w-10 rounded-l-[24px] ${isDarkMode ? 'bg-gradient-to-r from-slate-900/90 to-transparent' : 'bg-gradient-to-r from-white to-transparent'}`} />
+          <div className={`pointer-events-none absolute inset-y-0 right-0 z-10 w-10 rounded-r-[24px] ${isDarkMode ? 'bg-gradient-to-l from-slate-900/90 to-transparent' : 'bg-gradient-to-l from-white to-transparent'}`} />
 
-            return (
-              <button
-                key={task.id || `${task.title}-${index}`}
-                onClick={() => onTaskClick && onTaskClick(task)}
-                className={`group rounded-[24px] border p-4 text-left transition-all ${
-                  isDarkMode
-                    ? 'border-white/10 bg-white/[0.04] hover:bg-white/[0.07]'
-                    : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm'
-                }`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: priorityColor }} />
-                      <span
-                        className="rounded-full px-2 py-0.5 text-[11px] font-medium"
-                        style={{ backgroundColor: `${statusColor}1A`, color: statusColor }}
-                      >
-                        {getStatusLabel(task.status)}
-                      </span>
-                    </div>
-                    <h4 className={`mt-3 line-clamp-2 text-sm font-semibold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                      {task.title || '无标题任务'}
-                    </h4>
-                    <p className={`mt-2 line-clamp-2 text-xs leading-5 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                      {task.description || '暂无补充描述'}
-                    </p>
-                  </div>
-                  <FiArrowRight className={`${isDarkMode ? 'text-slate-500' : 'text-slate-400'} transition-transform group-hover:translate-x-0.5`} size={16} />
-                </div>
+          <div className="hide-scrollbar overflow-x-auto pb-2">
+            <div className="flex min-w-max gap-3">
+              {recentTasks.map((task, index) => {
+                const dueTime = task.dueDate ? new Date(task.dueDate).getTime() : null;
+                const isOverdue = task.status !== 'COMPLETED' && !!dueTime && dueTime < Date.now();
+                const statusColor = task.statusColor || (isOverdue ? '#EF4444' : '#3B82F6');
+                const priorityColor = task.priorityColor || '#F59E0B';
 
-                <div className="mt-4 flex flex-wrap items-center gap-2">
-                  <span
-                    className="rounded-full px-2 py-1 text-[11px] font-medium"
-                    style={{ backgroundColor: `${priorityColor}15`, color: priorityColor }}
+                return (
+                  <button
+                    key={task.id || `${task.title}-${index}`}
+                    onClick={() => onTaskClick && onTaskClick(task)}
+                    className={`group w-[320px] shrink-0 rounded-[24px] border p-4 text-left transition-all sm:w-[360px] lg:w-[380px] ${
+                      isDarkMode
+                        ? 'border-white/10 bg-white/[0.04] hover:bg-white/[0.07]'
+                        : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm'
+                    }`}
                   >
-                    {getPriorityLabel(task.priority)}
-                  </span>
-                  <span className={`rounded-full px-2 py-1 text-[11px] font-medium ${isDarkMode ? 'bg-white/6 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>
-                    截止 {formatDate(task.dueDate || task.createdAt)}
-                  </span>
-                  {task.assignee && (
-                    <span className={`rounded-full px-2 py-1 text-[11px] font-medium ${isDarkMode ? 'bg-white/6 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>
-                      {task.assignee}
-                    </span>
-                  )}
-                </div>
-              </button>
-            );
-          })}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: priorityColor }} />
+                          <span
+                            className="rounded-full px-2 py-0.5 text-[11px] font-medium"
+                            style={{ backgroundColor: `${statusColor}1A`, color: statusColor }}
+                          >
+                            {getStatusLabel(task.status)}
+                          </span>
+                        </div>
+                        <h4 className={`mt-3 line-clamp-2 text-sm font-semibold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                          {task.title || '无标题任务'}
+                        </h4>
+                        <p className={`mt-2 line-clamp-2 text-xs leading-5 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                          {task.description || '暂无补充描述'}
+                        </p>
+                      </div>
+                      <FiArrowRight className={`${isDarkMode ? 'text-slate-500' : 'text-slate-400'} transition-transform group-hover:translate-x-0.5`} size={16} />
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap items-center gap-2">
+                      <span
+                        className="rounded-full px-2 py-1 text-[11px] font-medium"
+                        style={{ backgroundColor: `${priorityColor}15`, color: priorityColor }}
+                      >
+                        {getPriorityLabel(task.priority)}
+                      </span>
+                      <span className={`rounded-full px-2 py-1 text-[11px] font-medium ${isDarkMode ? 'bg-white/6 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>
+                        截止 {formatDate(task.dueDate || task.createdAt)}
+                      </span>
+                      {task.assignee && (
+                        <span className={`rounded-full px-2 py-1 text-[11px] font-medium ${isDarkMode ? 'bg-white/6 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>
+                          {task.assignee}
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
       ) : (
         <div className={`mt-5 rounded-[24px] border border-dashed px-5 py-8 text-center ${isDarkMode ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200 bg-white/80'}`}>
