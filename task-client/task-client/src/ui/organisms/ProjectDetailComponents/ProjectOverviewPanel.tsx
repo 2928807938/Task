@@ -2,6 +2,7 @@ import React, {useMemo, useState} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 import {motion} from 'framer-motion';
 import {
+  FiActivity,
   FiArrowRight,
   FiBarChart2,
   FiDownload,
@@ -17,6 +18,7 @@ import ProjectExportModal from '@/ui/organisms/ProjectExportModal';
 import {ExportData} from '@/types/export-types';
 import ProjectSettingsModal from './ProjectSettingsModal';
 import ProjectRecentTasksSection from './ProjectRecentTasksSection';
+import TaskTrend from '@/ui/organisms/TaskTrend';
 
 interface ProjectOverviewPanelProps {
   project: {
@@ -233,10 +235,10 @@ const ProjectOverviewPanel: React.FC<ProjectOverviewPanelProps> = ({
                   项目工作台
                 </div>
                 <h3 className={`mt-3 text-xl font-semibold tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                  统计和操作合并到一个区域里
+                  项目工作台
                 </h3>
                 <p className={`mt-1 text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                  减少重复信息，先看关键状态，再直接执行下一步操作。
+                  集中查看项目状态，并快速执行常用操作。
                 </p>
               </div>
 
@@ -350,6 +352,34 @@ const ProjectOverviewPanel: React.FC<ProjectOverviewPanelProps> = ({
             }
           }}
         />
+      </motion.div>
+
+      <motion.div
+        {...cardMotion}
+        transition={{ duration: 0.3, delay: 0.12 }}
+        className={`overflow-hidden rounded-[28px] border ${
+          isDarkMode
+            ? 'border-white/10 bg-slate-900/80'
+            : 'border-slate-200 bg-white'
+        }`}
+      >
+        <div className={`border-b px-5 py-4 ${isDarkMode ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200/80 bg-slate-50/80'}`}>
+          <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${isDarkMode ? 'bg-blue-500/10 text-blue-300' : 'bg-blue-50 text-blue-600'}`}>
+            <FiActivity size={13} />
+            团队趋势
+          </div>
+          <h3 className={`mt-3 text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>任务趋势</h3>
+          <p className={`mt-1 text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+            查看任务状态变化趋势，了解当前项目整体进展。
+          </p>
+        </div>
+        <div className="p-5">
+          <TaskTrend
+            tasks={tasks}
+            projectId={project.id}
+            taskStatusTrend={project.taskStatusTrend}
+          />
+        </div>
       </motion.div>
 
       {showAddMemberModal && (

@@ -70,9 +70,9 @@ const ProjectRecentTasksSection: React.FC<ProjectRecentTasksSectionProps> = ({
             <FiClock size={13} />
             最近任务
           </div>
-          <h3 className={`mt-3 text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>把最近推进中的任务先放在上面</h3>
+          <h3 className={`mt-3 text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>最近任务</h3>
           <p className={`mt-1 text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-            先看近期动作，再看完整任务清单，阅读路径会更顺。
+            优先查看最近更新的任务，快速掌握当前推进情况。
           </p>
         </div>
 
