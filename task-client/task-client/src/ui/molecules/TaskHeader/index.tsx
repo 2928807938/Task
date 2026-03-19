@@ -316,38 +316,6 @@ const AppleStyleTaskHeader: React.FC<AppleStyleTaskHeaderProps> = ({
           </div>
         </div>
 
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
-            isDarkMode ? 'bg-white/[0.05] text-slate-300' : 'bg-slate-100 text-slate-600'
-          }`}>
-            完成率 {completionPercent}%
-          </span>
-          <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
-            isDarkMode ? 'bg-emerald-500/10 text-emerald-300' : 'bg-emerald-50 text-emerald-700'
-          }`}>
-            已完成 {completedTasks}
-          </span>
-          <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
-            isDarkMode ? 'bg-amber-500/10 text-amber-300' : 'bg-amber-50 text-amber-700'
-          }`}>
-            待处理 {pendingTasks}
-          </span>
-          {typeof projectProgress === 'number' && (
-            <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
-              isDarkMode ? 'bg-cyan-500/10 text-cyan-300' : 'bg-cyan-50 text-cyan-700'
-            }`}>
-              项目进度 {projectProgress}%
-            </span>
-          )}
-          {searchQuery.trim() && (
-            <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
-              isDarkMode ? 'bg-blue-500/10 text-blue-300' : 'bg-blue-50 text-blue-700'
-            }`}>
-              搜索中：{searchQuery}
-            </span>
-          )}
-        </div>
-
         <AnimatePresence>
           {showAdvancedFilters && (
             <motion.div

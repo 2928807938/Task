@@ -80,9 +80,7 @@ export function TaskTableView({
   const summaryTotalTasks = projectTaskCount ?? (totalItems > 0 ? totalItems : tasks.length);
   const summaryCompletedTasks = projectCompletedTaskCount ?? completedTasksCount;
   const summaryPendingTasks = Math.max(summaryTotalTasks - summaryCompletedTasks, 0);
-  const summaryProgress = typeof projectProgress === 'number'
-    ? Math.round(projectProgress)
-    : Math.round((summaryCompletedTasks / Math.max(summaryTotalTasks, 1)) * 100);
+  const summaryProgress = Math.round((summaryCompletedTasks / Math.max(summaryTotalTasks, 1)) * 100);
 
   const handleSort = (field: SortField) => {
     setSortConfig(prevConfig => {
