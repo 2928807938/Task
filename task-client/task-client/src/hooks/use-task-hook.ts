@@ -42,6 +42,67 @@ export interface AnalysisResult {
   comprehensive: string;
 }
 
+const ANALYSIS_TYPE_NAME_MAP: Record<string, AnalysisMessageType> = {
+  '分析开始': AnalysisMessageType.START,
+  '开始分析': AnalysisMessageType.START,
+  '分析完成': AnalysisMessageType.COMPLETE,
+  '完成': AnalysisMessageType.COMPLETE,
+  '错误': AnalysisMessageType.ERROR,
+  '分析错误': AnalysisMessageType.ERROR,
+  '类型分析': AnalysisMessageType.TYPE,
+  '需求分类': AnalysisMessageType.TYPE,
+  '优先级分析': AnalysisMessageType.PRIORITY,
+  '完整度分析': AnalysisMessageType.COMPLETION,
+  '需求完整度检查': AnalysisMessageType.COMPLETION,
+  '建议': AnalysisMessageType.SUGGESTION,
+  '智能建议': AnalysisMessageType.SUGGESTION,
+  '任务拆分分析': AnalysisMessageType.TASK_SPLIT,
+  '任务拆分': AnalysisMessageType.TASK_SPLIT,
+  '工作量分析': AnalysisMessageType.WORKLOAD,
+  '综合分析': AnalysisMessageType.COMPREHENSIVE,
+  '分析总结': AnalysisMessageType.COMPREHENSIVE,
+  '总结分析': AnalysisMessageType.COMPREHENSIVE
+};
+
+const normalizeAnalysisMessage = (input: unknown): AnalysisMessage | null => {
+  if (!input || typeof input !== 'object') {
+    return null;
+  }
+
+  const payload = input as Record<string, unknown>;
+  const rawType = payload.type;
+
+  let normalizedType: AnalysisMessageType | undefined;
+
+  if (typeof rawType === 'number' && Number.isFinite(rawType)) {
+    normalizedType = rawType as AnalysisMessageType;
+  } else if (typeof rawType === 'string') {
+    const trimmedType = rawType.trim();
+
+    if (/^-?\d+$/.test(trimmedType)) {
+      normalizedType = Number(trimmedType) as AnalysisMessageType;
+    } else {
+      normalizedType = ANALYSIS_TYPE_NAME_MAP[trimmedType];
+    }
+  }
+
+  if (normalizedType === undefined) {
+    return null;
+  }
+
+  const rawContent = payload.content;
+  const content = typeof rawContent === 'string'
+    ? rawContent
+    : rawContent === undefined || rawContent === null
+      ? ''
+      : JSON.stringify(rawContent);
+
+  return {
+    type: normalizedType,
+    content
+  };
+};
+
 // 子任务结构
 export type SubTask = {
   id: string;
@@ -273,7 +334,16 @@ export default function useTaskHook() {
       eventSource.onmessage = (event: MessageEvent) => {
         try {
           const data = JSON.parse(event.data);
-          handleAnalysisMessage(data);
+          const normalizedMessage = normalizeAnalysisMessage(data);
+
+          if (!normalizedMessage) {
+            if (process.env.NODE_ENV === 'development') {
+              console.debug('未识别的分析消息类型，已跳过:', data);
+            }
+            return;
+          }
+
+          handleAnalysisMessage(normalizedMessage);
         } catch (error) {
           // 流式数据中可能会出现不完整的JSON片段，这是正常情况
           // 只在调试模式下输出日志，不影响用户体验

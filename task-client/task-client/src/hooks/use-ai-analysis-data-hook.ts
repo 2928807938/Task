@@ -17,6 +17,11 @@ type JsonPrimitive = string | number | boolean | null;
 type JsonValue = JsonPrimitive | JsonObject | JsonValue[];
 type JsonObject = { [key: string]: JsonValue };
 
+type RequirementTypeParsedData = JsonObject & {
+  tags?: string[];
+  colors?: string[];
+};
+
 type TaskSplitSubTaskInput = Partial<TaskSplitData['sub_tasks'][number]> & Record<string, JsonValue>;
 type TaskSplitParsedData = JsonObject & {
   main_task?: string | TaskSplitData['main_task'];
@@ -164,6 +169,7 @@ export default function useAiAnalysisDataHook(
   const processedTaskSplitRef = useRef<string>('');
   const processedWorkloadRef = useRef<string>('');
   const processedComprehensiveRef = useRef<string>('');
+  const processedTypeRef = useRef<string>('');
 
   // 监听分析消息和结果的变化
   useEffect(() => {
@@ -368,6 +374,59 @@ export default function useAiAnalysisDataHook(
     }
   }, [isDataCompleteForParsing]);
 
+  const handleRequirementTypeData = useCallback((): boolean => {
+    try {
+      if (!analysisResult?.type) {
+        return false;
+      }
+
+      let rawData = analysisResult.type.trim();
+      if (!rawData) {
+        return false;
+      }
+
+      if (rawData.includes('```')) {
+        const jsonMatch = rawData.match(/```json\s*([\s\S]*?)\s*```/);
+        if (jsonMatch && jsonMatch[1]) {
+          rawData = jsonMatch[1].trim();
+        } else {
+          rawData = rawData
+            .replace(/```json[\r\n\s]*/g, '')
+            .replace(/```[\r\n\s]*$/g, '')
+            .replace(/```[\r\n\s]*/g, '')
+            .trim();
+        }
+      }
+
+      const parsedData = parseJsonContent(rawData);
+      if (!isJsonObject(parsedData)) {
+        return false;
+      }
+
+      const requirementTypeData = parsedData as RequirementTypeParsedData;
+      const tags = Array.isArray(requirementTypeData.tags)
+        ? requirementTypeData.tags.filter((item): item is string => typeof item === 'string')
+        : [];
+      const colors = Array.isArray(requirementTypeData.colors)
+        ? requirementTypeData.colors.filter((item): item is string => typeof item === 'string')
+        : [];
+
+      if (tags.length === 0 && colors.length === 0) {
+        return false;
+      }
+
+      setAnalysisData(prev => ({
+        ...prev,
+        tags,
+        colors
+      }));
+
+      return true;
+    } catch {
+      return false;
+    }
+  }, [analysisResult, parseJsonContent]);
+
   // 处理建议数据
   const handleSuggestionsData = useCallback((): boolean => {
     try {
@@ -448,13 +507,25 @@ export default function useAiAnalysisDataHook(
 
       // 尝试解析为JSON对象
       const parsedData = parseJsonContent(rawData);
-      if (!isJsonObject(parsedData)) return false;
-      const taskSplitData = parsedData as TaskSplitParsedData;
+
+      let taskSplitData: TaskSplitParsedData | null = null;
+      let rawSubTasks: TaskSplitSubTaskInput[] = [];
+
+      if (Array.isArray(parsedData)) {
+        rawSubTasks = parsedData.filter(isJsonObject) as TaskSplitSubTaskInput[];
+      } else if (isJsonObject(parsedData)) {
+        taskSplitData = parsedData as TaskSplitParsedData;
+        rawSubTasks = Array.isArray(taskSplitData.sub_tasks)
+          ? taskSplitData.sub_tasks
+          : [];
+      } else {
+        return false;
+      }
 
       // 标准化数据结构
       // 先处理子任务数据，确保字段名称一致性
-      const processedSubTasks: TaskSplitData['sub_tasks'] = Array.isArray(taskSplitData.sub_tasks)
-        ? taskSplitData.sub_tasks.flatMap((task, index) => {
+      const processedSubTasks: TaskSplitData['sub_tasks'] = rawSubTasks.length > 0
+        ? rawSubTasks.flatMap((task, index) => {
           if (!task) {
             return [];
           }
@@ -474,12 +545,17 @@ export default function useAiAnalysisDataHook(
         : [];
 
       const standardData: TaskSplitData = {
-        main_task: typeof taskSplitData.main_task === 'string' ?
-            {name: taskSplitData.main_task, description: ''} :
-            taskSplitData.main_task || {name: '', description: ''},
+        main_task: taskSplitData
+          ? (typeof taskSplitData.main_task === 'string'
+            ? {name: taskSplitData.main_task, description: ''}
+            : taskSplitData.main_task || {name: '', description: ''})
+          : {
+            name: messages.filter(message => !message.isAi).at(-1)?.content?.trim() || '需求分析',
+            description: messages.filter(message => !message.isAi).at(-1)?.content?.trim() || ''
+          },
         sub_tasks: processedSubTasks,
-        parallelism_score: typeof taskSplitData.parallelism_score === 'number' ? taskSplitData.parallelism_score : 0,
-        parallel_execution_tips: typeof taskSplitData.parallel_execution_tips === 'string' ? taskSplitData.parallel_execution_tips : ''
+        parallelism_score: taskSplitData && typeof taskSplitData.parallelism_score === 'number' ? taskSplitData.parallelism_score : 0,
+        parallel_execution_tips: taskSplitData && typeof taskSplitData.parallel_execution_tips === 'string' ? taskSplitData.parallel_execution_tips : ''
       };
 
       // 更新分析数据
@@ -499,7 +575,7 @@ export default function useAiAnalysisDataHook(
     } catch {
       return false;
     }
-  }, [analysisResult, parseJsonContent]);
+  }, [analysisResult, messages, parseJsonContent]);
 
   // 处理工作量分析数据
   const handleWorkloadAnalysisData = useCallback((): boolean => {
@@ -909,6 +985,13 @@ export default function useAiAnalysisDataHook(
   useEffect(() => {
     if (!analysisResult) return;
 
+    if (analysisResult.type && analysisResult.type !== processedTypeRef.current) {
+      if (streamingComplete || isDataCompleteForParsing(analysisResult.type)) {
+        processedTypeRef.current = analysisResult.type;
+        handleRequirementTypeData();
+      }
+    }
+
     // 尝试自动处理完整度分析数据
     if (analysisResult.completion && analysisResult.completion !== processedCompletionRef.current) {
       // 只有在数据流结束或数据完整时才处理
@@ -965,7 +1048,7 @@ export default function useAiAnalysisDataHook(
         handleComprehensiveAnalysisData();
       }
     }
-  }, [analysisResult, streamingComplete, handleCompletenessAnalysisData, handleComprehensiveAnalysisData, handlePriorityAnalysisData, handleSuggestionsData, handleTaskSplitData, handleWorkloadAnalysisData, isDataCompleteForParsing]);
+  }, [analysisResult, streamingComplete, handleCompletenessAnalysisData, handleComprehensiveAnalysisData, handlePriorityAnalysisData, handleRequirementTypeData, handleSuggestionsData, handleTaskSplitData, handleWorkloadAnalysisData, isDataCompleteForParsing]);
 
   // 返回需要的状态和函数
   return {

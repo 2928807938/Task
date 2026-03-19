@@ -69,6 +69,7 @@ const AiAnalysisContent: React.FC<AiAnalysisContentProps> = ({
     (analysisData.tags && analysisData.tags.length > 0) ||
     (analysisData.priorityLevel || analysisData.priorityScore || analysisData.priorityAnalysis) ||
     (analysisData.priorityData) ||
+    (analysisData.taskSplitData && analysisData.taskSplitData.sub_tasks && analysisData.taskSplitData.sub_tasks.length > 0) ||
     (analysisData.keyFindings && analysisData.keyFindings.length > 0) ||
     (analysisData.risks && analysisData.risks.length > 0) ||
     (analysisData.suggestions && analysisData.suggestions.length > 0) ||
