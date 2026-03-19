@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import {motion} from 'framer-motion';
 import {FiAlertCircle} from 'react-icons/fi';
 import {TaskTableView} from '@/ui/organisms/TaskTableView';
@@ -17,22 +17,16 @@ interface PaginationProps {
 interface ProjectTasksPanelProps {
   tasks: ProjectTask[];
   onAddTask: () => void;
-  onTaskClick?: (task: ProjectTask) => void; // 添加任务点击处理函数
+  onTaskClick?: (task: ProjectTask) => void;
   isLoading?: boolean;
   error?: Error | null;
   pagination?: PaginationProps;
-  projectId?: string; // 添加项目ID以便获取任务分布数据
-  /** 项目整体进度（百分比） */
+  projectId?: string;
   projectProgress?: number;
-  /** 项目任务总数 - 来自项目详情接口 */
   projectTaskCount?: number;
-  /** 项目已完成任务数 - 来自项目详情接口 */
   projectCompletedTaskCount?: number;
-  /** 当前视图类型（列表、看板、日历、甘特图） */
   currentView?: 'list' | 'board' | 'calendar' | 'gantt';
-  /** 视图类型切换回调 */
   onViewChange?: (view: 'list' | 'board' | 'calendar' | 'gantt') => void;
-  /** 任务更新后的回调函数 */
   onTaskUpdate?: () => void;
 }
 
@@ -53,9 +47,52 @@ const ProjectTasksPanel: React.FC<ProjectTasksPanelProps> = ({
 }) => {
   const { isDark } = useTheme();
   const isDarkMode = isDark;
-  
-  // 获取任务分布数据
   const { data: taskDistribution, isLoading: isDistributionLoading } = useTaskDistributionHook(projectId);
+
+  const [deletedTaskIds, setDeletedTaskIds] = useState<string[]>([]);
+  const [locallyCompletedTaskIds, setLocallyCompletedTaskIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    const taskIdSet = new Set(tasks.map(task => task.id));
+    setDeletedTaskIds(prev => prev.filter(id => taskIdSet.has(id)));
+    setLocallyCompletedTaskIds(prev => prev.filter(id => taskIdSet.has(id)));
+  }, [tasks]);
+
+  const visibleTasks = useMemo(() => {
+    return tasks
+      .filter(task => !deletedTaskIds.includes(task.id))
+      .map(task => {
+        if (!locallyCompletedTaskIds.includes(task.id) || task.status === 'COMPLETED') {
+          return task;
+        }
+
+        return {
+          ...task,
+          status: 'COMPLETED' as const,
+          progress: 100,
+          completedAt: new Date().toISOString()
+        };
+      });
+  }, [deletedTaskIds, locallyCompletedTaskIds, tasks]);
+
+  const baseCompletedCount = projectCompletedTaskCount ?? tasks.filter(task => task.status === 'COMPLETED').length;
+  const localCompletedGain = tasks.filter(
+    task => locallyCompletedTaskIds.includes(task.id) && task.status !== 'COMPLETED' && !deletedTaskIds.includes(task.id)
+  ).length;
+  const localDeletedCompletedCount = tasks.filter(
+    task => deletedTaskIds.includes(task.id) && (task.status === 'COMPLETED' || locallyCompletedTaskIds.includes(task.id))
+  ).length;
+  const adjustedCompletedCount = Math.max(baseCompletedCount + localCompletedGain - localDeletedCompletedCount, 0);
+  const adjustedTaskCount = Math.max((projectTaskCount ?? tasks.length) - deletedTaskIds.length, 0);
+
+  const handleLocalComplete = (taskId: string) => {
+    setLocallyCompletedTaskIds(prev => prev.includes(taskId) ? prev : [...prev, taskId]);
+    onTaskUpdate?.();
+  };
+
+  const handleLocalDelete = (taskId: string) => {
+    setDeletedTaskIds(prev => prev.includes(taskId) ? prev : [...prev, taskId]);
+  };
 
   return (
     <div className="relative">
@@ -67,41 +104,40 @@ const ProjectTasksPanel: React.FC<ProjectTasksPanelProps> = ({
         className={`relative overflow-hidden rounded-[32px] border shadow-[0_24px_60px_-32px_rgba(15,23,42,0.45)] ${isDarkMode ? 'border-white/10 bg-slate-900/85' : 'border-slate-200/80 bg-white/95'}`}
       >
         <div className={`pointer-events-none absolute inset-x-0 top-0 h-px ${isDarkMode ? 'bg-white/15' : 'bg-white/90'}`} />
-        {/* 错误提示 */}
+
         {error && (
-          <div className={`p-4 border-b flex items-center ${
-            isDarkMode 
-              ? 'bg-red-900/20 border-red-800/30 text-red-400' 
-              : 'bg-red-50 border-red-100 text-red-600'
+          <div className={`flex items-center border-b p-4 ${
+            isDarkMode
+              ? 'border-red-800/30 bg-red-900/20 text-red-400'
+              : 'border-red-100 bg-red-50 text-red-600'
           }`}>
             <FiAlertCircle className="mr-2 flex-shrink-0" />
             <span>{error.message || '获取任务列表失败，请稍后重试'}</span>
           </div>
         )}
 
-
-        {/* 任务表格区域（包含内置分页功能） */}
         <div className="overflow-hidden">
-          {/* 传递分页参数给TableView内置的分页组件 */}
           <TaskTableView
-            tasks={tasks}
+            tasks={visibleTasks}
             onTaskClick={onTaskClick || ((task) => console.log('点击任务:', task.title))}
             onAddTask={onAddTask}
             isLoading={isLoading || isDistributionLoading}
             currentPage={pagination?.current || 1}
-            totalPages={pagination ? Math.ceil(pagination.total / pagination.pageSize) : 1} /* 使用真实的页数 */
-            totalItems={pagination?.total || tasks.length}
+            totalPages={pagination ? Math.ceil(pagination.total / pagination.pageSize) : 1}
+            totalItems={Math.max((pagination?.total || tasks.length) - deletedTaskIds.length, 0)}
             pageSize={pagination?.pageSize || 10}
             onPageChange={pagination?.onChange}
             onPageSizeChange={pagination?.onPageSizeChange}
             taskDistribution={taskDistribution}
-            projectId={projectId} // 传递项目ID到TaskTableView组件
-            projectProgress={projectProgress} // 传递项目整体进度
-            projectTaskCount={projectTaskCount} // 传递项目任务总数
-            projectCompletedTaskCount={projectCompletedTaskCount} // 传递项目已完成任务数
-            currentView={currentView} // 传递当前视图类型
-            onViewChange={onViewChange} // 传递视图切换回调
-            onTaskUpdate={onTaskUpdate} // 传递任务更新回调
+            projectId={projectId}
+            projectProgress={projectProgress}
+            projectTaskCount={adjustedTaskCount}
+            projectCompletedTaskCount={adjustedCompletedCount}
+            currentView={currentView}
+            onViewChange={onViewChange}
+            onTaskUpdate={onTaskUpdate}
+            onTaskComplete={handleLocalComplete}
+            onTaskDelete={handleLocalDelete}
           />
         </div>
       </motion.div>

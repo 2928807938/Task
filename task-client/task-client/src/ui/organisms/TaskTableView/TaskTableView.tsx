@@ -2,14 +2,11 @@
 
 import React, {useEffect, useMemo, useState} from 'react';
 import {ProjectTask, TaskDistributionData} from '@/types/api-types';
-import {FiPlus} from 'react-icons/fi';
+import {FiCheckCircle, FiClock, FiList, FiPlus, FiTarget} from 'react-icons/fi';
 import AppleStyleTaskHeader from '../../molecules/TaskHeader';
-// 导入视图组件
 import TaskBoardView from '@/ui/organisms/TaskBoardView/TaskBoardView';
 import TaskCalendarView from '@/ui/organisms/TaskCalendarView/TaskCalendarView';
 import TaskGanttView from '@/ui/organisms/TaskGanttView/TaskGanttView';
-// 导入可滑动任务组件
-// 导入新的任务行组件
 import SwipeableTaskRow from './SwipeableTaskRow';
 
 interface TaskTableViewProps {
@@ -24,19 +21,14 @@ interface TaskTableViewProps {
   onPageChange?: (page: number) => void;
   onPageSizeChange?: (pageSize: number) => void;
   taskDistribution?: TaskDistributionData;
-  projectId?: string; // 添加项目ID参数
-  onTaskComplete?: (taskId: string) => void; // 添加任务完成处理函数
-  onTaskDelete?: (taskId: string) => void; // 添加任务删除处理函数
-  onTaskUpdate?: () => void; // 任务更新后的回调函数
-  /** 项目整体进度（百分比） */
+  projectId?: string;
+  onTaskComplete?: (taskId: string) => void;
+  onTaskDelete?: (taskId: string) => void;
+  onTaskUpdate?: () => void;
   projectProgress?: number;
-  /** 项目任务总数 - 来自项目详情接口 */
   projectTaskCount?: number;
-  /** 项目已完成任务数 - 来自项目详情接口 */
   projectCompletedTaskCount?: number;
-  /** 当前视图类型（列表、看板、日历、甘特图） */
   currentView?: 'list' | 'board' | 'calendar' | 'gantt';
-  /** 视图类型切换回调 */
   onViewChange?: (view: 'list' | 'board' | 'calendar' | 'gantt') => void;
 }
 
@@ -62,9 +54,7 @@ export function TaskTableView({
   currentView = 'list',
   onViewChange
 }: TaskTableViewProps) {
-  // 搜索关键词状态
   const [searchKeyword, setSearchKeyword] = useState<string>('');
-  // 排序状态
   type SortField = 'title' | 'status' | 'priority' | 'assignee' | 'startTime' | 'dueDate';
   type SortDirection = 'asc' | 'desc' | null;
 
@@ -73,55 +63,53 @@ export function TaskTableView({
     direction: SortDirection;
   }>({ field: 'dueDate', direction: 'asc' });
 
-  // 内部视图状态（作为备用，优先使用传入的props）
   const [innerCurrentView, setInnerCurrentView] = useState<'list' | 'board' | 'calendar' | 'gantt'>(currentView);
 
-  // 当传入的currentView属性变化时更新内部状态
   useEffect(() => {
     setInnerCurrentView(currentView);
   }, [currentView]);
 
-  // 完成任务计数
   const [completedTasksCount, setCompletedTasksCount] = useState(0);
   const activeView = onViewChange ? currentView : innerCurrentView;
 
-  // 计算完成任务数量
   useEffect(() => {
     const completedCount = tasks.filter(task => task.status === 'COMPLETED').length;
     setCompletedTasksCount(completedCount);
   }, [tasks]);
 
-  // 排序处理函数
+  const summaryTotalTasks = projectTaskCount ?? (totalItems > 0 ? totalItems : tasks.length);
+  const summaryCompletedTasks = projectCompletedTaskCount ?? completedTasksCount;
+  const summaryPendingTasks = Math.max(summaryTotalTasks - summaryCompletedTasks, 0);
+  const summaryProgress = typeof projectProgress === 'number'
+    ? Math.round(projectProgress)
+    : Math.round((summaryCompletedTasks / Math.max(summaryTotalTasks, 1)) * 100);
+
   const handleSort = (field: SortField) => {
     setSortConfig(prevConfig => {
       if (prevConfig.field === field) {
         if (prevConfig.direction === 'asc') {
           return { field, direction: 'desc' };
-        } else if (prevConfig.direction === 'desc') {
-          return { field: 'dueDate', direction: 'asc' }; // 重置为默认排序
-        } else {
-          return { field, direction: 'asc' };
         }
+        if (prevConfig.direction === 'desc') {
+          return { field: 'dueDate', direction: 'asc' };
+        }
+        return { field, direction: 'asc' };
       }
       return { field, direction: 'asc' };
     });
   };
 
-  // 渲染排序指示器 - 使用更简洁的方式显示排序状态
   const renderSortIndicator = (field: SortField) => {
     if (sortConfig.field !== field || !sortConfig.direction) {
-      return null; // 不显示任何指示器
+      return null;
     }
-    // 只用文本显示排序状态，而不是箭头图标
+
     return <span className="ml-1 text-xs text-blue-400">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>;
   };
 
-  // 排序和搜索过滤后的任务数据
   const sortedTasks = useMemo(() => {
-    // 创建一个任务列表的副本进行处理
     let tasksCopy = [...tasks];
 
-    // 先应用搜索过滤
     if (searchKeyword.trim()) {
       const keyword = searchKeyword.trim().toLowerCase();
       tasksCopy = tasksCopy.filter(task =>
@@ -131,8 +119,9 @@ export function TaskTableView({
       );
     }
 
-    // 再进行排序
-    if (!sortConfig.direction) return tasksCopy;
+    if (!sortConfig.direction) {
+      return tasksCopy;
+    }
 
     return tasksCopy.sort((a, b) => {
       switch (sortConfig.field) {
@@ -140,59 +129,51 @@ export function TaskTableView({
           return sortConfig.direction === 'asc'
             ? (a.title || '').localeCompare(b.title || '')
             : (b.title || '').localeCompare(a.title || '');
-
         case 'status':
           return sortConfig.direction === 'asc'
             ? (a.status || '').localeCompare(b.status || '')
             : (b.status || '').localeCompare(a.status || '');
-
-        case 'priority':
-          // 定义优先级的排序权重
+        case 'priority': {
           const priorityWeight = {
-            'HIGH': 3,
-            'MEDIUM': 2,
-            'LOW': 1,
+            HIGH: 3,
+            MEDIUM: 2,
+            LOW: 1,
             '': 0
           };
+
           return sortConfig.direction === 'asc'
             ? (priorityWeight[a.priority as keyof typeof priorityWeight] || 0) - (priorityWeight[b.priority as keyof typeof priorityWeight] || 0)
             : (priorityWeight[b.priority as keyof typeof priorityWeight] || 0) - (priorityWeight[a.priority as keyof typeof priorityWeight] || 0);
-
+        }
         case 'assignee':
           return sortConfig.direction === 'asc'
             ? (a.assignee || '').localeCompare(b.assignee || '')
             : (b.assignee || '').localeCompare(a.assignee || '');
-
-        case 'startTime':
-          // 处理开始日期比较
+        case 'startTime': {
           const startDateA = a.startTime ? new Date(a.startTime).getTime() : 0;
           const startDateB = b.startTime ? new Date(b.startTime).getTime() : 0;
           return sortConfig.direction === 'asc' ? startDateA - startDateB : startDateB - startDateA;
-
-        case 'dueDate':
-          // 处理截止日期比较
+        }
+        case 'dueDate': {
           const dateA = a.dueDate ? new Date(a.dueDate).getTime() : 0;
           const dateB = b.dueDate ? new Date(b.dueDate).getTime() : 0;
           return sortConfig.direction === 'asc' ? dateA - dateB : dateB - dateA;
-
+        }
         default:
           return 0;
       }
     });
-  }, [tasks, sortConfig, searchKeyword]); // 添加searchKeyword作为依赖项
+  }, [tasks, sortConfig, searchKeyword]);
 
-  // 处理视图切换
   const handleViewChange = (view: 'list' | 'board' | 'calendar' | 'gantt') => {
-    // 如果有外部提供的切换回调，优先使用外部回调
     if (onViewChange) {
       onViewChange(view);
-    } else {
-      // 否则使用内部状态
-      setInnerCurrentView(view);
+      return;
     }
+
+    setInnerCurrentView(view);
   };
 
-  // 加载状态展示 - 苹果风格
   if (isLoading) {
     return (
       <div className="w-full">
@@ -205,12 +186,12 @@ export function TaskTableView({
           currentView={currentView}
         />
 
-        <div className="overflow-hidden border border-gray-200 dark:border-gray-700 rounded-md shadow-sm mt-4">
+        <div className="mt-4 overflow-hidden rounded-md border border-gray-200 shadow-sm dark:border-gray-700">
           <div className="animate-pulse">
             <div className="h-12 bg-gray-100 dark:bg-gray-800"></div>
             <div className="space-y-3 p-4">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="h-14 bg-gray-50 dark:bg-gray-800/50 rounded-md"></div>
+              {Array.from({ length: 5 }).map((_, index) => (
+                <div key={index} className="h-14 rounded-md bg-gray-50 dark:bg-gray-800/50"></div>
               ))}
             </div>
           </div>
@@ -219,236 +200,279 @@ export function TaskTableView({
     );
   }
 
-  // 主要渲染部分
   return (
     <div className="w-full">
       <AppleStyleTaskHeader
-        totalTasks={projectTaskCount ?? tasks.length}
-        completedTasks={projectCompletedTaskCount ?? completedTasksCount}
+        totalTasks={summaryTotalTasks}
+        completedTasks={summaryCompletedTasks}
         onAddTask={onAddTask}
         onSearch={(query) => {
-          // 处理搜索查询
           setSearchKeyword(query);
 
-          // 如果用户清空搜索框，重置到第一页
           if (!query.trim() && onPageChange && currentPage !== 1) {
             onPageChange(1);
           }
         }}
         onViewChange={handleViewChange}
-        currentView={activeView} // 使用外部或内部当前视图
+        currentView={activeView}
         taskDistribution={taskDistribution}
         isLoading={isLoading}
         projectProgress={projectProgress}
       />
 
-
-
-      {/* 根据当前视图类型渲染不同视图组件 */}
       {activeView === 'list' && (
-        <div className={`mt-4 overflow-hidden rounded-[28px] border ${isLoading ? '' : 'shadow-[0_18px_50px_-30px_rgba(15,23,42,0.35)]'} ${
-          'border-slate-200/80 bg-white/90 dark:border-white/10 dark:bg-slate-950/75'
-        }`}>
-          <div className={`flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3 sm:px-5 ${
-            'border-slate-200/70 bg-slate-50/80 dark:border-white/10 dark:bg-white/[0.03]'
-          }`}>
-            <div>
-              <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">任务列表</p>
-              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                当前显示 {sortedTasks.length} 条，已完成 {projectCompletedTaskCount ?? completedTasksCount} 条
-              </p>
+        <div className="mt-4 overflow-hidden rounded-[28px] border border-slate-200/80 bg-white/90 shadow-[0_18px_50px_-30px_rgba(15,23,42,0.35)] dark:border-white/10 dark:bg-slate-950/75">
+          <div className="border-b border-slate-200/70 bg-gradient-to-br from-slate-50 via-white to-blue-50/70 px-4 py-4 dark:border-white/10 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900 sm:px-5 sm:py-5">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div className="min-w-0">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-500 text-white shadow-[0_12px_28px_-16px_rgba(37,99,235,0.9)]">
+                    <FiList size={18} />
+                  </div>
+                  <div>
+                    <p className="text-base font-semibold text-slate-900 dark:text-slate-100">任务列表</p>
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                      当前显示 {sortedTasks.length} 条{searchKeyword.trim() ? '搜索结果' : ''}，已完成 {summaryCompletedTasks} 条，待处理 {summaryPendingTasks} 条
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-4 max-w-xl rounded-2xl border border-white/70 bg-white/80 p-3 shadow-[0_12px_36px_-28px_rgba(15,23,42,0.28)] backdrop-blur-sm dark:border-white/10 dark:bg-white/[0.03]">
+                  <div className="mb-2 flex items-center justify-between text-xs">
+                    <span className="font-medium text-slate-500 dark:text-slate-400">整体完成进度</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">{summaryProgress}%</span>
+                  </div>
+                  <div className="h-2.5 overflow-hidden rounded-full bg-slate-200/80 dark:bg-white/10">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-blue-500 via-sky-500 to-emerald-400 transition-all duration-500"
+                      style={{ width: `${summaryProgress}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:min-w-[380px]">
+                <div className="rounded-2xl border border-slate-200/80 bg-white/80 p-3 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-white/[0.03]">
+                  <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
+                    <FiTarget size={14} />
+                    <span className="text-xs font-medium">任务总数</span>
+                  </div>
+                  <div className="mt-2 text-xl font-semibold text-slate-900 dark:text-slate-100">{summaryTotalTasks}</div>
+                </div>
+
+                <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50/80 p-3 shadow-sm backdrop-blur-sm dark:border-emerald-500/20 dark:bg-emerald-500/10">
+                  <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-300">
+                    <FiCheckCircle size={14} />
+                    <span className="text-xs font-medium">已完成</span>
+                  </div>
+                  <div className="mt-2 text-xl font-semibold text-emerald-700 dark:text-emerald-200">{summaryCompletedTasks}</div>
+                </div>
+
+                <div className="rounded-2xl border border-amber-200/80 bg-amber-50/80 p-3 shadow-sm backdrop-blur-sm dark:border-amber-500/20 dark:bg-amber-500/10">
+                  <div className="flex items-center gap-2 text-amber-600 dark:text-amber-300">
+                    <FiClock size={14} />
+                    <span className="text-xs font-medium">待处理</span>
+                  </div>
+                  <div className="mt-2 text-xl font-semibold text-amber-700 dark:text-amber-200">{summaryPendingTasks}</div>
+                </div>
+              </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+
+            <div className="mt-4 flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center rounded-full border border-emerald-200/80 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300">
-                完成率 {Math.round(((projectCompletedTaskCount ?? completedTasksCount) / Math.max(projectTaskCount ?? tasks.length, 1)) * 100)}%
+                完成率 {summaryProgress}%
               </span>
               <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300">
-                共 {(projectTaskCount ?? totalItems) || tasks.length} 个任务
+                共 {summaryTotalTasks} 个任务
               </span>
+              <span className="inline-flex items-center rounded-full border border-slate-200/80 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-300">
+                当前页 {sortedTasks.length} 条
+              </span>
+              {searchKeyword.trim() && (
+                <span className="inline-flex items-center rounded-full border border-blue-200/80 bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-300">
+                  搜索：{searchKeyword}
+                </span>
+              )}
             </div>
           </div>
 
-          <div className="overflow-x-auto" style={{ minWidth: '768px' }}>
-            <table className="min-w-full divide-y divide-slate-200/80 dark:divide-white/10">
-            <thead className="bg-slate-50/80 dark:bg-white/[0.02] backdrop-blur-sm border-b border-slate-200/70 dark:border-white/10">
-              <tr>
-                <th
-                  className="w-[40%] px-4 py-4 text-left text-[11px] font-semibold text-slate-500 dark:text-slate-300 uppercase tracking-[0.18em] cursor-pointer whitespace-nowrap select-none"
-                  onClick={() => handleSort('title')}
-                >
-                  <div className="flex items-center">
-                    任务名称
-                    {renderSortIndicator('title')}
-                  </div>
-                </th>
-                <th
-                  className="w-[10%] px-4 py-4 text-center text-[11px] font-semibold text-slate-500 dark:text-slate-300 uppercase tracking-[0.18em] whitespace-nowrap select-none"
-                >
-                  <div className="flex items-center justify-center">
-                    任务类型
-                  </div>
-                </th>
-                <th
-                  className="w-[10%] px-4 py-4 text-center text-[11px] font-semibold text-slate-500 dark:text-slate-300 uppercase tracking-[0.18em] cursor-pointer whitespace-nowrap select-none"
-                  onClick={() => handleSort('priority')}
-                >
-                  <div className="flex items-center justify-center">
-                    优先级
-                    {renderSortIndicator('priority')}
-                  </div>
-                </th>
-                <th
-                  className="w-[10%] px-4 py-4 text-center text-[11px] font-semibold text-slate-500 dark:text-slate-300 uppercase tracking-[0.18em] cursor-pointer whitespace-nowrap select-none"
-                  onClick={() => handleSort('assignee')}
-                >
-                  <div className="flex items-center justify-center">
-                    负责人
-                    {renderSortIndicator('assignee')}
-                  </div>
-                </th>
-                <th
-                  className="w-[10%] px-4 py-4 text-center text-[11px] font-semibold text-slate-500 dark:text-slate-300 uppercase tracking-[0.18em] cursor-pointer whitespace-nowrap select-none"
-                  onClick={() => handleSort('startTime')}
-                >
-                  <div className="flex items-center justify-center">
-                    开始时间
-                    {renderSortIndicator('startTime')}
-                  </div>
-                </th>
-                <th
-                  className="w-[10%] px-4 py-4 text-center text-[11px] font-semibold text-slate-500 dark:text-slate-300 uppercase tracking-[0.18em] cursor-pointer whitespace-nowrap select-none"
-                  onClick={() => handleSort('dueDate')}
-                >
-                  <div className="flex items-center justify-center">
-                    截止日期
-                    {renderSortIndicator('dueDate')}
-                  </div>
-                </th>
-                <th className="w-[8%] px-4 py-4 text-center text-[11px] font-semibold text-slate-500 dark:text-slate-300 uppercase tracking-[0.18em] whitespace-nowrap select-none">
-                  进度
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white/90 dark:bg-slate-950/60 divide-y divide-slate-200/70 dark:divide-white/10">
-              {/* 显示所有任务，并标识主任务和子任务 */}
-              {isLoading ? (
-                <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
-                    <div className="flex justify-center items-center space-x-2">
-                      <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-blue-500"></div>
-                      <span>加载中...</span>
-                    </div>
-                  </td>
-                </tr>
-              ) : sortedTasks.length > 0 ? (
-                sortedTasks.map(task => (
-                  <SwipeableTaskRow
-                    key={task.id}
-                    task={task}
-                    tasks={tasks}
-                    onTaskClick={onTaskClick}
-                    onTaskComplete={onTaskComplete}
-                    onTaskDelete={onTaskDelete}
-                  />
-                ))
-              ) : searchKeyword.trim() ? (
-                <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center">
-                    <div className="flex flex-col items-center">
-                      <svg className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                      </svg>
-                      <p className="text-gray-500 dark:text-gray-400 mb-1">没有找到匹配的任务</p>
-                      <p className="text-sm text-gray-400 dark:text-gray-500">尝试使用其他关键词搜索</p>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
-                    暂无任务
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-
-          {/* 如果存在分页信息，显示分页组件 */}
-          {totalPages > 1 && (
-            <div className="flex flex-col gap-3 border-t border-slate-200/70 bg-slate-50/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between dark:border-white/10 dark:bg-white/[0.03]">
-              <div className="flex items-center text-sm text-slate-500 dark:text-slate-400">
-                显示 {(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, totalItems)} 条，共 {totalItems} 条
-              </div>
-
-              <div className="flex flex-wrap items-center justify-center gap-1.5">
-                <button
-                  className={`rounded-full px-3 py-1.5 text-sm ${currentPage === 1 ? 'cursor-not-allowed text-slate-400' : 'text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-white/5'}`}
-                  disabled={currentPage === 1}
-                  onClick={() => onPageChange && onPageChange(currentPage - 1)}
-                >
-                  上一页
-                </button>
-
-                {/* 动态生成页码按钮 */}
-                {Array.from({ length: totalPages }).map((_, i) => {
-                  const pageNum = i + 1;
-                  // 显示第一页、最后一页、当前页和当前页前后两页
-                  if (
-                    pageNum === 1 ||
-                    pageNum === totalPages ||
-                    Math.abs(pageNum - currentPage) <= 1
-                  ) {
-                    return (
-                      <button
-                        key={pageNum}
-                        className={`flex h-9 w-9 items-center justify-center rounded-full text-sm ${pageNum === currentPage
-                          ? 'bg-blue-600 text-white shadow-[0_10px_20px_-12px_rgba(37,99,235,0.9)] dark:bg-blue-500 dark:text-white'
-                          : 'text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-white/5'
-                        }`}
-                        onClick={() => onPageChange && onPageChange(pageNum)}
-                      >
-                        {pageNum}
-                      </button>
-                    );
-                  } else if (
-                    (pageNum === 2 && currentPage > 3) ||
-                    (pageNum === totalPages - 1 && currentPage < totalPages - 2)
-                  ) {
-                    // 显示省略号
-                    return <span key={pageNum} className="flex items-center px-1">…</span>;
-                  }
-                  return null;
-                })}
-
-                <button
-                  className={`rounded-full px-3 py-1.5 text-sm ${currentPage === totalPages ? 'cursor-not-allowed text-slate-400' : 'text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-white/5'}`}
-                  disabled={currentPage === totalPages}
-                  onClick={() => onPageChange && onPageChange(currentPage + 1)}
-                >
-                  下一页
-                </button>
-              </div>
-
-              {/* 每页显示数量选择器 */}
-              <div className="flex items-center">
-                <span className="mr-2 text-sm text-slate-500 dark:text-slate-400">每页显示</span>
-                <select
-                  className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-300 dark:focus:ring-blue-400"
-                  value={pageSize}
-                  onChange={(e) => onPageSizeChange && onPageSizeChange(Number(e.target.value))}
-                >
-                  {[10, 20, 50, 100].map(size => (
-                    <option key={size} value={size}>{size}</option>
-                  ))}
-                </select>
-              </div>
+          <div className="px-3 pb-3 pt-2 sm:px-4 sm:pb-4">
+            <div className="overflow-x-auto" style={{ minWidth: '768px' }}>
+              <table className="min-w-full border-separate border-spacing-y-2">
+                <thead className="sticky top-0 z-10 backdrop-blur-sm">
+                  <tr>
+                    <th
+                      className="w-[38%] px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-300"
+                      onClick={() => handleSort('title')}
+                    >
+                      <div className="flex cursor-pointer items-center whitespace-nowrap select-none">
+                        任务名称
+                        {renderSortIndicator('title')}
+                      </div>
+                    </th>
+                    <th className="w-[10%] px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-300">
+                      <div className="flex items-center justify-center whitespace-nowrap">任务类型</div>
+                    </th>
+                    <th
+                      className="w-[10%] px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-300"
+                      onClick={() => handleSort('priority')}
+                    >
+                      <div className="flex cursor-pointer items-center justify-center whitespace-nowrap select-none">
+                        优先级
+                        {renderSortIndicator('priority')}
+                      </div>
+                    </th>
+                    <th
+                      className="w-[12%] px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-300"
+                      onClick={() => handleSort('assignee')}
+                    >
+                      <div className="flex cursor-pointer items-center justify-center whitespace-nowrap select-none">
+                        负责人
+                        {renderSortIndicator('assignee')}
+                      </div>
+                    </th>
+                    <th
+                      className="w-[12%] px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-300"
+                      onClick={() => handleSort('startTime')}
+                    >
+                      <div className="flex cursor-pointer items-center justify-center whitespace-nowrap select-none">
+                        开始时间
+                        {renderSortIndicator('startTime')}
+                      </div>
+                    </th>
+                    <th
+                      className="w-[12%] px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-300"
+                      onClick={() => handleSort('dueDate')}
+                    >
+                      <div className="flex cursor-pointer items-center justify-center whitespace-nowrap select-none">
+                        截止日期
+                        {renderSortIndicator('dueDate')}
+                      </div>
+                    </th>
+                    <th className="w-[8%] px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-300">
+                      进度
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {isLoading ? (
+                    <tr>
+                      <td colSpan={7} className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
+                        <div className="flex items-center justify-center space-x-2">
+                          <div className="h-5 w-5 animate-spin rounded-full border-b-2 border-t-2 border-blue-500"></div>
+                          <span>加载中...</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : sortedTasks.length > 0 ? (
+                    sortedTasks.map(task => (
+                      <SwipeableTaskRow
+                        key={task.id}
+                        task={task}
+                        tasks={tasks}
+                        onTaskClick={onTaskClick}
+                        onTaskComplete={onTaskComplete}
+                        onTaskDelete={onTaskDelete}
+                      />
+                    ))
+                  ) : searchKeyword.trim() ? (
+                    <tr>
+                      <td colSpan={7} className="px-4 py-10 text-center">
+                        <div className="flex flex-col items-center rounded-[24px] border border-dashed border-slate-200 bg-slate-50/70 py-10 dark:border-white/10 dark:bg-white/[0.02]">
+                          <svg className="mb-3 h-12 w-12 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                          </svg>
+                          <p className="mb-1 text-slate-600 dark:text-slate-300">没有找到匹配的任务</p>
+                          <p className="text-sm text-slate-400 dark:text-slate-500">尝试使用其他关键词搜索</p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    <tr>
+                      <td colSpan={7} className="px-4 py-10 text-center">
+                        <div className="rounded-[24px] border border-dashed border-slate-200 bg-slate-50/70 py-10 text-slate-500 dark:border-white/10 dark:bg-white/[0.02] dark:text-slate-400">
+                          暂无任务
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
-          )}
-        </div>
+
+            {totalPages > 1 && (
+              <div className="mt-2 flex flex-col gap-3 rounded-[24px] border border-slate-200/70 bg-slate-50/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between dark:border-white/10 dark:bg-white/[0.03]">
+                <div className="flex items-center text-sm text-slate-500 dark:text-slate-400">
+                  显示 {(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, totalItems)} 条，共 {totalItems} 条
+                </div>
+
+                <div className="flex flex-wrap items-center justify-center gap-1.5">
+                  <button
+                    className={`rounded-full px-3 py-1.5 text-sm ${currentPage === 1 ? 'cursor-not-allowed text-slate-400' : 'text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-white/5'}`}
+                    disabled={currentPage === 1}
+                    onClick={() => onPageChange && onPageChange(currentPage - 1)}
+                  >
+                    上一页
+                  </button>
+
+                  {Array.from({ length: totalPages }).map((_, index) => {
+                    const pageNum = index + 1;
+                    if (
+                      pageNum === 1 ||
+                      pageNum === totalPages ||
+                      Math.abs(pageNum - currentPage) <= 1
+                    ) {
+                      return (
+                        <button
+                          key={pageNum}
+                          className={`flex h-9 w-9 items-center justify-center rounded-full text-sm ${pageNum === currentPage
+                            ? 'bg-blue-600 text-white shadow-[0_10px_20px_-12px_rgba(37,99,235,0.9)] dark:bg-blue-500 dark:text-white'
+                            : 'text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-white/5'
+                          }`}
+                          onClick={() => onPageChange && onPageChange(pageNum)}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    }
+
+                    if (
+                      (pageNum === 2 && currentPage > 3) ||
+                      (pageNum === totalPages - 1 && currentPage < totalPages - 2)
+                    ) {
+                      return <span key={pageNum} className="flex items-center px-1">…</span>;
+                    }
+
+                    return null;
+                  })}
+
+                  <button
+                    className={`rounded-full px-3 py-1.5 text-sm ${currentPage === totalPages ? 'cursor-not-allowed text-slate-400' : 'text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-white/5'}`}
+                    disabled={currentPage === totalPages}
+                    onClick={() => onPageChange && onPageChange(currentPage + 1)}
+                  >
+                    下一页
+                  </button>
+                </div>
+
+                <div className="flex items-center">
+                  <span className="mr-2 text-sm text-slate-500 dark:text-slate-400">每页显示</span>
+                  <select
+                    className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-300 dark:focus:ring-blue-400"
+                    value={pageSize}
+                    onChange={(e) => onPageSizeChange && onPageSizeChange(Number(e.target.value))}
+                  >
+                    {[10, 20, 50, 100].map(size => (
+                      <option key={size} value={size}>{size}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
-      {/* 看板视图 */}
       {activeView === 'board' && (
         <TaskBoardView
           tasks={sortedTasks}
@@ -459,7 +483,6 @@ export function TaskTableView({
         />
       )}
 
-      {/* 日历视图 */}
       {activeView === 'calendar' && (
         <TaskCalendarView
           tasks={sortedTasks}
@@ -468,7 +491,6 @@ export function TaskTableView({
         />
       )}
 
-      {/* 甘特图视图 */}
       {activeView === 'gantt' && (
         <TaskGanttView
           tasks={sortedTasks}
@@ -477,8 +499,7 @@ export function TaskTableView({
         />
       )}
 
-      {/* 空状态展示 - 支持所有视图 */}
-      {sortedTasks.length === 0 && !isLoading && (
+      {activeView !== 'list' && sortedTasks.length === 0 && !isLoading && (
         <div className="mt-4 rounded-[28px] border border-slate-200/80 bg-white/90 py-14 text-center shadow-[0_18px_50px_-30px_rgba(15,23,42,0.35)] dark:border-white/10 dark:bg-slate-950/70">
           <svg
             className="mx-auto h-16 w-16 text-slate-300 dark:text-slate-600"
@@ -498,13 +519,12 @@ export function TaskTableView({
             {tasks.length === 0 ? '没有任务' : '没有匹配的任务'}
           </h3>
           <p className="mx-auto mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">
-            {tasks.length === 0 
+            {tasks.length === 0
               ? '这个项目中尚未创建任何任务。点击下方按钮开始创建您的第一个任务。'
               : `没有找到匹配 "${searchKeyword}" 的任务。请尝试其他搜索关键词或清除搜索条件。`
             }
           </p>
           <div className="mt-4 space-y-2">
-            {/* 如果是搜索结果为空，显示清除搜索按钮 */}
             {tasks.length > 0 && searchKeyword.trim() && (
               <button
                 type="button"
@@ -514,8 +534,7 @@ export function TaskTableView({
                 清除搜索条件
               </button>
             )}
-            
-            {/* 创建任务按钮，只在没有任务时显示 */}
+
             {onAddTask && tasks.length === 0 && (
               <button
                 type="button"

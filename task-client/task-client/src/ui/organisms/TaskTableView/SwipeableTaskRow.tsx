@@ -6,15 +6,122 @@ import {Avatar} from '@/ui/atoms/Avatar';
 
 interface SwipeableTaskRowProps {
   task: ProjectTask;
-  tasks: ProjectTask[]; // 所有任务列表，用于查找父任务
+  tasks: ProjectTask[];
   onTaskClick?: (task: ProjectTask) => void;
   onTaskComplete?: (taskId: string) => void;
   onTaskDelete?: (taskId: string) => void;
 }
 
-/**
- * 可滑动的任务行组件，支持滑动操作
- */
+const priorityLabelMap: Record<ProjectTask['priority'], string> = {
+  HIGH: '高',
+  MEDIUM: '中',
+  LOW: '低'
+};
+
+const statusMetaMap: Record<ProjectTask['status'], { label: string; chipClass: string }> = {
+  IN_PROGRESS: {
+    label: '进行中',
+    chipClass: 'border-blue-200/80 bg-blue-50 text-blue-700 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-300'
+  },
+  COMPLETED: {
+    label: '已完成',
+    chipClass: 'border-emerald-200/80 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300'
+  },
+  OVERDUE: {
+    label: '已逾期',
+    chipClass: 'border-rose-200/80 bg-rose-50 text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300'
+  },
+  WAITING: {
+    label: '待处理',
+    chipClass: 'border-amber-200/80 bg-amber-50 text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300'
+  }
+};
+
+const lineClampStyle: React.CSSProperties = {
+  display: '-webkit-box',
+  WebkitLineClamp: 2,
+  WebkitBoxOrient: 'vertical',
+  overflow: 'hidden'
+};
+
+const formatDateParts = (value?: string | null) => {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return {
+    date: date.toLocaleDateString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).replace(/\//g, '-'),
+    time: date.toLocaleTimeString('zh-CN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    })
+  };
+};
+
+const getDueMeta = (task: ProjectTask) => {
+  const formatted = formatDateParts(task.dueDate);
+  if (!formatted) {
+    return null;
+  }
+
+  const dueDate = new Date(task.dueDate);
+  const now = new Date();
+  const diffDays = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (task.status === 'COMPLETED') {
+    return {
+      ...formatted,
+      textClass: 'text-slate-500 dark:text-slate-400',
+      chipClass: 'border-emerald-200/80 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300',
+      label: '已完成'
+    };
+  }
+
+  if (diffDays < 0) {
+    return {
+      ...formatted,
+      textClass: 'text-rose-600 dark:text-rose-300',
+      chipClass: 'border-rose-200/80 bg-rose-50 text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300',
+      label: '已逾期'
+    };
+  }
+
+  if (diffDays === 0) {
+    return {
+      ...formatted,
+      textClass: 'text-amber-600 dark:text-amber-300',
+      chipClass: 'border-amber-200/80 bg-amber-50 text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300',
+      label: '今天到期'
+    };
+  }
+
+  if (diffDays <= 2) {
+    return {
+      ...formatted,
+      textClass: 'text-yellow-600 dark:text-yellow-300',
+      chipClass: 'border-yellow-200/80 bg-yellow-50 text-yellow-700 dark:border-yellow-500/20 dark:bg-yellow-500/10 dark:text-yellow-300',
+      label: `${diffDays} 天后到期`
+    };
+  }
+
+  return {
+    ...formatted,
+    textClass: 'text-slate-700 dark:text-slate-300',
+    chipClass: 'border-slate-200/80 bg-slate-50 text-slate-600 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-300',
+    label: '正常'
+  };
+};
+
 const SwipeableTaskRow: React.FC<SwipeableTaskRowProps> = ({
   task,
   tasks,
@@ -22,26 +129,37 @@ const SwipeableTaskRow: React.FC<SwipeableTaskRowProps> = ({
   onTaskComplete,
   onTaskDelete
 }) => {
-  // 处理完成任务操作
   const handleCompleteTask = () => {
     if (onTaskComplete && task.status !== 'COMPLETED') {
       onTaskComplete(task.id);
     }
   };
 
-  // 处理删除任务操作
   const handleDeleteTask = () => {
     if (onTaskDelete) {
       onTaskDelete(task.id);
     }
   };
 
+  const statusMeta = statusMetaMap[task.status] ?? statusMetaMap.WAITING;
+  const priorityLabel = priorityLabelMap[task.priority] || task.priority || '无';
+  const startInfo = formatDateParts(task.startTime);
+  const dueInfo = getDueMeta(task);
+  const progress = Math.max(0, Math.min(task.progress || 0, 100));
+  const parentTaskId = task.parentTaskId || task.parentId;
+  const parentTaskTitle = parentTaskId ? tasks.find(item => item.id === parentTaskId)?.title : null;
+  const rowSurface = task.status === 'COMPLETED'
+    ? 'bg-emerald-50/60 dark:bg-emerald-500/[0.08]'
+    : 'bg-white/95 dark:bg-slate-950/40';
+  const rowHoverSurface = task.status === 'COMPLETED'
+    ? 'group-hover:bg-emerald-50 dark:group-hover:bg-emerald-500/[0.12]'
+    : 'group-hover:bg-slate-50 dark:group-hover:bg-white/[0.05]';
+  const cellBaseClass = `${rowSurface} ${rowHoverSurface} border-y border-slate-200/80 px-4 py-4 align-middle transition-all duration-200 dark:border-white/10`;
+  const swipeSurfaceClass = `${rowSurface} ${rowHoverSurface} rounded-[18px] shadow-[0_10px_30px_-24px_rgba(15,23,42,0.35)]`;
+
   return (
-    <tr
-      className={`group h-20 border-b border-slate-200/70 transition-colors hover:bg-slate-50/70 dark:border-white/10 dark:hover:bg-white/[0.03] ${task.status === 'COMPLETED' ? 'bg-emerald-50/40 dark:bg-emerald-500/5' : ''}`}
-    >
-      {/* 任务标题列 */}
-      <td className="w-[40%] px-4 py-3.5">
+    <tr className="group">
+      <td className={`${cellBaseClass} w-[38%] rounded-l-[20px] border-l`}>
         <SwipeableTaskItem
           onSwipeRight={handleCompleteTask}
           onSwipeLeft={handleDeleteTask}
@@ -50,35 +168,77 @@ const SwipeableTaskRow: React.FC<SwipeableTaskRowProps> = ({
           leftActionText="删除"
           rightActionIcon={<FiCheck size={18} />}
           leftActionIcon={<FiTrash2 size={18} />}
-          rightActionColor="#10b981" // 绿色
-          leftActionColor="#ef4444" // 红色
+          rightActionColor="#10b981"
+          leftActionColor="#ef4444"
+          className={swipeSurfaceClass}
         >
-          <div
-            className="flex h-full w-full cursor-pointer items-center"
-            onClick={() => onTaskClick && onTaskClick(task)}
-          >
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <div className="h-2.5 w-2.5 rounded-full bg-blue-500/80 shadow-[0_0_0_4px_rgba(59,130,246,0.12)] dark:bg-blue-400 dark:shadow-[0_0_0_4px_rgba(96,165,250,0.16)]" />
-                <div className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{task.title}</div>
-              </div>
-              {task.description && (
-                <div className="mt-1 truncate pl-[18px] text-xs text-slate-500 dark:text-slate-400">{task.description}</div>
-              )}
-              {/* 如果是子任务，显示父任务信息 */}
-              {task.parentTaskId && (
-                <div className="mt-1 pl-[18px] text-xs text-slate-400 dark:text-slate-500">
-                  父任务: {tasks.find(t => t.id === task.parentTaskId)?.title || '未知'}
+          <div className="flex h-full w-full cursor-pointer items-start gap-3 rounded-[18px] px-0 select-none" onClick={() => onTaskClick && onTaskClick(task)}>
+            <div className="mt-1 h-11 w-1 shrink-0 rounded-full" style={{ backgroundColor: task.statusColor || '#3b82f6' }} />
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{task.title}</div>
+                    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold ${statusMeta.chipClass}`}>
+                      {statusMeta.label}
+                    </span>
+                  </div>
                 </div>
+
+                <div className="flex shrink-0 items-center gap-2 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleCompleteTask();
+                    }}
+                    disabled={task.status === 'COMPLETED'}
+                    className={`inline-flex items-center rounded-full px-2.5 py-1.5 text-xs font-medium transition-all ${
+                      task.status === 'COMPLETED'
+                        ? 'cursor-not-allowed bg-slate-100 text-slate-400 dark:bg-white/5 dark:text-slate-500'
+                        : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-300 dark:hover:bg-emerald-500/20'
+                    }`}
+                  >
+                    <FiCheck className="mr-1" size={13} />
+                    完成
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleDeleteTask();
+                    }}
+                    className="inline-flex items-center rounded-full bg-rose-50 px-2.5 py-1.5 text-xs font-medium text-rose-700 transition-all hover:bg-rose-100 dark:bg-rose-500/10 dark:text-rose-300 dark:hover:bg-rose-500/20"
+                  >
+                    <FiTrash2 className="mr-1" size={13} />
+                    删除
+                  </button>
+                </div>
+              </div>
+
+              {task.description && (
+                <p className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400" style={lineClampStyle}>
+                  {task.description}
+                </p>
               )}
+
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                {parentTaskTitle && (
+                  <span className="inline-flex items-center rounded-full border border-violet-200/80 bg-violet-50 px-2.5 py-1 font-medium text-violet-700 dark:border-violet-500/20 dark:bg-violet-500/10 dark:text-violet-300">
+                    父任务 · {parentTaskTitle}
+                  </span>
+                )}
+                <span className="inline-flex items-center rounded-full border border-slate-200/80 bg-slate-50 px-2.5 py-1 font-medium text-slate-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-400">
+                  ID · {task.id.slice(-6)}
+                </span>
+              </div>
             </div>
           </div>
         </SwipeableTaskItem>
       </td>
 
-      {/* 任务类型列 */}
-      <td className="w-[10%] px-4 py-3 text-sm text-center">
-        {!task.parentTaskId ? (
+      <td className={`${cellBaseClass} w-[10%] text-center`}>
+        {!parentTaskId ? (
           <span className="inline-flex items-center rounded-full border border-blue-200/80 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-300">
             主任务
           </span>
@@ -89,8 +249,7 @@ const SwipeableTaskRow: React.FC<SwipeableTaskRowProps> = ({
         )}
       </td>
 
-      {/* 优先级列 */}
-      <td className="w-[10%] px-4 py-3 text-sm text-center">
+      <td className={`${cellBaseClass} w-[10%] text-center`}>
         {task.priorityColor ? (
           <span
             className="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold shadow-sm"
@@ -100,148 +259,59 @@ const SwipeableTaskRow: React.FC<SwipeableTaskRowProps> = ({
               borderColor: `${task.priorityColor}40`
             }}
           >
-            {task.priority || '无'}
+            {priorityLabel} 优先
           </span>
         ) : (
           <span className="text-slate-400 dark:text-slate-500">-</span>
         )}
       </td>
 
-      {/* 负责人列 */}
-      <td className="w-[12%] px-4 py-3 text-sm text-center">
+      <td className={`${cellBaseClass} w-[12%] text-center`}>
         {task.assignee ? (
-          <div className="flex items-center justify-center">
-            <Avatar name={task.assignee} size="xs" className="mr-2 flex-shrink-0" />
-            <span className="max-w-[90px] truncate text-slate-600 dark:text-slate-300">{task.assignee}</span>
+          <div className="inline-flex max-w-full items-center rounded-full border border-slate-200/80 bg-white/80 px-2.5 py-1.5 dark:border-white/10 dark:bg-white/[0.03]">
+            <Avatar name={task.assignee} size="xs" className="mr-2 shrink-0" />
+            <span className="max-w-[88px] truncate text-sm text-slate-600 dark:text-slate-300">{task.assignee}</span>
           </div>
         ) : (
-          <span className="text-slate-400 dark:text-slate-500">未分配</span>
+          <span className="inline-flex items-center rounded-full border border-dashed border-slate-200 px-2.5 py-1 text-xs text-slate-400 dark:border-white/10 dark:text-slate-500">
+            未分配
+          </span>
         )}
       </td>
 
-      {/* 开始时间列 */}
-      <td className="w-[10%] px-4 py-3 text-center text-sm text-slate-600 dark:text-slate-300">
-        {task.startTime && !isNaN(new Date(task.startTime).getTime())
-          ? new Date(task.startTime).toLocaleString('zh-CN', {
-              year: 'numeric',
-              month: '2-digit',
-              day: '2-digit',
-              hour: '2-digit',
-              minute: '2-digit',
-              hour12: false
-            })
-          : '-'}
+      <td className={`${cellBaseClass} w-[12%] text-center`}>
+        {startInfo ? (
+          <div className="space-y-1">
+            <div className="text-sm font-medium text-slate-700 dark:text-slate-200">{startInfo.date}</div>
+            <div className="text-xs text-slate-400 dark:text-slate-500">{startInfo.time}</div>
+          </div>
+        ) : (
+          <span className="text-slate-400 dark:text-slate-500">—</span>
+        )}
       </td>
 
-      {/* 截止日期列 -  */}
-      <td className="w-[10%] px-4 py-3 text-sm text-center">
-        {task.dueDate && !isNaN(new Date(task.dueDate).getTime())
-          ? (() => {
-              const dueDate = new Date(task.dueDate);
-              const now = new Date();
-              const diffDays = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-
-              // 苹果系统颜色
-              let dotColor = '';
-              let textColor = 'text-slate-700 dark:text-slate-300';
-
-              if (task.status === 'COMPLETED') {
-                // 已完成任务 - 苹果绿色
-                dotColor = 'bg-[#34c759] dark:bg-[#30d158]';
-                textColor = 'text-slate-500 dark:text-slate-400';
-              } else if (diffDays < 0) {
-                // 已过期 - 苹果红色
-                dotColor = 'bg-[#ff3b30] dark:bg-[#ff453a]';
-                textColor = 'text-[#ff3b30] dark:text-[#ff453a]';
-              } else if (diffDays === 0) {
-                // 今天到期 - 苹果橙色
-                dotColor = 'bg-[#ff9500] dark:bg-[#ff9f0a]';
-                textColor = 'text-[#ff9500] dark:text-[#ff9f0a]';
-              } else if (diffDays <= 2) {
-                // 即将到期 - 苹果黄色
-                dotColor = 'bg-[#ffcc00] dark:bg-[#ffd60a]';
-              }
-
-              // 格式化日期
-              const formattedDate = dueDate.toLocaleDateString('zh-CN', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit'
-              }).replace(/\//g, '-');
-
-              // 格式化时间
-              const formattedTime = dueDate.toLocaleTimeString('zh-CN', {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false
-              });
-
-              return (
-                <div className="group relative">
-                  {/* 状态点标记 */}
-                  {dotColor && (
-                    <div className="absolute -left-1 top-1/2 transform -translate-y-1/2 -translate-x-1">
-                      <div className={`${dotColor} w-2 h-2 rounded-full shadow-sm`}></div>
-                    </div>
-                  )}
-
-                  {/* 日期时间容器 */}
-                  <div className={`flex flex-col items-center ${textColor}`}>
-                    <div className="font-medium tracking-tight">
-                      {formattedDate}
-                    </div>
-                    <div className="text-xs font-light mt-0.5 opacity-80">
-                      {formattedTime}
-                    </div>
-                  </div>
-
-                  {/* 悬停提示 - 小提示气泡风格 */}
-                  {diffDays < 3 && diffDays > -2 && task.status !== 'COMPLETED' && (
-                    <div className="absolute left-1/2 top-0 transform -translate-x-1/2 -translate-y-full opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none z-10">
-                      <div className="bg-gray-800/90 dark:bg-gray-700/90 backdrop-blur-sm text-white text-xs rounded-lg px-2 py-1 mt-1 shadow-sm whitespace-nowrap">
-                        {diffDays < 0 ? '已过期' : diffDays === 0 ? '今天到期' : `${diffDays}天后到期`}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })()
-          : <span className="text-gray-400 dark:text-gray-500">—</span>}
+      <td className={`${cellBaseClass} w-[12%] text-center`}>
+        {dueInfo ? (
+          <div className="space-y-2">
+            <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold ${dueInfo.chipClass}`}>
+              {dueInfo.label}
+            </span>
+            <div className={`text-sm font-medium ${dueInfo.textClass}`}>{dueInfo.date}</div>
+            <div className="text-xs text-slate-400 dark:text-slate-500">{dueInfo.time}</div>
+          </div>
+        ) : (
+          <span className="text-slate-400 dark:text-slate-500">—</span>
+        )}
       </td>
 
-      {/* 进度列 */}
-      <td className="w-[8%] px-4 py-3 text-sm text-center">
-        <div className="group relative w-full px-1 py-1">
-          {/* 更加符合进度条 */}
-          <div
-            className="relative h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800"
-            style={{ boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)' }}
-          >
-            {/* 更新进度条填充部分为苹果系统色 */}
+      <td className={`${cellBaseClass} w-[8%] rounded-r-[20px] border-r text-center`}>
+        <div className="mx-auto w-full max-w-[88px]">
+          <div className="mb-2 text-xs font-semibold text-slate-600 dark:text-slate-300">{progress}%</div>
+          <div className="h-2 overflow-hidden rounded-full bg-slate-200/80 dark:bg-white/10">
             <div
-              className="absolute inset-y-0 left-0 transition-all duration-300 ease-[cubic-bezier(0.215,0.61,0.355,1)]"
-              style={{
-                width: `${task.progress || 0}%`,
-                background: 'linear-gradient(90deg, #2563eb 0%, #60a5fa 100%)',
-                borderTopRightRadius: '9999px',
-                borderBottomRightRadius: '9999px'
-              }}
-            >
-              {/* 微妙的亮度效果 */}
-              <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent"></div>
-            </div>
-          </div>
-
-          {/* 进度文本放在进度条下方 */}
-          <div className="absolute mt-1 w-full text-center text-xs font-semibold text-slate-600 dark:text-slate-400">
-            {task.progress || 0}%
-          </div>
-
-          {/* 鼠标悬停效果 */}
-          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 delay-100">
-            <div className="mt-4 bg-gray-900/80 dark:bg-gray-700/90 text-white px-2 py-1 rounded text-xs whitespace-nowrap backdrop-blur-sm">
-              进度: {task.progress || 0}%
-            </div>
+              className="h-full rounded-full bg-gradient-to-r from-blue-500 via-sky-500 to-cyan-400 transition-all duration-300"
+              style={{ width: `${progress}%` }}
+            />
           </div>
         </div>
       </td>
