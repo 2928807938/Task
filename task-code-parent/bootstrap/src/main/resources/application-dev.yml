@@ -59,8 +59,8 @@ llm:
   write-timeout: ${LLM_WRITE_TIMEOUT:3600000}
   api:
     base-url: https://tag.airaphe.com
-    key: sk-aRxmPL8mfnBMP7SGc9mH5cETe9nwaQrQxsXVph3cIak
-    model: ${LLM_MODEL:gpt-5.2}
+    key: sk-vSgNXulNrmc48iBaFCdX3o6PhF-t35GQyVTqK8wCzMc
+    model: ${LLM_MODEL:gpt-5.4}
   prompt:
     dir: ${LLM_PROMPT_DIR:xml/xml}
 # 日志配置
