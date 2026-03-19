@@ -223,23 +223,30 @@ export function TaskTableView({
       {activeView === 'list' && (
         <div className="mt-4 overflow-hidden rounded-[28px] border border-slate-200/80 bg-white/90 shadow-[0_18px_50px_-30px_rgba(15,23,42,0.35)] dark:border-white/10 dark:bg-slate-950/75">
           <div className="border-b border-slate-200/70 bg-gradient-to-br from-slate-50 via-white to-blue-50/70 px-4 py-4 dark:border-white/10 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900 sm:px-5 sm:py-5">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div className="min-w-0">
-                <div className="flex items-center gap-3">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch lg:justify-between">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start gap-3">
                   <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-500 text-white shadow-[0_12px_28px_-16px_rgba(37,99,235,0.9)]">
                     <FiList size={18} />
                   </div>
-                  <div>
-                    <p className="text-base font-semibold text-slate-900 dark:text-slate-100">任务列表</p>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-base font-semibold text-slate-900 dark:text-slate-100">任务列表</p>
+                      {searchKeyword.trim() && (
+                        <span className="inline-flex items-center rounded-full border border-blue-200/80 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-300">
+                          搜索中
+                        </span>
+                      )}
+                    </div>
                     <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                      当前显示 {sortedTasks.length} 条{searchKeyword.trim() ? '搜索结果' : ''}，已完成 {summaryCompletedTasks} 条，待处理 {summaryPendingTasks} 条
+                      当前显示 {sortedTasks.length} 条{searchKeyword.trim() ? '搜索结果' : ''}，用于快速浏览和处理当前任务。
                     </p>
                   </div>
                 </div>
 
                 <div className="mt-4 max-w-xl rounded-2xl border border-white/70 bg-white/80 p-3 shadow-[0_12px_36px_-28px_rgba(15,23,42,0.28)] backdrop-blur-sm dark:border-white/10 dark:bg-white/[0.03]">
                   <div className="mb-2 flex items-center justify-between text-xs">
-                    <span className="font-medium text-slate-500 dark:text-slate-400">整体完成进度</span>
+                    <span className="font-medium text-slate-500 dark:text-slate-400">当前列表完成进度</span>
                     <span className="font-semibold text-slate-800 dark:text-slate-200">{summaryProgress}%</span>
                   </div>
                   <div className="h-2.5 overflow-hidden rounded-full bg-slate-200/80 dark:bg-white/10">
@@ -251,48 +258,36 @@ export function TaskTableView({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:min-w-[380px]">
-                <div className="rounded-2xl border border-slate-200/80 bg-white/80 p-3 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-white/[0.03]">
+              <div className="grid grid-cols-2 gap-3 lg:w-[420px] lg:grid-cols-2 lg:self-start">
+                <div className="rounded-2xl border border-slate-200/80 bg-white/85 p-4 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-white/[0.03]">
                   <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
                     <FiTarget size={14} />
                     <span className="text-xs font-medium">任务总数</span>
                   </div>
-                  <div className="mt-2 text-xl font-semibold text-slate-900 dark:text-slate-100">{summaryTotalTasks}</div>
+                  <div className="mt-3 text-2xl font-semibold leading-none text-slate-900 dark:text-slate-100">{summaryTotalTasks}</div>
                 </div>
-
-                <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50/80 p-3 shadow-sm backdrop-blur-sm dark:border-emerald-500/20 dark:bg-emerald-500/10">
+                <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50/85 p-4 shadow-sm backdrop-blur-sm dark:border-emerald-500/20 dark:bg-emerald-500/10">
                   <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-300">
                     <FiCheckCircle size={14} />
                     <span className="text-xs font-medium">已完成</span>
                   </div>
-                  <div className="mt-2 text-xl font-semibold text-emerald-700 dark:text-emerald-200">{summaryCompletedTasks}</div>
+                  <div className="mt-3 text-2xl font-semibold leading-none text-emerald-700 dark:text-emerald-200">{summaryCompletedTasks}</div>
                 </div>
-
-                <div className="rounded-2xl border border-amber-200/80 bg-amber-50/80 p-3 shadow-sm backdrop-blur-sm dark:border-amber-500/20 dark:bg-amber-500/10">
+                <div className="rounded-2xl border border-amber-200/80 bg-amber-50/85 p-4 shadow-sm backdrop-blur-sm dark:border-amber-500/20 dark:bg-amber-500/10">
                   <div className="flex items-center gap-2 text-amber-600 dark:text-amber-300">
                     <FiClock size={14} />
                     <span className="text-xs font-medium">待处理</span>
                   </div>
-                  <div className="mt-2 text-xl font-semibold text-amber-700 dark:text-amber-200">{summaryPendingTasks}</div>
+                  <div className="mt-3 text-2xl font-semibold leading-none text-amber-700 dark:text-amber-200">{summaryPendingTasks}</div>
+                </div>
+                <div className="rounded-2xl border border-cyan-200/80 bg-cyan-50/85 p-4 shadow-sm backdrop-blur-sm dark:border-cyan-500/20 dark:bg-cyan-500/10">
+                  <div className="flex items-center gap-2 text-cyan-600 dark:text-cyan-300">
+                    <FiList size={14} />
+                    <span className="text-xs font-medium">完成率</span>
+                  </div>
+                  <div className="mt-3 text-2xl font-semibold leading-none text-cyan-700 dark:text-cyan-200">{summaryProgress}%</div>
                 </div>
               </div>
-            </div>
-
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center rounded-full border border-emerald-200/80 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300">
-                完成率 {summaryProgress}%
-              </span>
-              <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300">
-                共 {summaryTotalTasks} 个任务
-              </span>
-              <span className="inline-flex items-center rounded-full border border-slate-200/80 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-300">
-                当前页 {sortedTasks.length} 条
-              </span>
-              {searchKeyword.trim() && (
-                <span className="inline-flex items-center rounded-full border border-blue-200/80 bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-300">
-                  搜索：{searchKeyword}
-                </span>
-              )}
             </div>
           </div>
 
