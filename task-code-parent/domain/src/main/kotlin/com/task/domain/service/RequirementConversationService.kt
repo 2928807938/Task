@@ -434,7 +434,7 @@ class RequirementConversationService(
             }
             .flatMap { updatedList ->
                 log.info("已更新需求对话列表基本信息，id={}", updatedList.id)
-                
+
                 // 2. 更新需求分类（必须先完成）
                 val categoryId = updatedList.requirementCategoryId
                 if (categoryId == null) {
@@ -443,9 +443,34 @@ class RequirementConversationService(
                         tags = tags,
                         colors = colors,
                         conversationList = updatedList
-                    ) .map { it as RequirementConversation }
+                    )
+                        .map { it as RequirementConversation }
+                        .flatMap { conversationWithCategory ->
+                            continueUpdateRelatedModels(
+                                conversation = conversationWithCategory,
+                                overallCompleteness = overallCompleteness,
+                                aspects = aspects,
+                                optimizationSuggestions = optimizationSuggestions,
+                                priority = priority,
+                                scheduling = scheduling,
+                                factors = factors,
+                                justification = justification,
+                                suggestions = suggestions,
+                                summary = summary,
+                                taskArrangement = taskArrangement,
+                                mainTask = mainTask,
+                                subTasks = subTasks,
+                                parallelismScore = parallelismScore,
+                                parallelExecutionTips = parallelExecutionTips,
+                                optimistic = optimistic,
+                                mostLikely = mostLikely,
+                                pessimistic = pessimistic,
+                                expected = expected,
+                                standardDeviation = standardDeviation
+                            )
+                        }
                 }
-                
+
                 requirementCategoryService.update(
                     id = categoryId,
                     tags = tags,
@@ -454,119 +479,162 @@ class RequirementConversationService(
                 ).flatMap { updatedListWithCategory ->
                     log.info("已更新需求分类，conversationListId={}", updatedList.id)
 
-                    val conversation = updatedListWithCategory as RequirementConversation
-
-                    // 串行更新关联模型，始终使用上一步返回的最新会话版本，避免并发回写触发乐观锁冲突
-                    Mono.just(conversation)
-                        .flatMap { currentConversation ->
-                            currentConversation.requirementCompletenessId?.let { completenessId ->
-                                requirementCompletenessService.update(
-                                    id = completenessId,
-                                    overallCompleteness = overallCompleteness,
-                                    aspects = aspects,
-                                    optimizationSuggestions = optimizationSuggestions,
-                                    conversationList = currentConversation
-                                )
-                            } ?: requirementCompletenessService.create(
-                                overallCompleteness = overallCompleteness,
-                                aspects = aspects,
-                                optimizationSuggestions = optimizationSuggestions,
-                                conversationList = currentConversation
-                            )
-                        }
-                        .map { it as RequirementConversation }
-                        .flatMap { currentConversation ->
-                            currentConversation.requirementPriorityId?.let { priorityId ->
-                                requirementPriorityService.update(
-                                    id = priorityId,
-                                    priority = priority,
-                                    scheduling = scheduling,
-                                    factors = factors,
-                                    justification = justification,
-                                    conversationList = currentConversation
-                                )
-                            } ?: requirementPriorityService.create(
-                                priority = priority,
-                                scheduling = scheduling,
-                                factors = factors,
-                                justification = justification,
-                                conversationList = currentConversation
-                            )
-                        }
-                        .map { it as RequirementConversation }
-                        .flatMap { currentConversation ->
-                            currentConversation.requirementSuggestionId?.let { suggestionId ->
-                                requirementSuggestionService.update(
-                                    id = suggestionId,
-                                    suggestions = suggestions,
-                                    conversationList = currentConversation
-                                )
-                            } ?: requirementSuggestionService.create(
-                                suggestions = suggestions,
-                                conversationList = currentConversation
-                            )
-                        }
-                        .map { it as RequirementConversation }
-                        .flatMap { currentConversation ->
-                            currentConversation.requirementSummaryAnalysisId?.let { summaryId ->
-                                requirementSummaryAnalysisService.update(
-                                    id = summaryId,
-                                    summary = summary,
-                                    taskArrangement = taskArrangement,
-                                    conversationList = currentConversation
-                                )
-                            } ?: requirementSummaryAnalysisService.create(
-                                summary = summary,
-                                taskArrangement = taskArrangement,
-                                conversationList = currentConversation
-                            )
-                        }
-                        .map { it as RequirementConversation }
-                        .flatMap { currentConversation ->
-                            currentConversation.requirementTaskBreakdownId?.let { taskBreakdownId ->
-                                requirementTaskBreakdownService.update(
-                                    id = taskBreakdownId,
-                                    mainTask = mainTask,
-                                    subTasks = subTasks,
-                                    parallelismScore = parallelismScore,
-                                    parallelExecutionTips = parallelExecutionTips,
-                                    conversationList = currentConversation
-                                )
-                            } ?: requirementTaskBreakdownService.create(
-                                mainTask = mainTask,
-                                subTasks = subTasks,
-                                parallelismScore = parallelismScore,
-                                parallelExecutionTips = parallelExecutionTips,
-                                conversationList = currentConversation
-                            )
-                        }
-                        .map { it as RequirementConversation }
-                        .flatMap { currentConversation ->
-                            currentConversation.requirementWorkloadId?.let { workloadId ->
-                                requirementWorkloadService.update(
-                                    id = workloadId,
-                                    optimistic = optimistic,
-                                    mostLikely = mostLikely,
-                                    pessimistic = pessimistic,
-                                    expected = expected,
-                                    standardDeviation = standardDeviation,
-                                    conversationList = currentConversation
-                                )
-                            } ?: requirementWorkloadService.create(
-                                optimistic = optimistic,
-                                mostLikely = mostLikely,
-                                pessimistic = pessimistic,
-                                expected = expected,
-                                standardDeviation = standardDeviation,
-                                conversationList = currentConversation
-                            )
-                        }
-                        .map { it as RequirementConversation }
-                        .flatMap { finalConversation ->
-                            log.info("已更新所有关联模型，conversationListId={}", finalConversation.id)
-                            getById(finalConversation.id!!)
-                        }
+                    continueUpdateRelatedModels(
+                        conversation = updatedListWithCategory as RequirementConversation,
+                        overallCompleteness = overallCompleteness,
+                        aspects = aspects,
+                        optimizationSuggestions = optimizationSuggestions,
+                        priority = priority,
+                        scheduling = scheduling,
+                        factors = factors,
+                        justification = justification,
+                        suggestions = suggestions,
+                        summary = summary,
+                        taskArrangement = taskArrangement,
+                        mainTask = mainTask,
+                        subTasks = subTasks,
+                        parallelismScore = parallelismScore,
+                        parallelExecutionTips = parallelExecutionTips,
+                        optimistic = optimistic,
+                        mostLikely = mostLikely,
+                        pessimistic = pessimistic,
+                        expected = expected,
+                        standardDeviation = standardDeviation
+                    )
                 }
+            }
+    }
+
+    private fun continueUpdateRelatedModels(
+        conversation: RequirementConversation,
+        overallCompleteness: String,
+        aspects: List<Aspect>,
+        optimizationSuggestions: List<OptimizationSuggestion>,
+        priority: PriorityDetails,
+        scheduling: Scheduling,
+        factors: Factors,
+        justification: String,
+        suggestions: List<Suggestion>,
+        summary: Summary,
+        taskArrangement: TaskArrangement,
+        mainTask: String,
+        subTasks: List<SubTask>,
+        parallelismScore: Int,
+        parallelExecutionTips: String,
+        optimistic: String,
+        mostLikely: String,
+        pessimistic: String,
+        expected: String,
+        standardDeviation: String
+    ): Mono<RequirementConversation> {
+        return Mono.just(conversation)
+            .flatMap { currentConversation ->
+                currentConversation.requirementCompletenessId?.let { completenessId ->
+                    requirementCompletenessService.update(
+                        id = completenessId,
+                        overallCompleteness = overallCompleteness,
+                        aspects = aspects,
+                        optimizationSuggestions = optimizationSuggestions,
+                        conversationList = currentConversation
+                    )
+                } ?: requirementCompletenessService.create(
+                    overallCompleteness = overallCompleteness,
+                    aspects = aspects,
+                    optimizationSuggestions = optimizationSuggestions,
+                    conversationList = currentConversation
+                )
+            }
+            .map { it as RequirementConversation }
+            .flatMap { currentConversation ->
+                currentConversation.requirementPriorityId?.let { priorityId ->
+                    requirementPriorityService.update(
+                        id = priorityId,
+                        priority = priority,
+                        scheduling = scheduling,
+                        factors = factors,
+                        justification = justification,
+                        conversationList = currentConversation
+                    )
+                } ?: requirementPriorityService.create(
+                    priority = priority,
+                    scheduling = scheduling,
+                    factors = factors,
+                    justification = justification,
+                    conversationList = currentConversation
+                )
+            }
+            .map { it as RequirementConversation }
+            .flatMap { currentConversation ->
+                currentConversation.requirementSuggestionId?.let { suggestionId ->
+                    requirementSuggestionService.update(
+                        id = suggestionId,
+                        suggestions = suggestions,
+                        conversationList = currentConversation
+                    )
+                } ?: requirementSuggestionService.create(
+                    suggestions = suggestions,
+                    conversationList = currentConversation
+                )
+            }
+            .map { it as RequirementConversation }
+            .flatMap { currentConversation ->
+                currentConversation.requirementSummaryAnalysisId?.let { summaryId ->
+                    requirementSummaryAnalysisService.update(
+                        id = summaryId,
+                        summary = summary,
+                        taskArrangement = taskArrangement,
+                        conversationList = currentConversation
+                    )
+                } ?: requirementSummaryAnalysisService.create(
+                    summary = summary,
+                    taskArrangement = taskArrangement,
+                    conversationList = currentConversation
+                )
+            }
+            .map { it as RequirementConversation }
+            .flatMap { currentConversation ->
+                currentConversation.requirementTaskBreakdownId?.let { taskBreakdownId ->
+                    requirementTaskBreakdownService.update(
+                        id = taskBreakdownId,
+                        mainTask = mainTask,
+                        subTasks = subTasks,
+                        parallelismScore = parallelismScore,
+                        parallelExecutionTips = parallelExecutionTips,
+                        conversationList = currentConversation
+                    )
+                } ?: requirementTaskBreakdownService.create(
+                    mainTask = mainTask,
+                    subTasks = subTasks,
+                    parallelismScore = parallelismScore,
+                    parallelExecutionTips = parallelExecutionTips,
+                    conversationList = currentConversation
+                )
+            }
+            .map { it as RequirementConversation }
+            .flatMap { currentConversation ->
+                currentConversation.requirementWorkloadId?.let { workloadId ->
+                    requirementWorkloadService.update(
+                        id = workloadId,
+                        optimistic = optimistic,
+                        mostLikely = mostLikely,
+                        pessimistic = pessimistic,
+                        expected = expected,
+                        standardDeviation = standardDeviation,
+                        conversationList = currentConversation
+                    )
+                } ?: requirementWorkloadService.create(
+                    optimistic = optimistic,
+                    mostLikely = mostLikely,
+                    pessimistic = pessimistic,
+                    expected = expected,
+                    standardDeviation = standardDeviation,
+                    conversationList = currentConversation
+                )
+            }
+            .map { it as RequirementConversation }
+            .flatMap { finalConversation ->
+                log.info("已更新所有关联模型，conversationListId={}", finalConversation.id)
+                getById(finalConversation.id!!)
             }
     }
 
