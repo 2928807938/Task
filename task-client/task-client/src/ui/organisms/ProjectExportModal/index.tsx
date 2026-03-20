@@ -349,6 +349,17 @@ const ProjectExportModal: React.FC<ProjectExportModalProps> = ({
     onClose();
   };
 
+  const panelClass = isDarkMode
+    ? 'rounded-[24px] border border-slate-800 bg-slate-900/80 p-5 shadow-[0_12px_32px_rgba(2,8,23,0.24)]'
+    : 'rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_12px_32px_rgba(15,23,42,0.06)]';
+  const sectionTitleClass = isDarkMode
+    ? 'text-sm font-semibold tracking-wide text-slate-100'
+    : 'text-sm font-semibold tracking-wide text-slate-900';
+  const sectionHintClass = isDarkMode ? 'text-xs text-slate-400' : 'text-xs text-slate-500';
+  const quickActionButtonClass = isDarkMode
+    ? 'inline-flex items-center gap-1 rounded-full bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-200 transition hover:bg-slate-700'
+    : 'inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-200';
+
   if (!isOpen) return null;
 
   return (
@@ -369,34 +380,34 @@ const ProjectExportModal: React.FC<ProjectExportModalProps> = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ type: 'spring', duration: 0.3 }}
-          className={`relative w-full max-w-4xl max-h-[90vh] mx-4 rounded-2xl shadow-2xl border overflow-hidden ${
+          className={`relative mx-4 flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-[28px] border shadow-[0_28px_80px_rgba(15,23,42,0.22)] ${
             isDarkMode 
-              ? 'bg-gray-900 border-gray-700' 
-              : 'bg-white border-gray-200'
+              ? 'bg-slate-900 border-slate-700' 
+              : 'bg-white border-slate-200'
           }`}
         >
           {/* 头部 */}
-          <div className={`flex items-center justify-between p-3 border-b ${
-            isDarkMode ? 'border-gray-700' : 'border-gray-200'
+          <div className={`flex items-start justify-between border-b px-6 py-5 sm:px-7 ${
+            isDarkMode ? 'border-slate-700' : 'border-slate-200'
           }`}>
             <div>
-              <h2 className={`text-lg font-semibold ${
-                isDarkMode ? 'text-white' : 'text-gray-900'
+              <h2 className={`text-2xl font-semibold tracking-tight ${
+                isDarkMode ? 'text-white' : 'text-slate-900'
               }`}>
                 导出项目报告
               </h2>
-              <p className={`text-sm mt-1 ${
-                isDarkMode ? 'text-gray-400' : 'text-gray-500'
+              <p className={`mt-2 text-sm ${
+                isDarkMode ? 'text-slate-400' : 'text-slate-500'
               }`}>
                 选择导出格式和内容选项
               </p>
             </div>
             <button
               onClick={handleClose}
-              className={`p-2 rounded-lg transition-colors ${
+              className={`rounded-2xl p-2.5 transition-colors ${
                 isDarkMode 
-                  ? 'hover:bg-gray-800 text-gray-400 hover:text-white' 
-                  : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
+                  ? 'text-slate-400 hover:bg-slate-800 hover:text-white' 
+                  : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'
               }`}
             >
               <FiX size={16} />
@@ -404,30 +415,31 @@ const ProjectExportModal: React.FC<ProjectExportModalProps> = ({
           </div>
 
           {/* 内容 */}
-          <div className="flex-1 overflow-y-auto p-3">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+          <div className="flex-1 overflow-y-auto px-6 py-5 sm:px-7">
+            <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(220px,0.82fr)_minmax(320px,1.16fr)_minmax(260px,0.9fr)]">
               {/* 第一列：格式选择 */}
-              <div>
+              <div className={panelClass}>
                 {/* 格式选择 */}
                 <div>
-                  <h3 className={`text-sm font-medium mb-2 ${
-                    isDarkMode ? 'text-white' : 'text-gray-900'
-                  }`}>
+                  <h3 className={`${sectionTitleClass} mb-4`}>
                     选择导出格式
                   </h3>
+                  <p className={`${sectionHintClass} mb-4`}>
+                    选择适合当前阅读、打印或分析场景的导出文件类型
+                  </p>
                   <div className="space-y-2">
                     {formatOptions.map((format) => (
                       <label
                         key={format.id}
-                        className={`flex items-center p-2 rounded-lg border cursor-pointer transition-all ${
+                        className={`flex min-h-[92px] items-center gap-3 rounded-2xl border p-4 transition-all duration-200 ${
                           exportOptions.format === format.id
                             ? isDarkMode
-                              ? 'border-blue-500 bg-blue-500/10'
-                              : 'border-blue-500 bg-blue-50'
+                              ? 'border-blue-400 bg-blue-500/10 shadow-[0_12px_24px_rgba(59,130,246,0.14)]'
+                              : 'border-blue-400 bg-blue-50 shadow-[0_12px_24px_rgba(59,130,246,0.10)]'
                             : isDarkMode
-                              ? 'border-gray-700 hover:border-gray-600'
-                              : 'border-gray-200 hover:border-gray-300'
-                        }`}
+                              ? 'border-slate-700 hover:border-slate-500 hover:bg-slate-800/70'
+                              : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                        } cursor-pointer`}
                       >
                         <input
                           type="radio"
@@ -437,7 +449,7 @@ const ProjectExportModal: React.FC<ProjectExportModalProps> = ({
                           onChange={(e) => handleOptionChange('format', e.target.value)}
                           className="sr-only"
                         />
-                        <div className={`flex items-center justify-center w-6 h-6 rounded-lg mr-2 ${format.bgColor}`}>
+                        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${format.bgColor}`}>
                           <span className={format.color}>
                             {format.id === 'pdf' && <FiFileText size={16} />}
                             {format.id === 'excel' && <FiFile size={16} />}
@@ -466,25 +478,26 @@ const ProjectExportModal: React.FC<ProjectExportModalProps> = ({
               </div>
 
               {/* 第二列：报告模板选择 */}
-              <div>
-                <h3 className={`text-sm font-medium mb-2 ${
-                  isDarkMode ? 'text-white' : 'text-gray-900'
-                }`}>
+              <div className={panelClass}>
+                <h3 className={`${sectionTitleClass} mb-4`}>
                   选择报告模板
                 </h3>
+                <p className={`${sectionHintClass} mb-4`}>
+                  通过模板快速带出适合不同读者的报告结构
+                </p>
                 <div className="space-y-2">
                   {templateOptions.map((template) => (
                     <label
                       key={template.id}
-                      className={`flex items-start p-2 rounded-lg border cursor-pointer transition-all ${
+                      className={`flex min-h-[132px] items-start gap-3 rounded-2xl border p-4 transition-all duration-200 ${
                         exportOptions.template === template.id
                           ? isDarkMode
-                            ? 'border-blue-500 bg-blue-500/10'
-                            : 'border-blue-500 bg-blue-50'
+                            ? 'border-blue-400 bg-blue-500/10 shadow-[0_12px_24px_rgba(59,130,246,0.14)]'
+                            : 'border-blue-400 bg-blue-50 shadow-[0_12px_24px_rgba(59,130,246,0.10)]'
                           : isDarkMode
-                            ? 'border-gray-700 hover:border-gray-600'
-                            : 'border-gray-200 hover:border-gray-300'
-                      }`}
+                            ? 'border-slate-700 hover:border-slate-500 hover:bg-slate-800/70'
+                            : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                      } cursor-pointer`}
                     >
                       <input
                         type="radio"
@@ -494,7 +507,7 @@ const ProjectExportModal: React.FC<ProjectExportModalProps> = ({
                         onChange={(e) => handleTemplateChange(e.target.value as ReportTemplate)}
                         className="sr-only"
                       />
-                      <div className={`flex items-center justify-center w-6 h-6 rounded-lg mr-2 ${
+                      <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${
                         isDarkMode ? 'bg-blue-500/20' : 'bg-blue-100'
                       }`}>
                         <span className={isDarkMode ? 'text-blue-400' : 'text-blue-600'}>
@@ -545,15 +558,18 @@ const ProjectExportModal: React.FC<ProjectExportModalProps> = ({
               </div>
 
               {/* 第三列：内容选项 */}
-              <div className="space-y-4">
+              <div className={`${panelClass} space-y-4`}>
                 {/* 内容选项 */}
                 <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className={`text-sm font-medium ${
-                      isDarkMode ? 'text-white' : 'text-gray-900'
-                    }`}>
-                      包含内容
-                    </h3>
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <div>
+                      <h3 className={sectionTitleClass}>
+                        包含内容
+                      </h3>
+                      <p className={`${sectionHintClass} mt-1`}>
+                        当前模板会自动带出推荐内容，也可以切换为自定义
+                      </p>
+                    </div>
                     {exportOptions.template && (
                       <span className={`text-xs ${
                         isDarkMode ? 'text-blue-400' : 'text-blue-600'
@@ -575,14 +591,14 @@ const ProjectExportModal: React.FC<ProjectExportModalProps> = ({
                       return (
                         <label
                           key={option.key}
-                          className={`flex items-start p-2 rounded-lg border transition-all ${
+                          className={`flex items-start gap-3 rounded-2xl border p-3 transition-all duration-200 ${
                             isDisabled 
                               ? isDarkMode
-                                ? 'border-gray-700 bg-gray-800/30 cursor-not-allowed'
-                                : 'border-gray-200 bg-gray-50 cursor-not-allowed'
+                                ? 'cursor-not-allowed border-slate-700 bg-slate-800/30'
+                                : 'cursor-not-allowed border-slate-200 bg-slate-50'
                               : isDarkMode
-                                ? 'border-gray-700 hover:border-gray-600 cursor-pointer'
-                                : 'border-gray-200 hover:border-gray-300 cursor-pointer'
+                                ? 'cursor-pointer border-slate-700 hover:border-slate-500 hover:bg-slate-800/70'
+                                : 'cursor-pointer border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                           }`}
                         >
                           <input
@@ -623,16 +639,15 @@ const ProjectExportModal: React.FC<ProjectExportModalProps> = ({
                   </div>
                   
                   {/* 自定义选项按钮 */}
-                  <div className="mt-2 space-y-1">
+                  <div className="mt-4 flex flex-wrap gap-2">
                     {exportOptions.template && (
                       <div>
                         <button
                           onClick={() => setExportOptions(prev => ({ ...prev, template: undefined }))}
-                          className={`text-xs ${
-                            isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'
-                          } transition-colors`}
+                          className={`${quickActionButtonClass} ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}
                         >
-                          + 自定义内容选项
+                          <FiLayers size={12} />
+                          自定义内容选项
                         </button>
                       </div>
                     )}
@@ -641,11 +656,9 @@ const ProjectExportModal: React.FC<ProjectExportModalProps> = ({
                     <div>
                       <button
                         onClick={() => setShowCustomFields(!showCustomFields)}
-                        className={`text-xs flex items-center ${
-                          isDarkMode ? 'text-purple-400 hover:text-purple-300' : 'text-purple-600 hover:text-purple-700'
-                        } transition-colors`}
+                        className={`${quickActionButtonClass} ${isDarkMode ? 'text-purple-300' : 'text-purple-700'}`}
                       >
-                        <FiEye className="mr-1" size={12} />
+                        <FiEye size={12} />
                         {showCustomFields ? '隐藏字段选择' : '自定义字段选择'}
                       </button>
                     </div>
@@ -655,18 +668,21 @@ const ProjectExportModal: React.FC<ProjectExportModalProps> = ({
             </div>
 
             {/* 高级筛选选项 - 全宽 */}
-            <div className="col-span-1 lg:col-span-3">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className={`text-sm font-medium ${
-                  isDarkMode ? 'text-white' : 'text-gray-900'
-                }`}>
-                  高级筛选
-                </h3>
+            <div className={`${panelClass} mt-5`}>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h3 className={sectionTitleClass}>
+                    高级筛选
+                  </h3>
+                  <p className={`${sectionHintClass} mt-1`}>
+                    按时间、状态和优先级筛选导出范围
+                  </p>
+                </div>
                 <button
                   onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                  className={`flex items-center text-sm ${
-                    isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'
-                  } transition-colors`}
+                  className={`inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
+                    isDarkMode ? 'bg-slate-800 text-blue-300 hover:bg-slate-700' : 'bg-slate-100 text-blue-700 hover:bg-slate-200'
+                  }`}
                 >
                   <FiFilter className="mr-1" size={14} />
                   {showAdvancedFilters ? '收起' : '展开'}
@@ -684,14 +700,14 @@ const ProjectExportModal: React.FC<ProjectExportModalProps> = ({
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
                     transition={{ duration: 0.2 }}
-                    className="overflow-hidden"
+                    className="mt-4 overflow-hidden"
                   >
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                       {/* 日期范围筛选 */}
-                      <div className={`p-2 rounded-lg border ${
+                      <div className={`rounded-2xl border p-4 ${
                         isDarkMode
-                          ? 'border-gray-700 bg-gray-800/50'
-                          : 'border-gray-200 bg-gray-50'
+                          ? 'border-slate-700 bg-slate-800/50'
+                          : 'border-slate-200 bg-slate-50'
                       }`}>
                         <div className="flex items-center mb-2">
                           <FiCalendar className={`mr-2 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} size={14} />
@@ -707,32 +723,32 @@ const ProjectExportModal: React.FC<ProjectExportModalProps> = ({
                             placeholder="开始日期"
                             value={dateRange.start}
                             onChange={(e) => handleDateRangeChange('start', e.target.value)}
-                            className={`w-full px-2 py-1 rounded text-xs border ${
+                            className={`w-full rounded-xl border px-3 py-2 text-xs ${
                               isDarkMode
-                                ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-500'
-                                : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500'
-                            } focus:outline-none focus:ring-1 focus:ring-blue-500`}
+                                ? 'border-slate-600 bg-slate-900 text-white focus:border-blue-500'
+                                : 'border-slate-300 bg-white text-slate-900 focus:border-blue-500'
+                            } focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
                           />
                           <input
                             type="date"
                             placeholder="结束日期"
                             value={dateRange.end}
                             onChange={(e) => handleDateRangeChange('end', e.target.value)}
-                            className={`w-full px-2 py-1 rounded text-xs border ${
+                            className={`w-full rounded-xl border px-3 py-2 text-xs ${
                               isDarkMode
-                                ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-500'
-                                : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500'
-                            } focus:outline-none focus:ring-1 focus:ring-blue-500`}
+                                ? 'border-slate-600 bg-slate-900 text-white focus:border-blue-500'
+                                : 'border-slate-300 bg-white text-slate-900 focus:border-blue-500'
+                            } focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
                           />
                         </div>
                       </div>
 
                       {/* 任务状态筛选 */}
                       {availableStatuses.length > 0 && (
-                        <div className={`p-3 rounded-lg border ${
+                        <div className={`rounded-2xl border p-4 ${
                           isDarkMode
-                            ? 'border-gray-700 bg-gray-800/50'
-                            : 'border-gray-200 bg-gray-50'
+                            ? 'border-slate-700 bg-slate-800/50'
+                            : 'border-slate-200 bg-slate-50'
                         }`}>
                           <div className={`text-sm font-medium mb-2 ${
                             isDarkMode ? 'text-white' : 'text-gray-900'
@@ -775,10 +791,10 @@ const ProjectExportModal: React.FC<ProjectExportModalProps> = ({
 
                       {/* 任务优先级筛选 */}
                       {availablePriorities.length > 0 && (
-                        <div className={`p-2 rounded-lg border ${
+                        <div className={`rounded-2xl border p-4 ${
                           isDarkMode
-                            ? 'border-gray-700 bg-gray-800/50'
-                            : 'border-gray-200 bg-gray-50'
+                            ? 'border-slate-700 bg-slate-800/50'
+                            : 'border-slate-200 bg-slate-50'
                         }`}>
                           <div className={`text-sm font-medium mb-2 ${
                             isDarkMode ? 'text-white' : 'text-gray-900'
@@ -829,20 +845,23 @@ const ProjectExportModal: React.FC<ProjectExportModalProps> = ({
                   animate={{ height: 'auto', opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
                   transition={{ duration: 0.2 }}
-                  className="col-span-1 lg:col-span-3 mt-4 overflow-hidden"
+                  className="mt-5 overflow-hidden"
                 >
-                  <div className={`p-3 rounded-lg border ${
+                  <div className={`rounded-[24px] border p-5 ${
                     isDarkMode
-                      ? 'border-gray-700 bg-gray-800/50'
-                      : 'border-gray-200 bg-gray-50'
+                      ? 'border-slate-700 bg-slate-800/50'
+                      : 'border-slate-200 bg-slate-50'
                   }`}>
-                    <h3 className={`text-sm font-medium mb-3 ${
-                      isDarkMode ? 'text-white' : 'text-gray-900'
-                    }`}>
-                      自定义字段选择
-                    </h3>
+                    <div className="mb-4">
+                      <h3 className={sectionTitleClass}>
+                        自定义字段选择
+                      </h3>
+                      <p className={`${sectionHintClass} mt-1`}>
+                        精细控制导出的字段范围，生成更贴合场景的报告
+                      </p>
+                    </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
                       {/* 项目字段 */}
                       <div>
                         <h4 className={`text-xs font-medium mb-2 ${
@@ -1027,8 +1046,8 @@ const ProjectExportModal: React.FC<ProjectExportModalProps> = ({
           </div>
 
           {/* 底部 */}
-          <div className={`flex items-center justify-between p-4 border-t ${
-            isDarkMode ? 'border-gray-700' : 'border-gray-200'
+          <div className={`flex flex-wrap items-center justify-between gap-4 border-t px-6 py-4 sm:px-7 ${
+            isDarkMode ? 'border-slate-700 bg-slate-900/90' : 'border-slate-200 bg-white/95'
           }`}>
             {/* 状态提示 */}
             <div className="flex-1">
@@ -1047,14 +1066,14 @@ const ProjectExportModal: React.FC<ProjectExportModalProps> = ({
             </div>
 
             {/* 操作按钮 */}
-            <div className="flex items-center space-x-2">
+            <div className="flex flex-wrap items-center gap-3">
               <button
                 onClick={handleClose}
                 disabled={isExporting}
-                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                className={`rounded-2xl px-4 py-2.5 text-sm font-medium transition-colors ${
                   isDarkMode
-                    ? 'text-gray-400 hover:text-white hover:bg-gray-800'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                    ? 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                 } disabled:opacity-50`}
               >
                 取消
@@ -1062,10 +1081,10 @@ const ProjectExportModal: React.FC<ProjectExportModalProps> = ({
               <button
                 onClick={handlePreview}
                 disabled={isExporting}
-                className={`flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                className={`inline-flex items-center rounded-2xl border px-4 py-2.5 text-sm font-medium transition-colors ${
                   isDarkMode
-                    ? 'text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 border border-blue-500/30'
-                    : 'text-blue-600 hover:text-blue-700 hover:bg-blue-50 border border-blue-200'
+                    ? 'border-blue-500/30 text-blue-300 hover:bg-blue-500/10 hover:text-blue-200'
+                    : 'border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700'
                 } disabled:opacity-50`}
               >
                 <FiEye className="mr-1.5" size={14} />
@@ -1074,10 +1093,10 @@ const ProjectExportModal: React.FC<ProjectExportModalProps> = ({
               <button
                 onClick={handleExport}
                 disabled={isExporting || exportSuccess}
-                className={`flex items-center px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors ${
+                className={`inline-flex items-center rounded-2xl px-5 py-2.5 text-sm font-semibold text-white transition-all ${
                   isExporting || exportSuccess
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-blue-600 hover:bg-blue-700'
+                    ? 'cursor-not-allowed bg-slate-400'
+                    : 'bg-gradient-to-r from-blue-600 to-indigo-500 shadow-[0_12px_28px_rgba(59,130,246,0.28)] hover:-translate-y-0.5 hover:shadow-[0_16px_32px_rgba(59,130,246,0.32)]'
                 }`}
               >
                 {isExporting ? (
