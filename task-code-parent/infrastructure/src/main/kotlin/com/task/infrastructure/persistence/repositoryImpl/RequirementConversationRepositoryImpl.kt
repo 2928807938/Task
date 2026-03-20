@@ -36,7 +36,7 @@ class RequirementConversationRepositoryImpl(
     override fun toRecord(entity: RequirementConversation): RequirementConversationRecord {
         return RequirementConversationRecord(
             conversationListId = entity.conversationListId,
-            requirementId = entity.requirementId,
+            requirementId = entity.id,
             title = entity.title,
             startStatus = entity.startStatus,
             analysisStartStatus = entity.analysisStartStatus,
@@ -107,4 +107,4 @@ class RequirementConversationRepositoryImpl(
             version = record.version
         )
     }
-} 
+}
