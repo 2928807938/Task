@@ -17,6 +17,11 @@ data class RequirementConversation(
      * 关联 t_requirement_conversation_list.id
      */
     val conversationListId: Long?,
+
+    /**
+     * 关联到需求的ID
+     */
+    val requirementId: Long? = null,
     
     /**
      * 对话列表标题
@@ -161,6 +166,7 @@ data class RequirementConversation(
         return RequirementConversation(
             id = null,
             conversationListId = conversationListId,
+            requirementId = null,
             title = title,
             startStatus = startStatus,
             analysisStartStatus = null,

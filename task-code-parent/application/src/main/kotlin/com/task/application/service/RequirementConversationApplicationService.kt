@@ -82,12 +82,10 @@ class RequirementConversationApplicationService(
                 requirementConversationListService.listByProjectId(projectId)
                     .flatMap { conversationList ->
                         requirementConversationService.getByConversationListId(requireNotNull(conversationList.id))
+                            .filter { conversation -> conversation.requirementId != null }
                             .map { conversation ->
                                 RequirementConversationHistoryBriefVO.fromDomain(conversationList, conversation)
                             }
-                            .switchIfEmpty(
-                                Mono.just(RequirementConversationHistoryBriefVO.fromDomain(conversationList, null))
-                            )
                     }
             }
     }

@@ -36,7 +36,7 @@ class RequirementConversationRepositoryImpl(
     override fun toRecord(entity: RequirementConversation): RequirementConversationRecord {
         return RequirementConversationRecord(
             conversationListId = entity.conversationListId,
-            requirementId = entity.id ?: 0L, // 这里将对话列表自身的ID作为需求ID，需根据实际业务逻辑调整
+            requirementId = entity.requirementId,
             title = entity.title,
             startStatus = entity.startStatus,
             analysisStartStatus = entity.analysisStartStatus,
@@ -78,6 +78,7 @@ class RequirementConversationRepositoryImpl(
         return RequirementConversation(
             id = record.id,
             conversationListId = record.conversationListId,
+            requirementId = record.requirementId,
             title = record.title,
             startStatus = record.startStatus,
             analysisStartStatus = record.analysisStartStatus,
