@@ -28,6 +28,136 @@ interface ErrorWithMessage {
   message?: string;
 }
 
+const XSSI_PREFIX_PATTERN = /^\)]}',?\s*/;
+
+const normalizeJsonText = (rawText: string): string => rawText.replace(/^\uFEFF/, '').replace(XSSI_PREFIX_PATTERN, '').trim();
+
+const isObject = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
+
+const parseJsonValueToken = (text: string, startIndex: number): number => {
+  const openingChar = text[startIndex];
+
+  if (openingChar === '{' || openingChar === '[') {
+    const closingChar = openingChar === '{' ? '}' : ']';
+    let depth = 0;
+    let inString = false;
+    let isEscaped = false;
+
+    for (let index = startIndex; index < text.length; index += 1) {
+      const currentChar = text[index];
+
+      if (inString) {
+        if (isEscaped) {
+          isEscaped = false;
+          continue;
+        }
+
+        if (currentChar === '\\') {
+          isEscaped = true;
+          continue;
+        }
+
+        if (currentChar === '"') {
+          inString = false;
+        }
+
+        continue;
+      }
+
+      if (currentChar === '"') {
+        inString = true;
+        continue;
+      }
+
+      if (currentChar === openingChar) {
+        depth += 1;
+        continue;
+      }
+
+      if (currentChar === closingChar) {
+        depth -= 1;
+
+        if (depth === 0) {
+          return index + 1;
+        }
+      }
+    }
+
+    return -1;
+  }
+
+  if (openingChar === '"') {
+    let isEscaped = false;
+
+    for (let index = startIndex + 1; index < text.length; index += 1) {
+      const currentChar = text[index];
+
+      if (isEscaped) {
+        isEscaped = false;
+        continue;
+      }
+
+      if (currentChar === '\\') {
+        isEscaped = true;
+        continue;
+      }
+
+      if (currentChar === '"') {
+        return index + 1;
+      }
+    }
+
+    return -1;
+  }
+
+  let endIndex = startIndex;
+
+  while (endIndex < text.length && !/[\s,]/.test(text[endIndex])) {
+    endIndex += 1;
+  }
+
+  return endIndex;
+};
+
+export const parseJsonResponseBody = (rawText: string): unknown => {
+  const normalizedText = normalizeJsonText(rawText);
+
+  if (!normalizedText) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(normalizedText);
+  } catch {
+    const parsedValues: unknown[] = [];
+    let cursor = 0;
+
+    while (cursor < normalizedText.length) {
+      while (cursor < normalizedText.length && /[\s,]/.test(normalizedText[cursor])) {
+        cursor += 1;
+      }
+
+      if (cursor >= normalizedText.length) {
+        break;
+      }
+
+      const endIndex = parseJsonValueToken(normalizedText, cursor);
+      if (endIndex <= cursor) {
+        throw new Error('INVALID_JSON_SEQUENCE');
+      }
+
+      parsedValues.push(JSON.parse(normalizedText.slice(cursor, endIndex)));
+      cursor = endIndex;
+    }
+
+    if (parsedValues.length === 0) {
+      return null;
+    }
+
+    return parsedValues.length === 1 ? parsedValues[0] : parsedValues;
+  }
+};
+
 /**
  * 创建完整的请求URL
  */
@@ -104,12 +234,24 @@ const handleResponse = async <T>(response: Response): Promise<ApiResponse<T>> =>
     console.warn('权限不足，无法访问该资源');
   }
 
-  // 尝试解析JSON响应
+  // 优先读取文本，兼容 200 但空响应体的场景
   try {
-    const data = await response.json();
+    const rawText = await response.text();
+
+    if (!rawText.trim()) {
+      return {
+        success: response.ok,
+        data: null,
+        code: response.ok ? '200' : response.status.toString(),
+        message: response.ok ? null : (response.statusText || `服务器返回错误状态码: ${response.status}`),
+        timestamp: Date.now().toString()
+      };
+    }
+
+    const data = parseJsonResponseBody(rawText);
 
     // 如果不是标准ApiResponse格式，则进行包装
-    if (!('success' in data && 'code' in data)) {
+    if (!isObject(data) || !('success' in data && 'code' in data)) {
       const isSuccess = response.ok;
       return {
         success: isSuccess,
@@ -129,7 +271,8 @@ const handleResponse = async <T>(response: Response): Promise<ApiResponse<T>> =>
     }
 
     return data as ApiResponse<T>;
-  } catch {
+  } catch (error) {
+    console.error('响应解析失败:', error);
     // JSON解析错误，返回错误响应
     return {
       success: false,

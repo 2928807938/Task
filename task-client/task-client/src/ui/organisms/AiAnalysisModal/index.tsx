@@ -1,6 +1,6 @@
 "use client";
 
-import React, {useEffect, useState} from "react";
+import React, {useEffect, useRef, useState} from "react";
 import {AnimatePresence, motion} from 'framer-motion';
 import SimpleLoadingView from '../CreateTaskConfirmModal/components/SimpleLoadingView';
 import useTaskHook from '@/hooks/use-task-hook';
@@ -17,6 +17,7 @@ import useAiAnalysisDataHook from '@/hooks/use-ai-analysis-data-hook';
 import AiAnalysisHeader from './components/AiAnalysisHeader';
 import AiAnalysisContent from './components/AiAnalysisContent';
 import ConfirmDialog from './components/ConfirmDialog';
+import ConversationHistoryDrawer from './components/ConversationHistoryDrawer';
 import CreateTaskConfirmModal from '../CreateTaskConfirmModal';
 import TaskDetailModal from './components/TaskDetailModal';
 import {
@@ -26,11 +27,36 @@ import {
 } from '../CreateTaskConfirmModal/utils/analysisEventEmitter';
 import {CLOSE_AI_ANALYSIS_MODAL_EVENT} from '../CreateTaskConfirmModal/utils/closeModalEvent';
 import TaskDependencyGraph from './components/TaskDependencyGraph';
-import {AnalysisData, ChatMessage, SubTask, TaskSplitData} from './components/types';
-import requirementConversationApi, {CreateRequirementConversationRequest} from '@/adapters/api/requirement-conversation-api';
+import {ChatMessage, ComprehensiveAnalysis, SubTask, Suggestion, TaskSplitData} from './components/types';
+import requirementConversationApi, {
+    CreateRequirementConversationRequest,
+    RequirementConversationHistorySummary
+} from '@/adapters/api/requirement-conversation-api';
+import {
+    createInitialAnalysisData,
+    createInitialMessages,
+    restoreConversationFromHistoryDetail
+} from './components/history-utils';
 
 // 类型转换函数：将内部TaskSplitData转换为CreateTaskConfirmModal需要的格式
-const convertTaskSplitData = (data: TaskSplitData | undefined): any => {
+type TaskArrangementData = NonNullable<ComprehensiveAnalysis['taskArrangement']>;
+type TaskArrangementPhase = TaskArrangementData['phases'][number];
+type TaskArrangementTask = TaskArrangementPhase['tasks'][number];
+type TaskArrangementRisk = TaskArrangementData['riskManagement'][number];
+
+const normalizeHistorySummaries = (data: unknown): RequirementConversationHistorySummary[] => {
+    if (Array.isArray(data)) {
+        return data as RequirementConversationHistorySummary[];
+    }
+
+    if (data && typeof data === 'object' && 'conversationListId' in data) {
+        return [data as RequirementConversationHistorySummary];
+    }
+
+    return [];
+};
+
+const convertTaskSplitData = (data: TaskSplitData | undefined): Record<string, unknown> => {
     if (!data) return {};
 
     // 转换子任务数据结构
@@ -75,26 +101,23 @@ const AiAnalysisModal: React.FC<AiAnalysisModalProps> = ({ isOpen, onClose, proj
     const { theme } = useTheme(); // 获取主题
 
     // 在组件顶层获取创建任务的mutation
-    const { mutateAsync: createTask } = useTaskHook().useCreateTask();
-
     // 获取Toast组件
     const { addToast } = useToast();
     const [isCreatingRequirementConversation, setIsCreatingRequirementConversation] = useState(false);
 
-    const [messages, setMessages] = useState<ChatMessage[]>([
-        {
-            content: "您好，我是AI助手。我可以帮助您分析项目需求、拆分任务、评估工作量。请告诉我您需要什么帮助？",
-            isAi: true
-        }
-    ]);
-
-    // 历史记录相关状态和功能已移除
+    const [messages, setMessages] = useState<ChatMessage[]>(createInitialMessages());
+    const [activeConversationListId, setActiveConversationListId] = useState<string | null>(conversationListId || null);
+    const [isHistoryDrawerOpen, setIsHistoryDrawerOpen] = useState(false);
+    const [historySummaries, setHistorySummaries] = useState<RequirementConversationHistorySummary[]>([]);
+    const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+    const [historyError, setHistoryError] = useState<string | null>(null);
+    const [loadingHistoryConversationListId, setLoadingHistoryConversationListId] = useState<string | null>(null);
 
     const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
     const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
 
     // 使用封装后的面板控制Hook
-    const { activePanelId, handlePanelToggle, isPanelActive } = useAnalysisPanelsHook();
+    const { activePanelId, handlePanelToggle } = useAnalysisPanelsHook();
 
     // 依赖图弹窗状态
     const [dependencyGraphModalOpen, setDependencyGraphModalOpen] = useState<boolean>(false);
@@ -150,9 +173,7 @@ const AiAnalysisModal: React.FC<AiAnalysisModalProps> = ({ isOpen, onClose, proj
         streamingComplete,
         // 分配任务相关状态
         isAssignStreaming,
-        assignStreamingError,
         assignStreamingComplete,
-        assignMessages,
         assignResult
     } = taskApiHook;
 
@@ -170,61 +191,145 @@ const AiAnalysisModal: React.FC<AiAnalysisModalProps> = ({ isOpen, onClose, proj
         setMessages
     );
 
-    // 清空对话消息和分析数据
-    const handleClearMessages = () => {
-        // 重要！重置 API 状态，清除分析消息和结果
+    const resetConversationViewRef = useRef<() => void>(() => undefined);
+
+    resetConversationViewRef.current = () => {
         resetAnalysis();
+        resetAssign();
+        setMessages(createInitialMessages());
+        setAnalysisData(createInitialAnalysisData());
 
-        // 重置为初始欢迎消息
-        setMessages([
-            {
-                content: "您好，我是AI助手。我可以帮助您分析项目需求、拆分任务、评估工作量。请告诉我您需要什么帮助？",
-                isAi: true
-            }
-        ]);
-
-        // 重置分析数据
-        const initialAnalysisData: AnalysisData = {
-            overallScore: 0,
-            requirementScore: 0,
-            riskScore: 0,
-            progressScore: 0,
-            keyFindings: [],
-            risks: [],
-            suggestions: [],
-            tags: [],
-            colors: [],
-            isStreaming: false,
-            streamingError: null,
-            streamingComplete: false,
-            priorityLevel: '',
-            priorityScore: 0,
-            priorityAnalysis: '',
-            // 显式设置所有可选属性为未定义，确保它们被重置
-            priorityData: undefined,
-            completenessAnalysis: undefined,
-            taskSplitData: undefined,
-            workloadData: undefined,
-            pertWorkloadData: undefined,
-            comprehensiveAnalysis: undefined
-        };
-
-        setAnalysisData(initialAnalysisData);
-
-        // 关闭确认对话框
-        setIsConfirmDialogOpen(false);
-
-        // 取消所有面板的展开状态
-        // 使用handlePanelToggle重置面板状态
         if (activePanelId) {
-            handlePanelToggle(activePanelId); // 这会关闭当前打开的面板
+            handlePanelToggle(activePanelId);
+        }
+
+        setIsConfirmDialogOpen(false);
+        setIsCreateTaskModalOpen(false);
+    };
+
+    const fetchHistorySummaries = async () => {
+        if (!projectId) {
+            setHistoryError('缺少项目ID，无法查询历史对话');
+            setHistorySummaries([]);
+            return;
+        }
+
+        setIsHistoryLoading(true);
+        setHistoryError(null);
+
+        try {
+            const response = await requirementConversationApi.getProjectRequirementConversationHistories(projectId);
+            const normalizedSummaries = normalizeHistorySummaries(response.data);
+
+            if (response.success && (response.data === null || response.data === undefined)) {
+                setHistorySummaries([]);
+                setHistoryError(null);
+                return;
+            }
+
+            if (!response.success) {
+                setHistorySummaries([]);
+                setHistoryError(response.message || '历史对话加载失败');
+                return;
+            }
+
+            setHistorySummaries(normalizedSummaries.map((item) => ({
+                ...item,
+                conversationListId: String(item.conversationListId),
+                projectId: String(item.projectId),
+                conversationId: String(item.conversationId),
+            })));
+        } catch (error) {
+            console.error('加载历史对话失败:', error);
+            setHistorySummaries([]);
+            setHistoryError('历史对话加载失败，请稍后重试');
+        } finally {
+            setIsHistoryLoading(false);
         }
     };
 
+    const handleOpenHistory = async () => {
+        setIsHistoryDrawerOpen(true);
+        await fetchHistorySummaries();
+    };
+
+    const handleSelectHistory = async (history: RequirementConversationHistorySummary) => {
+        const historyConversationListId = String(history.conversationListId);
+        setLoadingHistoryConversationListId(historyConversationListId);
+
+        try {
+            const response = await requirementConversationApi.getRequirementConversationHistoryDetail(historyConversationListId);
+
+            if (!response.success || !response.data) {
+                addToast(response.message || '历史对话详情加载失败', 'error');
+                return;
+            }
+
+            const restoredConversation = restoreConversationFromHistoryDetail({
+                ...response.data,
+                conversationListId: String(response.data.conversationListId),
+                projectId: String(response.data.projectId),
+                conversation: {
+                    ...response.data.conversation,
+                    id: String(response.data.conversation.id),
+                    conversationListId: String(response.data.conversation.conversationListId),
+                },
+                turns: Array.isArray(response.data.turns)
+                    ? response.data.turns.map((turn) => ({
+                        ...turn,
+                        id: String(turn.id),
+                        conversationListId: String(turn.conversationListId),
+                    }))
+                    : [],
+            });
+
+            resetAnalysis();
+            resetAssign();
+            setMessages(restoredConversation.messages);
+            setAnalysisData(restoredConversation.analysisData);
+            setActiveConversationListId(historyConversationListId);
+            setIsHistoryDrawerOpen(false);
+            addToast(`已恢复历史会话：${restoredConversation.title}`, 'success');
+        } catch (error) {
+            console.error('恢复历史对话失败:', error);
+            addToast('恢复历史对话失败，请稍后重试', 'error');
+        } finally {
+            setLoadingHistoryConversationListId(null);
+        }
+    };
+
+    const handleCreateNewConversation = async () => {
+        if (!projectId) {
+            addToast('缺少项目信息，无法创建新对话', 'error');
+            return;
+        }
+
+        try {
+            const response = await requirementConversationApi.createRequirementConversationList({ projectId });
+
+            if (!response.success || response.data === null || response.data === undefined) {
+                addToast(response.message || '新建对话失败，请稍后重试', 'error');
+                return;
+            }
+
+            setActiveConversationListId(String(response.data));
+            resetConversationViewRef.current();
+            setIsHistoryDrawerOpen(false);
+            await fetchHistorySummaries();
+        } catch (error) {
+            console.error('新建对话失败:', error);
+            addToast('新建对话失败，请稍后重试', 'error');
+        }
+    };
+
+    // 清空对话消息和分析数据
+    const handleClearMessages = () => {
+        resetConversationViewRef.current();
+    };
+
     // 创建新对话
-    const handleNewConversation = () => {
-        // 清空当前对话
-        handleClearMessages();
+    const handleNewConversation = async () => {
+        await handleCreateNewConversation();
     };
 
     // 通过useAiAnalysisData自定义hook已经处理了所有的分析数据适配和状态更新
@@ -245,47 +350,7 @@ const AiAnalysisModal: React.FC<AiAnalysisModalProps> = ({ isOpen, onClose, proj
     useEffect(() => {
         // 重置数据的处理函数
         const handleResetData = () => {
-            // 重置分析状态
-            resetAnalysis();
-
-            // 重置任务分配状态
-            resetAssign();
-
-            // 重置消息
-            setMessages([
-                {
-                    content: "您好，我是AI助手。我可以帮助您分析项目需求、拆分任务、评估工作量。请告诉我您需要什么帮助？",
-                    isAi: true
-                }
-            ]);
-
-            // 重置分析数据
-            setAnalysisData({
-                overallScore: 0,
-                requirementScore: 0,
-                riskScore: 0,
-                progressScore: 0,
-                keyFindings: [],
-                risks: [],
-                suggestions: [],
-                tags: [],
-                colors: [],
-                isStreaming: false,
-                streamingError: null,
-                streamingComplete: false,
-                priorityLevel: '',
-                priorityScore: 0,
-                priorityAnalysis: '',
-                priorityData: undefined,
-                completenessAnalysis: undefined,
-                taskSplitData: undefined,
-                workloadData: undefined,
-                pertWorkloadData: undefined,
-                comprehensiveAnalysis: undefined
-            });
-
-            // 关闭创建任务模态框
-            setIsCreateTaskModalOpen(false);
+            resetConversationViewRef.current();
         };
 
         // 注册重置事件监听器
@@ -295,55 +360,26 @@ const AiAnalysisModal: React.FC<AiAnalysisModalProps> = ({ isOpen, onClose, proj
             // 清理监听器
             analysisEventEmitter.off(RESET_ANALYSIS_DATA_EVENT, handleResetData);
         };
-    }, [resetAnalysis, resetAssign, setMessages, setAnalysisData]);
+    }, []);
+
+    useEffect(() => {
+        if (!isOpen) {
+            return;
+        }
+
+        setActiveConversationListId(conversationListId ? String(conversationListId) : null);
+    }, [conversationListId, isOpen]);
 
     // 监听模态框打开状态，首次打开时清理数据
     useEffect(() => {
         if (!isOpen) return;
-        // 重置分析状态
-        resetAnalysis();
-
-        // 重置任务分配状态
-        resetAssign();
-
-        // 重置消息
-        setMessages([
-            {
-                content: "您好，我是AI助手。我可以帮助您分析项目需求、拆分任务、评估工作量。请告诉我您需要什么帮助？",
-                isAi: true
-            }
-        ]);
-
-        // 重置分析数据
-        setAnalysisData({
-            overallScore: 0,
-            requirementScore: 0,
-            riskScore: 0,
-            progressScore: 0,
-            keyFindings: [],
-            risks: [],
-            suggestions: [],
-            tags: [],
-            colors: [],
-            isStreaming: false,
-            streamingError: null,
-            streamingComplete: false,
-            priorityLevel: '',
-            priorityScore: 0,
-            priorityAnalysis: '',
-            priorityData: undefined,
-            completenessAnalysis: undefined,
-            taskSplitData: undefined,
-            workloadData: undefined,
-            pertWorkloadData: undefined,
-            comprehensiveAnalysis: undefined
-        });
-
-        // 关闭创建任务模态框
-        setIsCreateTaskModalOpen(false);
+        resetConversationViewRef.current();
+        setIsHistoryDrawerOpen(false);
+        setHistoryError(null);
+        setLoadingHistoryConversationListId(null);
 
         // 项目信息已在其他地方加载
-    }, [isOpen, projectId, resetAnalysis, resetAssign, setMessages, setAnalysisData]);
+    }, [isOpen]);
 
     // 监听任务分配结果的变化
     useEffect(() => {
@@ -469,7 +505,7 @@ const AiAnalysisModal: React.FC<AiAnalysisModalProps> = ({ isOpen, onClose, proj
             // 重设分析状态，然后调用API
             resetAnalysis();
             // 调用API进行分析
-            streamAnalyzeTask(projectId || '', content, conversationListId);
+            streamAnalyzeTask(projectId || '', content, activeConversationListId);
 
         }, 100); // 小延时确保状态设置正确
 
@@ -522,7 +558,7 @@ const AiAnalysisModal: React.FC<AiAnalysisModalProps> = ({ isOpen, onClose, proj
 
         const taskSplitData = analysisData.taskSplitData;
         const summaryData = analysisData.comprehensiveAnalysis?.summary;
-        const arrangementData = analysisData.comprehensiveAnalysis?.taskArrangement as any;
+        const arrangementData = analysisData.comprehensiveAnalysis?.taskArrangement;
         const priorityData = analysisData.priorityData || {};
         const completenessData = analysisData.completenessAnalysis;
         const pertWorkloadData = analysisData.pertWorkloadData || {};
@@ -541,7 +577,7 @@ const AiAnalysisModal: React.FC<AiAnalysisModalProps> = ({ isOpen, onClose, proj
         }));
 
         const suggestionList = Array.isArray(analysisData.suggestions)
-            ? analysisData.suggestions.map((item: any) => {
+            ? analysisData.suggestions.map((item: string | Suggestion) => {
                 if (typeof item === 'string') {
                     return {
                         type: 'info',
@@ -553,28 +589,28 @@ const AiAnalysisModal: React.FC<AiAnalysisModalProps> = ({ isOpen, onClose, proj
                 }
 
                 return {
-                    type: item?.type || 'info',
-                    title: item?.title || '优化建议',
-                    icon: item?.icon || '💡',
-                    color: item?.color || '#4CAF50',
-                    description: item?.description || item?.content || ''
+                    type: item.type || 'info',
+                    title: item.title || '优化建议',
+                    icon: item.icon || '💡',
+                    color: item.color || '#4CAF50',
+                    description: item.description || ''
                 };
             })
             : [];
 
         const phases = Array.isArray(arrangementData?.phases)
-            ? arrangementData.phases.map((phase: any, phaseIndex: number) => ({
-                name: phase?.name || `阶段${phaseIndex + 1}`,
-                description: phase?.description || '',
-                estimatedWorkload: phase?.estimatedWorkload || '0人天',
-                suggestedTimeframe: phase?.suggestedTimeframe || '',
-                tasks: Array.isArray(phase?.tasks)
-                    ? phase.tasks.map((task: any, taskIndex: number) => ({
-                        name: task?.name || `任务${taskIndex + 1}`,
-                        priority: task?.priority || '中',
-                        estimatedWorkload: task?.estimatedWorkload || '0人天',
-                        dependencies: toStringArray(task?.dependencies),
-                        assignmentSuggestion: task?.assignmentSuggestion || ''
+            ? arrangementData.phases.map((phase: TaskArrangementPhase, phaseIndex: number) => ({
+                name: phase.name || `阶段${phaseIndex + 1}`,
+                description: phase.description || '',
+                estimatedWorkload: phase.estimatedWorkload || '0人天',
+                suggestedTimeframe: phase.suggestedTimeframe || '',
+                tasks: Array.isArray(phase.tasks)
+                    ? phase.tasks.map((task: TaskArrangementTask, taskIndex: number) => ({
+                        name: task.name || `任务${taskIndex + 1}`,
+                        priority: task.priority || '中',
+                        estimatedWorkload: task.estimatedWorkload || '0人天',
+                        dependencies: toStringArray(task.dependencies),
+                        assignmentSuggestion: task.assignmentSuggestion || ''
                     }))
                     : []
             }))
@@ -594,7 +630,11 @@ const AiAnalysisModal: React.FC<AiAnalysisModalProps> = ({ isOpen, onClose, proj
             }))
         };
 
-        const resourceRecommendations = arrangementData?.resourceRecommendations || {};
+        const resourceRecommendations = (arrangementData?.resourceRecommendations ?? {}) as {
+            personnel?: unknown;
+            skills?: unknown;
+            tools?: unknown;
+        };
         const personnelRaw = resourceRecommendations?.personnel;
 
         return {
@@ -661,16 +701,16 @@ const AiAnalysisModal: React.FC<AiAnalysisModalProps> = ({ isOpen, onClose, proj
                     phases: phases.length > 0 ? phases : [fallbackPhase],
                     resourceRecommendations: {
                         personnel: Array.isArray(personnelRaw)
-                            ? personnelRaw.filter((item: any) => item !== null && item !== undefined && String(item).trim() !== '').map((item: any) => String(item))
+                            ? personnelRaw.filter((item: unknown) => item !== null && item !== undefined && String(item).trim() !== '').map((item: unknown) => String(item))
                             : (personnelRaw ? [String(personnelRaw)] : []),
                         skills: toStringArray(resourceRecommendations?.skills),
                         tools: toStringArray(resourceRecommendations?.tools)
                     },
                     riskManagement: Array.isArray(arrangementData?.riskManagement)
-                        ? arrangementData.riskManagement.map((risk: any) => ({
-                            risk: risk?.risk || '',
-                            impact: risk?.impact || '',
-                            mitigation: risk?.mitigation || ''
+                        ? arrangementData.riskManagement.map((risk: TaskArrangementRisk) => ({
+                            risk: risk.risk || '',
+                            impact: risk.impact || '',
+                            mitigation: risk.mitigation || ''
                         }))
                         : []
                 }
@@ -685,7 +725,7 @@ const AiAnalysisModal: React.FC<AiAnalysisModalProps> = ({ isOpen, onClose, proj
             return;
         }
 
-        if (!conversationListId) {
+        if (!activeConversationListId) {
             addToast('会话初始化失败，请重新点击创建任务', 'error');
             return;
         }
@@ -706,11 +746,11 @@ const AiAnalysisModal: React.FC<AiAnalysisModalProps> = ({ isOpen, onClose, proj
         }
 
         try {
-            const requirementPayload = buildRequirementConversationPayload(conversationListId);
+            const requirementPayload = buildRequirementConversationPayload(activeConversationListId);
             console.info('[RequirementConversation] 准备创建需求对话列表', {
                 endpoint: '/api/client/requirement-conversation/create',
                 projectId,
-                conversationListId,
+                conversationListId: activeConversationListId,
                 title: requirementPayload.title
             });
 
@@ -870,7 +910,9 @@ const AiAnalysisModal: React.FC<AiAnalysisModalProps> = ({ isOpen, onClose, proj
                                 hasTaskSplitData={!!analysisData.taskSplitData}
                                 onClose={onClose}
                                 onNewConversation={handleNewConversation}
+                                onOpenHistory={handleOpenHistory}
                                 onCreateTask={handleCreateTask}
+                                disableHistoryActions={!!analysisData.isStreaming || !!isAssignStreaming || isCreatingRequirementConversation}
                             />
 
                             {/* 使用封装的内容组件 */}
@@ -885,6 +927,19 @@ const AiAnalysisModal: React.FC<AiAnalysisModalProps> = ({ isOpen, onClose, proj
                                 handleCreateTask={handleCreateTask}
                                 handleSendMessage={handleSendMessage}
                                 setIsConfirmDialogOpen={setIsConfirmDialogOpen}
+                            />
+
+                            <ConversationHistoryDrawer
+                                isOpen={isHistoryDrawerOpen}
+                                histories={historySummaries}
+                                activeConversationListId={activeConversationListId}
+                                loading={isHistoryLoading}
+                                loadingConversationListId={loadingHistoryConversationListId}
+                                error={historyError}
+                                onClose={() => setIsHistoryDrawerOpen(false)}
+                                onRefresh={fetchHistorySummaries}
+                                onCreateNew={handleNewConversation}
+                                onSelect={handleSelectHistory}
                             />
                         </motion.div>
                     </motion.div>
@@ -948,7 +1003,7 @@ const AiAnalysisModal: React.FC<AiAnalysisModalProps> = ({ isOpen, onClose, proj
             <CreateTaskConfirmModal
                 isOpen={isCreateTaskModalOpen}
                 onClose={() => setIsCreateTaskModalOpen(false)}
-                onConfirm={(taskData) => {
+                onConfirm={() => {
                     try {
                         // 显示成功提示
                         addToast('任务创建成功!', 'success');

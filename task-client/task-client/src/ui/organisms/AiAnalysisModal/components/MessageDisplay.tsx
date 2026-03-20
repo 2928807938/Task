@@ -27,8 +27,8 @@ const MessageDisplay: React.FC<MessageDisplayProps> = ({
   const { theme } = useTheme();
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const prevMessagesLengthRef = useRef(messages.length);
   const [userHasScrolled, setUserHasScrolled] = useState(false);
-  const [prevMessagesLength, setPrevMessagesLength] = useState(messages.length);
 
   // 自动滚动到最新消息的函数
   const scrollMessagesToBottom = () => {
@@ -61,9 +61,8 @@ const MessageDisplay: React.FC<MessageDisplayProps> = ({
 
   // 当消息更新时，智能决定是否滚动到底部
   useLayoutEffect(() => {
-    // 检查是否有新消息
-    const hasNewMessages = messages.length > prevMessagesLength;
-    setPrevMessagesLength(messages.length);
+    const hasNewMessages = messages.length > prevMessagesLengthRef.current;
+    prevMessagesLengthRef.current = messages.length;
 
     // 在以下情况自动滚动到底部：
     // 1. 初始加载（messages.length === 1）
@@ -76,7 +75,7 @@ const MessageDisplay: React.FC<MessageDisplayProps> = ({
     }
 
     if (onMessageUpdate) onMessageUpdate();
-  }, [messages, onMessageUpdate, userHasScrolled, prevMessagesLength]);
+  }, [messages, onMessageUpdate, userHasScrolled]);
 
   return (
     <div

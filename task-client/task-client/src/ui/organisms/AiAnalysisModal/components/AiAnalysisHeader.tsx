@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import {FiCheckCircle, FiPlus, FiX} from "react-icons/fi";
+import {FiCheckCircle, FiClock, FiPlus, FiX} from "react-icons/fi";
 import {HiChartBar} from "react-icons/hi";
 import {motion} from 'framer-motion';
 import AnalysisStatusIndicator from './AnalysisStatusIndicator';
@@ -18,7 +18,9 @@ interface AiAnalysisHeaderProps {
   // 操作回调
   onClose: () => void;
   onNewConversation: () => void;
+  onOpenHistory?: () => void;
   onCreateTask?: () => void; // 添加创建任务回调
+  disableHistoryActions?: boolean;
 }
 
 /**
@@ -32,7 +34,9 @@ const AiAnalysisHeader: React.FC<AiAnalysisHeaderProps> = ({
   hasTaskSplitData,
   onClose,
   onNewConversation,
-  onCreateTask
+  onOpenHistory,
+  onCreateTask,
+  disableHistoryActions
 }) => {
   const { theme } = useTheme();
   
@@ -108,7 +112,29 @@ const AiAnalysisHeader: React.FC<AiAnalysisHeaderProps> = ({
           <FiPlus className="w-5 h-5" />
         </motion.button>
 
-        {/* 历史记录按钮已移除 */}
+        {onOpenHistory && (
+          <motion.button
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenHistory();
+            }}
+            className="p-2.5 rounded-full transition-all duration-200 shadow-sm backdrop-blur-sm"
+            style={{
+              backgroundColor: `${theme.colors.neutral[100]}B3`,
+              color: theme.colors.neutral[500],
+              opacity: disableHistoryActions ? 0.6 : 1
+            }}
+            title="历史对话"
+            whileHover={{
+              scale: disableHistoryActions ? 1 : 1.05,
+              backgroundColor: `${theme.colors.neutral[200]}CC`
+            }}
+            whileTap={{ scale: disableHistoryActions ? 1 : 0.95 }}
+            disabled={disableHistoryActions}
+          >
+            <FiClock className="w-5 h-5" />
+          </motion.button>
+        )}
 
         {/* 关闭按钮 */}
         <motion.button

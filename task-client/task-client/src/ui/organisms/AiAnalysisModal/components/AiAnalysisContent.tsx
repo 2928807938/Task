@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import {AnalysisData, ChatMessage, SubTask, TaskSplitData} from './types';
+import {AnalysisData, ChatMessage, SubTask, Suggestion, TaskSplitData} from './types';
 import AnalysisOverviewPanel from './AnalysisOverviewPanel';
 import PriorityAnalysisPanel from './PriorityAnalysisPanel';
 import CompletenessFoldablePanel from './CompletenessFoldablePanel';
@@ -174,7 +174,7 @@ const AiAnalysisContent: React.FC<AiAnalysisContentProps> = ({
             {analysisData.suggestions && analysisData.suggestions.length > 0 && (
               <SuggestionsPanel
                 suggestions={Array.isArray(analysisData.suggestions) && typeof analysisData.suggestions[0] === 'object'
-                  ? (analysisData.suggestions as any)
+                  ? (analysisData.suggestions as Suggestion[])
                   : undefined}
                 isOpen={activePanelId === 'suggestions'}
                 onToggle={() => handlePanelToggle('suggestions')}
@@ -256,9 +256,6 @@ const AiAnalysisContent: React.FC<AiAnalysisContentProps> = ({
         {/* 消息显示区域 */}
         <MessageDisplay
           messages={messages}
-          onMessageUpdate={() => {
-            // 可以在这里添加消息更新后的回调逻辑
-          }}
           onCreateTask={handleCreateTask}
           hasTaskSplitData={!!analysisData.taskSplitData}
           streamingComplete={analysisData.streamingComplete}

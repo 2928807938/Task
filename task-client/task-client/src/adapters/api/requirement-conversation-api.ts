@@ -117,6 +117,62 @@ export interface CreateRequirementConversationListRequest {
   projectId: string;
 }
 
+export interface RequirementConversationHistorySummary {
+  conversationListId: string;
+  projectId: string;
+  conversationId: string;
+  title: string;
+  rootMainTask: string;
+  currentTurnNo: number;
+  analysisStartStatus: string;
+  analysisCompleteStatus: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RequirementConversationHistoryConversation {
+  id: string;
+  conversationListId: string;
+  title: string;
+  startStatus?: string;
+  analysisStartStatus?: string;
+  rootMainTask: string;
+  currentTurnNo: number;
+  analysisCompleteStatus: string;
+  latestTaskBreakdownJson?: string | null;
+  requirementTypeJson?: string | null;
+  priorityJson?: string | null;
+  workloadJson?: string | null;
+  completenessJson?: string | null;
+  suggestionJson?: string | null;
+  analysisSummaryJson?: string | null;
+  finalSummaryJson?: string | null;
+  taskPlanningJson?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface RequirementConversationHistoryTurn {
+  id: string;
+  conversationListId: string;
+  turnNo: number;
+  userInput: string;
+  analysisStartStatus?: string;
+  analysisCompleteStatus?: string;
+  snapshotJson: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface RequirementConversationHistoryDetail {
+  conversationListId: string;
+  projectId: string;
+  createdAt: string;
+  updatedAt: string;
+  conversation: RequirementConversationHistoryConversation;
+  turns: RequirementConversationHistoryTurn[];
+}
+
 export const requirementConversationApi = {
   createRequirementConversation: async (
     payload: CreateRequirementConversationRequest
@@ -132,6 +188,18 @@ export const requirementConversationApi = {
     payload: CreateRequirementConversationListRequest
   ): Promise<ApiResponse<string>> => {
     return httpClientImpl.post<string>('/api/client/requirement-conversation-list/create', payload);
+  },
+
+  getProjectRequirementConversationHistories: async (
+    projectId: string
+  ): Promise<ApiResponse<RequirementConversationHistorySummary[]>> => {
+    return httpClientImpl.get<RequirementConversationHistorySummary[]>(`/api/client/requirement-conversation/project/${projectId}/history`);
+  },
+
+  getRequirementConversationHistoryDetail: async (
+    conversationListId: string
+  ): Promise<ApiResponse<RequirementConversationHistoryDetail>> => {
+    return httpClientImpl.get<RequirementConversationHistoryDetail>(`/api/client/requirement-conversation/history/${conversationListId}`);
   }
 };
 
