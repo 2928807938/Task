@@ -1,6 +1,8 @@
 package com.task.application.service
 
 import com.task.application.request.CreateRequirementConversationRequest
+import com.task.application.vo.RequirementConversationHistoryBriefVO
+import com.task.application.vo.RequirementConversationHistoryDetailVO
 import com.task.application.vo.RequirementConversationListBriefVO
 import com.task.application.vo.RequirementConversationListDetailedVO
 import com.task.domain.model.task.requirementcompleteness.Aspect
@@ -25,13 +27,16 @@ import java.time.OffsetDateTime
 @Service
 class RequirementConversationApplicationService(
     private val requirementConversationService: RequirementConversationService,
+    private val requirementConversationListService: RequirementConversationListService,
+    private val requirementConversationTurnService: RequirementConversationTurnService,
     private val requirementCategoryService: RequirementCategoryService,
     private val requirementCompletenessService: RequirementCompletenessService,
     private val requirementPriorityService: RequirementPriorityService,
     private val requirementSuggestionService: RequirementSuggestionService,
     private val requirementSummaryAnalysisService: RequirementSummaryAnalysisService,
     private val requirementTaskBreakdownService: RequirementTaskBreakdownService,
-    private val requirementWorkloadService: RequirementWorkloadService
+    private val requirementWorkloadService: RequirementWorkloadService,
+    private val projectService: ProjectService
 ) {
     private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -62,6 +67,57 @@ class RequirementConversationApplicationService(
                     // 没有关联分类ID的情况
                     Mono.just(RequirementConversationListBriefVO.fromDomain(conversationList))
                 }
+            }
+    }
+
+    /**
+     * 查询项目下的历史会话列表
+     */
+    fun listProjectHistories(projectId: Long): Flux<RequirementConversationHistoryBriefVO> {
+        log.info("查询项目历史会话列表, projectId={}", projectId)
+
+        return projectService.findById(projectId)
+            .switchIfEmpty(Mono.error(IllegalArgumentException("项目不存在，ID: $projectId")))
+            .flatMapMany {
+                requirementConversationListService.listByProjectId(projectId)
+                    .flatMap { conversationList ->
+                        requirementConversationService.getByConversationListId(requireNotNull(conversationList.id))
+                            .map { conversation ->
+                                RequirementConversationHistoryBriefVO.fromDomain(conversationList, conversation)
+                            }
+                            .switchIfEmpty(
+                                Mono.just(RequirementConversationHistoryBriefVO.fromDomain(conversationList, null))
+                            )
+                    }
+            }
+    }
+
+    /**
+     * 根据会话锚点ID查询历史详情
+     */
+    fun getHistoryByConversationListId(conversationListId: Long): Mono<RequirementConversationHistoryDetailVO> {
+        log.info("查询历史会话详情, conversationListId={}", conversationListId)
+
+        return requirementConversationListService.getById(conversationListId)
+            .flatMap { conversationList ->
+                requirementConversationTurnService.listByConversationListId(conversationListId)
+                    .map { turn -> com.task.application.vo.RequirementConversationTurnVO.fromDomain(turn) }
+                    .collectList()
+                    .flatMap { turns ->
+                        requirementConversationService.getByConversationListId(conversationListId)
+                            .map { conversation ->
+                                RequirementConversationHistoryDetailVO.fromDomain(conversationList, conversation, turns)
+                            }
+                            .switchIfEmpty(
+                                Mono.just(
+                                    RequirementConversationHistoryDetailVO.fromDomain(
+                                        conversationList = conversationList,
+                                        conversation = null,
+                                        turns = turns
+                                    )
+                                )
+                            )
+                    }
             }
     }
 

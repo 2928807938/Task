@@ -13,6 +13,11 @@ data class RequirementConversationList(
     val id: Long?,
 
     /**
+     * 所属项目ID
+     */
+    val projectId: Long? = null,
+
+    /**
      * 逻辑删除标记
      */
     val deleted: Int = 0,
@@ -36,10 +41,11 @@ data class RequirementConversationList(
         /**
          * 创建新的需求对话列表基础记录
          */
-        fun create(): RequirementConversationList {
+        fun create(projectId: Long? = null): RequirementConversationList {
             val now = OffsetDateTime.now()
             return RequirementConversationList(
                 id = null,
+                projectId = projectId,
                 deleted = 0,
                 createdAt = now,
                 updatedAt = now,

@@ -1,6 +1,8 @@
 package com.task.web.client.controller
 
 import com.task.application.request.CreateRequirementConversationRequest
+import com.task.application.vo.RequirementConversationHistoryBriefVO
+import com.task.application.vo.RequirementConversationHistoryDetailVO
 import com.task.application.service.RequirementConversationApplicationService
 import com.task.application.vo.RequirementConversationListBriefVO
 import com.task.application.vo.RequirementConversationListDetailedVO
@@ -29,7 +31,26 @@ class RequirementConversationController(
     fun listRecent(): Flux<RequirementConversationListBriefVO> {
         return requirementConversationApplicationService.listRecent()
     }
-    
+
+    /**
+     * 查询项目下的历史会话列表
+     */
+    @GetMapping("/project/{projectId}/history")
+    fun listProjectHistories(@PathVariable projectId: Long): Flux<RequirementConversationHistoryBriefVO> {
+        return requirementConversationApplicationService.listProjectHistories(projectId)
+    }
+
+    /**
+     * 根据会话锚点ID获取历史对话详情
+     */
+    @GetMapping("/history/{conversationListId}")
+    fun getHistoryByConversationListId(
+        @PathVariable conversationListId: Long
+    ): Mono<ApiResponse<RequirementConversationHistoryDetailVO>> {
+        return requirementConversationApplicationService.getHistoryByConversationListId(conversationListId)
+            .map { ApiResponse.success(it) }
+    }
+
     /**
      * 根据ID获取需求对话列表详情
      *

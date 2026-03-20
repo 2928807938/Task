@@ -51,6 +51,16 @@ class RequirementConversationService(
     }
 
     /**
+     * 根据会话锚点ID获取当前会话快照
+     */
+    fun getByConversationListId(conversationListId: Long): Mono<RequirementConversation> {
+        log.info("根据会话锚点ID获取需求对话快照, conversationListId={}", conversationListId)
+        return requirementConversationRepository.findOne<RequirementConversation> {
+            fieldOf(RequirementConversation::conversationListId, ComparisonOperator.EQUALS, conversationListId)
+        }
+    }
+
+    /**
      * 获取指定日期之后的需求对话列表
      * @param date 起始日期，只返回此日期之后的数据
      * @return 需求对话列表领域模型流

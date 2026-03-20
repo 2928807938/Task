@@ -30,6 +30,7 @@ class RequirementConversationListRepositoryImpl(
     override fun toEntity(record: RequirementConversationListRecord): RequirementConversationList {
         return RequirementConversationList(
             id = record.id,
+            projectId = record.projectId,
             deleted = record.deleted,
             createdAt = requireNotNull(record.createdAt) { "createdAt cannot be null" },
             updatedAt = record.updatedAt,
@@ -38,7 +39,9 @@ class RequirementConversationListRepositoryImpl(
     }
 
     override fun toRecord(entity: RequirementConversationList): RequirementConversationListRecord {
-        return RequirementConversationListRecord().apply {
+        return RequirementConversationListRecord(
+            projectId = entity.projectId
+        ).apply {
             id = entity.id
             deleted = entity.deleted
             createdAt = entity.createdAt

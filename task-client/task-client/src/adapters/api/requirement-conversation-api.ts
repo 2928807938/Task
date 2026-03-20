@@ -113,6 +113,10 @@ export interface CreateRequirementConversationRequest {
   requirementAnalysisSummary: RequirementAnalysisSummary;
 }
 
+export interface CreateRequirementConversationListRequest {
+  projectId: string;
+}
+
 export const requirementConversationApi = {
   createRequirementConversation: async (
     payload: CreateRequirementConversationRequest
@@ -121,11 +125,13 @@ export const requirementConversationApi = {
   },
 
   /**
-   * 创建需求对话列表基础记录（无请求体）
+   * 创建需求对话列表基础记录
    * @returns 新创建的 conversation_list_id
    */
-  createRequirementConversationList: async (): Promise<ApiResponse<string>> => {
-    return httpClientImpl.post<string>('/api/client/requirement-conversation-list/create');
+  createRequirementConversationList: async (
+    payload: CreateRequirementConversationListRequest
+  ): Promise<ApiResponse<string>> => {
+    return httpClientImpl.post<string>('/api/client/requirement-conversation-list/create', payload);
   }
 };
 

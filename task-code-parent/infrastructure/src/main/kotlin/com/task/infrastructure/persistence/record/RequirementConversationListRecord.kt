@@ -8,4 +8,6 @@ import org.springframework.data.relational.core.mapping.Table
  * 映射到数据库中的 t_requirement_conversation_list 表
  */
 @Table("t_requirement_conversation_list")
-class RequirementConversationListRecord : BaseRecord()
+data class RequirementConversationListRecord(
+    val projectId: Long? = null
+) : BaseRecord()

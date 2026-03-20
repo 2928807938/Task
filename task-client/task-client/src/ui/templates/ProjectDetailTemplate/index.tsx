@@ -280,7 +280,7 @@ const ProjectDetailTemplate: React.FC<ProjectDetailTemplateProps> = ({ projectId
 
     setIsPreparingAiAnalysis(true);
     try {
-      const listResponse = await requirementConversationApi.createRequirementConversationList();
+      const listResponse = await requirementConversationApi.createRequirementConversationList({ projectId });
 
       if (!listResponse.success || listResponse.data === null || listResponse.data === undefined) {
         addToast(listResponse.message || '创建需求会话失败，请稍后重试', 'error');

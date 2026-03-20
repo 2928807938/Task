@@ -15,7 +15,7 @@ spring:
       validation-query: SELECT 1  # 添加连接验证
   sql:
     init:
-      mode: NEVER
+      mode: ALWAYS
       schema-locations: classpath:db/schema/*.sql  # 创建表的SQL
       #data-locations: classpath:db/data/*.sql      # 初始化数据的SQL
       platform: postgresql

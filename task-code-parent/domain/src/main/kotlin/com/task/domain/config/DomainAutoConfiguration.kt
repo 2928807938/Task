@@ -54,6 +54,7 @@ import org.springframework.context.annotation.Import
     RequirementCompletenessService::class,
     RequirementConversationService::class,
     RequirementConversationListService::class,
+    RequirementConversationTurnService::class,
     RequirementPriorityService::class,
     RequirementSuggestionService::class,
     RequirementSummaryAnalysisService::class,

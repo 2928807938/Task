@@ -46,6 +46,17 @@ class RequirementAnalysisSessionService(
 
         return requirementConversationListRepository.findById(conversationListId)
             .switchIfEmpty(Mono.error(IllegalArgumentException("conversationListId=$conversationListId 不存在")))
+            .flatMap { conversationList ->
+                if (conversationList.projectId != null && conversationList.projectId != request.projectId) {
+                    Mono.error(
+                        IllegalArgumentException(
+                            "conversationListId=$conversationListId 不属于项目ID=${request.projectId}"
+                        )
+                    )
+                } else {
+                    Mono.just(conversationList)
+                }
+            }
             .flatMap { findConversationByConversationListId(conversationListId) }
             .flatMap { existing ->
                 val rootMainTask = existing.rootMainTask?.ifBlank { null } ?: request.content

@@ -4,7 +4,7 @@ spring:
   main:
     allow-bean-definition-overriding: false
   profiles:
-    active: prod  # 默认使用生产环境
+    active: dev  # 默认使用生产环境
   jmx:
     enabled: false
   codec:
