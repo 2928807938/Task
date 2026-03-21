@@ -25,6 +25,11 @@ class LlmPromptService(
     private val llmPromptHitLogRepository: LlmPromptHitLogRepository
 ) {
 
+    companion object {
+        private const val MIN_PRIORITY = 0
+        private const val MAX_PRIORITY = 100
+    }
+
     private val log = LoggerFactory.getLogger(this::class.java)
 
     /**
@@ -91,7 +96,7 @@ class LlmPromptService(
         val normalizedPromptContent = promptContent.trim()
         val normalizedSceneKeys = normalizeSceneKeys(sceneKeys)
 
-        validatePrompt(normalizedPromptName, normalizedPromptContent, allSceneEnabled, normalizedSceneKeys)
+        validatePrompt(normalizedPromptName, normalizedPromptContent, allSceneEnabled, normalizedSceneKeys, priority)
 
         return ensurePromptNameUnique(
             existingId = existingId,
@@ -270,7 +275,8 @@ class LlmPromptService(
         promptName: String,
         promptContent: String,
         allSceneEnabled: Boolean,
-        sceneKeys: List<String>
+        sceneKeys: List<String>,
+        priority: Int
     ) {
         if (promptName.isBlank()) {
             throw IllegalArgumentException("提示词名称不能为空")
@@ -280,6 +286,9 @@ class LlmPromptService(
         }
         if (!allSceneEnabled && sceneKeys.isEmpty()) {
             throw IllegalArgumentException("未开启全场景时，sceneKeys 不能为空")
+        }
+        if (priority !in MIN_PRIORITY..MAX_PRIORITY) {
+            throw IllegalArgumentException("提示词优先级必须在$MIN_PRIORITY-$MAX_PRIORITY之间")
         }
     }
 

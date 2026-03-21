@@ -12,7 +12,7 @@ CREATE TABLE t_llm_prompt_config (
     all_scene_enabled INT NOT NULL DEFAULT 0,
     scene_keys_json TEXT,
     status VARCHAR(32) NOT NULL DEFAULT 'ENABLED',
-    priority INT NOT NULL DEFAULT 0,
+    priority INT NOT NULL DEFAULT 0 CHECK (priority >= 0 AND priority <= 100),
     deleted INT DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE,
@@ -34,7 +34,7 @@ COMMENT ON COLUMN t_llm_prompt_config.prompt_content IS '提示词正文，用�
 COMMENT ON COLUMN t_llm_prompt_config.all_scene_enabled IS '是否对全部分析场景生效，0表示否，1表示是';
 COMMENT ON COLUMN t_llm_prompt_config.scene_keys_json IS '适用场景JSON字符串；当all_scene_enabled=0时生效，例如["TASK_BREAKDOWN","PRIORITY_ANALYSIS"]';
 COMMENT ON COLUMN t_llm_prompt_config.status IS '状态，ENABLED表示启用，DISABLED表示停用';
-COMMENT ON COLUMN t_llm_prompt_config.priority IS '优先级，数值越大越靠前';
+COMMENT ON COLUMN t_llm_prompt_config.priority IS '优先级，范围0-100，数值越大越靠前';
 COMMENT ON COLUMN t_llm_prompt_config.deleted IS '逻辑删除标记，0表示未删除，1表示已删除';
 COMMENT ON COLUMN t_llm_prompt_config.created_at IS '创建时间';
 COMMENT ON COLUMN t_llm_prompt_config.updated_at IS '更新时间';

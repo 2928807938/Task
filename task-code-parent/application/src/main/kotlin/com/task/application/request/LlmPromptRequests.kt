@@ -32,6 +32,8 @@ data class SaveLlmPromptRequest(
     val allSceneEnabled: Boolean = false,
     val sceneKeys: List<@Size(max = 64, message = "场景标识不能超过64个字符") String> = emptyList(),
     val status: String = "ENABLED",
+    @field:Min(value = 0, message = "优先级不能小于0")
+    @field:Max(value = 100, message = "优先级不能超过100")
     val priority: Int = 0
 )
 
