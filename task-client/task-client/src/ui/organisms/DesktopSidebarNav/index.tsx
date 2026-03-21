@@ -14,6 +14,7 @@ import {
   FiMoon,
   FiSearch,
   FiSettings,
+  FiSliders,
   FiSun,
   FiUsers,
 } from 'react-icons/fi';
@@ -79,6 +80,7 @@ const DesktopSidebarNav: React.FC<DesktopSidebarNavProps> = () => {
 
   const mainItems: SidebarItem[] = [
     {id: 'dashboard', label: '工作台', icon: FiHome, href: '/dashboard', description: '总览与优先事项', tag: '首页'},
+    {id: 'user-prompts', label: '分析偏好', icon: FiSliders, href: '/dashboard/prompts', description: '管理个人用户级提示词', tag: 'AI'},
     {id: 'projects', label: '项目列表', icon: FiLayers, href: '/projects', description: '查看全部项目状态'},
     {
       id: 'team',
@@ -141,7 +143,9 @@ const DesktopSidebarNav: React.FC<DesktopSidebarNavProps> = () => {
     },
   ];
 
-  const activeMainItem = mainItems.find((item) => item.href && (pathname === item.href || pathname?.startsWith(`${item.href}/`)));
+  const activeMainItem = [...mainItems]
+    .filter((item) => item.href && (pathname === item.href || pathname?.startsWith(`${item.href}/`)))
+    .sort((left, right) => (right.href?.length || 0) - (left.href?.length || 0))[0];
 
   const summaryItems: SidebarSummaryItem[] = [
     {
@@ -192,7 +196,7 @@ const DesktopSidebarNav: React.FC<DesktopSidebarNavProps> = () => {
 
   const renderItem = (item: SidebarItem, variant: 'main' | 'utility' = 'main') => {
     const Icon = item.icon;
-    const active = Boolean(item.href && (pathname === item.href || pathname?.startsWith(`${item.href}/`)));
+    const active = activeMainItem?.id === item.id;
     const isMain = variant === 'main';
 
     return (

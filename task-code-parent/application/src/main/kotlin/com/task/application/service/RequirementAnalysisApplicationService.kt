@@ -63,7 +63,7 @@ class RequirementAnalysisApplicationService(
                     AnalyzerTypeEnum.REQUIREMENT_TYPE
                 )
 
-                val analyzerInputs = buildAnalyzerInputs(state)
+                val analyzerInputs = buildAnalyzerInputs(state, request.projectId)
                 val analysisTasks = analyzerExecutionOrder.map { analyzerType ->
                     createAnalysisTask(analyzerType, request, state, analyzerInputs)
                 }
@@ -153,13 +153,14 @@ class RequirementAnalysisApplicationService(
             }
     }
 
-    private fun buildAnalyzerInputs(state: RequirementAnalysisGraphState): Map<String, Any> {
+    private fun buildAnalyzerInputs(state: RequirementAnalysisGraphState, projectId: Long): Map<String, Any> {
         val inputs = linkedMapOf<String, Any>(
             "_conversation_id" to state.threadId,
             "root_main_task" to state.rootMainTask,
             "current_user_input" to state.currentUserInput,
             "previous_task_breakdown" to state.previousTaskBreakdownJson.orEmpty(),
-            "previous_final_summary" to state.previousFinalSummaryJson.orEmpty()
+            "previous_final_summary" to state.previousFinalSummaryJson.orEmpty(),
+            "project_id" to projectId
         )
         return inputs
     }
@@ -188,7 +189,8 @@ class RequirementAnalysisApplicationService(
                 val summaryInputs = summarizedInputs + mapOf(
                     "_conversation_id" to state.threadId,
                     "root_main_task" to state.rootMainTask,
-                    "current_user_input" to state.currentUserInput
+                    "current_user_input" to state.currentUserInput,
+                    "project_id" to request.projectId
                 )
                 val summaryContent = StringBuilder()
                 summaryAnalyzer.analyze(content = request.content, inputs = summaryInputs)

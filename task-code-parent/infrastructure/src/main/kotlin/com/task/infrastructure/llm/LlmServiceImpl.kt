@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.task.domain.model.llm.LlmResult
 import com.task.domain.service.LlmService
 import com.task.infrastructure.llm.model.LlmResponse
+import com.task.domain.service.LlmPromptContextService
 import com.task.infrastructure.llm.prompt.XmlWorkflowPromptProvider
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -18,6 +19,7 @@ import reactor.core.publisher.Flux
 class LlmServiceImpl(
     private val openAiCompatibleClient: OpenAiCompatibleClient,
     private val xmlWorkflowPromptProvider: XmlWorkflowPromptProvider,
+    private val llmPromptContextService: LlmPromptContextService,
     private val objectMapper: ObjectMapper
 ) : LlmService {
     
@@ -59,59 +61,69 @@ class LlmServiceImpl(
         logger.info("调用LLM服务生成文本，sceneKey={}, 输入内容长度={}", apiKey, content.length)
         val strictJsonRequired = requiresStrictJson(apiKey)
 
-        val renderedPrompt = xmlWorkflowPromptProvider.resolvePrompt(
-            sceneKey = apiKey,
-            userInput = content,
-            inputs = inputs
-        )
-        if (renderedPrompt == null || renderedPrompt.systemPrompt.isBlank()) {
-            logger.error("未加载到提示词模板，终止LLM调用: sceneKey={}", apiKey)
-            return Flux.just(
-                LlmResult(
-                    content = "未加载到分析提示词模板，请检查 llm.prompt.dir 与场景配置。",
-                    success = false,
-                    errorMessage = "system prompt is blank for sceneKey=$apiKey"
-                )
-            )
-        }
+        return llmPromptContextService.resolve(apiKey, inputs)
+            .flatMapMany { promptContext ->
+                val mergedInputs = LinkedHashMap<String, Any>(inputs)
+                mergedInputs.putAll(promptContext.toPromptVariables())
 
-        logger.info(
-            "提示词渲染完成: sceneKey={}, templateName={}, sourceFile={}, missingVariables={}",
-            apiKey,
-            renderedPrompt.templateName,
-            renderedPrompt.sourceFile ?: "unknown",
-            if (renderedPrompt.missingVariables.isEmpty()) "none" else renderedPrompt.missingVariables.joinToString(", ")
-        )
-
-        val userContent = composeUserContent(
-            sceneKey = apiKey,
-            systemPrompt = renderedPrompt.systemPrompt,
-            userPrompt = renderedPrompt.userPrompt
-        )
-
-        val request = OpenAiCompatibleRequest(
-            userContent = userContent,
-            systemPrompt = renderedPrompt.systemPrompt,
-            sceneKey = apiKey,
-            forceJsonObject = strictJsonRequired
-        )
-        val templateJson = if (strictJsonRequired) {
-            extractTemplateJson(renderedPrompt.systemPrompt).also { extracted ->
-                if (extracted == null) {
-                    logger.warn("严格JSON场景未提取到模板JSON: sceneKey={}", apiKey)
-                }
-            }
-        } else {
-            null
-        }
-
-        return openAiCompatibleClient.generateText(request)
-            .flatMap { response ->
-                handleLlmResponse(
-                    response = response,
+                val renderedPrompt = xmlWorkflowPromptProvider.resolvePrompt(
                     sceneKey = apiKey,
-                    templateJson = templateJson
+                    userInput = content,
+                    inputs = mergedInputs
                 )
+                if (renderedPrompt == null || renderedPrompt.systemPrompt.isBlank()) {
+                    logger.error("未加载到提示词模板，终止LLM调用: sceneKey={}", apiKey)
+                    return@flatMapMany Flux.just(
+                        LlmResult(
+                            content = "未加载到分析提示词模板，请检查 llm.prompt.dir 与场景配置。",
+                            success = false,
+                            errorMessage = "system prompt is blank for sceneKey=$apiKey"
+                        )
+                    )
+                }
+
+                logger.info(
+                    "提示词渲染完成: sceneKey={}, templateName={}, sourceFile={}, missingVariables={}, hitPromptCount={}",
+                    apiKey,
+                    renderedPrompt.templateName,
+                    renderedPrompt.sourceFile ?: "unknown",
+                    if (renderedPrompt.missingVariables.isEmpty()) "none" else renderedPrompt.missingVariables.joinToString(", "),
+                    promptContext.hitPromptIds.size
+                )
+
+                val userContent = composeUserContent(
+                    sceneKey = apiKey,
+                    systemPrompt = renderedPrompt.systemPrompt,
+                    userPrompt = renderedPrompt.userPrompt
+                )
+
+                val request = OpenAiCompatibleRequest(
+                    userContent = userContent,
+                    systemPrompt = renderedPrompt.systemPrompt,
+                    sceneKey = apiKey,
+                    forceJsonObject = strictJsonRequired
+                )
+                val templateJson = if (strictJsonRequired) {
+                    extractTemplateJson(renderedPrompt.systemPrompt).also { extracted ->
+                        if (extracted == null) {
+                            logger.warn("严格JSON场景未提取到模板JSON: sceneKey={}", apiKey)
+                        }
+                    }
+                } else {
+                    null
+                }
+
+                llmPromptContextService.recordHit(promptContext)
+                    .thenMany(
+                        openAiCompatibleClient.generateText(request)
+                            .flatMap { response ->
+                                handleLlmResponse(
+                                    response = response,
+                                    sceneKey = apiKey,
+                                    templateJson = templateJson
+                                )
+                            }
+                    )
             }
             .onErrorResume { e ->
                 Flux.just(

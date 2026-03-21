@@ -1,5 +1,5 @@
 import React, {useMemo, useState} from 'react';
-import {useQueryClient} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {motion} from 'framer-motion';
 import {
   FiActivity,
@@ -8,6 +8,7 @@ import {
   FiDownload,
   FiPlus,
   FiSettings,
+  FiSliders,
   FiUsers
 } from 'react-icons/fi';
 import {ProjectMember, ProjectTask} from '@/types/api-types';
@@ -19,6 +20,8 @@ import {ExportData} from '@/types/export-types';
 import ProjectSettingsModal from './ProjectSettingsModal';
 import ProjectRecentTasksSection from './ProjectRecentTasksSection';
 import TaskTrend from '@/ui/organisms/TaskTrend';
+import llmPromptApi from '@/adapters/api/llm-prompt-api';
+import PromptCenterModal from '@/ui/organisms/LlmPromptCenter/PromptCenterModal';
 
 interface ProjectOverviewPanelProps {
   project: {
@@ -90,6 +93,14 @@ const ProjectOverviewPanel: React.FC<ProjectOverviewPanelProps> = ({
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showProjectSettingsModal, setShowProjectSettingsModal] = useState(false);
+  const [showPromptCenterModal, setShowPromptCenterModal] = useState(false);
+
+  const {data: projectPromptSummaryResponse} = useQuery({
+    queryKey: ['llm-prompt-list', 'project', project.id, {pageNumber: 0, pageSize: 50}],
+    queryFn: async () => llmPromptApi.getProjectPrompts(project.id, {pageNumber: 0, pageSize: 50}),
+    enabled: Boolean(project.id),
+    staleTime: 30_000,
+  });
 
   const tasks = useMemo(() => (Array.isArray(project.tasks) ? project.tasks : []), [project.tasks]);
   const members = useMemo(() => (Array.isArray(project.members) ? project.members : []), [project.members]);
@@ -184,6 +195,23 @@ const ProjectOverviewPanel: React.FC<ProjectOverviewPanelProps> = ({
     }
   ];
 
+  const projectPromptSummary = useMemo(() => {
+    const projectPromptList = projectPromptSummaryResponse?.data?.content || [];
+    const enabledCount = projectPromptList.filter((prompt) => prompt.status === 'ENABLED').length;
+    const sceneSet = new Set<string>();
+    const hasAllScenes = projectPromptList.some((prompt) => prompt.allSceneEnabled);
+
+    projectPromptList.forEach((prompt) => {
+      prompt.sceneKeys.forEach((sceneKey) => sceneSet.add(sceneKey));
+    });
+
+    return {
+      total: projectPromptSummaryResponse?.data?.total || 0,
+      enabled: enabledCount,
+      scenes: hasAllScenes ? '全部' : `${sceneSet.size}`,
+    };
+  }, [projectPromptSummaryResponse?.data?.content, projectPromptSummaryResponse?.data?.total]);
+
   const actionItems = [
     {
       title: '创建任务',
@@ -212,6 +240,15 @@ const ProjectOverviewPanel: React.FC<ProjectOverviewPanelProps> = ({
       icon: <FiSettings size={18} />,
       onClick: () => setShowProjectSettingsModal(true),
       tone: isDarkMode ? 'bg-amber-500/12 text-amber-300' : 'bg-amber-50 text-amber-600'
+    },
+    {
+      title: '分析偏好',
+      description: `已配置 ${projectPromptSummary.total} 条 · 启用 ${projectPromptSummary.enabled} 条 · 覆盖 ${projectPromptSummary.scenes} 个场景`,
+      icon: <FiSliders size={18} />,
+      onClick: () => setShowPromptCenterModal(true),
+      tone: isDarkMode ? 'bg-indigo-500/12 text-indigo-300' : 'bg-indigo-50 text-indigo-600',
+      featured: true,
+      fullWidth: true
     }
   ];
 
@@ -317,20 +354,39 @@ const ProjectOverviewPanel: React.FC<ProjectOverviewPanelProps> = ({
               <button
                 key={item.title}
                 onClick={item.onClick}
-                className={`group flex h-full min-h-[108px] items-start gap-3 rounded-2xl border p-4 text-left transition-all ${
-                  isDarkMode
-                    ? 'border-white/10 bg-white/[0.03] hover:bg-white/[0.05]'
-                    : 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white'
-                }`}
+                className={[
+                  'group relative flex h-full min-h-[108px] items-start gap-3 rounded-2xl border p-4 text-left transition-all',
+                  item.fullWidth ? 'sm:col-span-2' : '',
+                  item.featured
+                    ? isDarkMode
+                      ? 'border-indigo-500/20 bg-gradient-to-br from-indigo-500/10 via-slate-900 to-slate-900 hover:border-indigo-400/40'
+                      : 'border-indigo-200 bg-gradient-to-br from-indigo-50 via-white to-sky-50 hover:border-indigo-300 hover:bg-white hover:shadow-[0_18px_40px_rgba(79,70,229,0.12)]'
+                    : isDarkMode
+                      ? 'border-white/10 bg-white/[0.03] hover:bg-white/[0.05]'
+                      : 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white'
+                ].join(' ')}
               >
-                <div className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${item.tone}`}>
+                {item.featured && (
+                  <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.18),transparent_35%)] opacity-70" />
+                )}
+                <div className={`relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${item.tone}`}>
                   {item.icon}
                 </div>
-                <div className="min-w-0">
+                <div className="relative min-w-0 flex-1">
                   <div className={`text-base font-semibold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{item.title}</div>
-                  <div className={`mt-1 line-clamp-2 text-sm leading-6 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                  <div className={`mt-1 text-sm leading-6 ${item.featured ? (isDarkMode ? 'text-slate-300' : 'text-slate-600') : (isDarkMode ? 'text-slate-400' : 'text-slate-500')}`}>
                     {item.description}
                   </div>
+                  {item.featured && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${isDarkMode ? 'bg-white/10 text-slate-200' : 'bg-white text-indigo-700 shadow-sm'}`}>
+                        项目级
+                      </span>
+                      <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${isDarkMode ? 'bg-white/10 text-slate-200' : 'bg-white text-indigo-700 shadow-sm'}`}>
+                        支持预览
+                      </span>
+                    </div>
+                  )}
                 </div>
               </button>
             ))}
@@ -418,6 +474,15 @@ const ProjectOverviewPanel: React.FC<ProjectOverviewPanelProps> = ({
           }}
         />
       )}
+
+      <PromptCenterModal
+        isOpen={showPromptCenterModal}
+        onClose={() => setShowPromptCenterModal(false)}
+        scope="project"
+        projectId={project.id}
+        title={`项目分析提示词 · ${project.name}`}
+        description="适合项目管理员维护统一术语、背景约束与输出风格。"
+      />
     </div>
   );
 };

@@ -5,6 +5,7 @@ import com.task.infrastructure.id.IdGeneratorService
 import com.task.infrastructure.llm.LlmServiceImpl
 import com.task.infrastructure.llm.OpenAiCompatibleClient
 import com.task.infrastructure.llm.config.OpenAiCompatibleConfig
+import com.task.infrastructure.llm.prompt.LlmPromptContextResolver
 import com.task.infrastructure.llm.prompt.XmlWorkflowPromptProvider
 import com.task.infrastructure.persistence.repositoryImpl.*
 import com.task.infrastructure.security.jwt.JwtTokenProvider
@@ -30,6 +31,7 @@ import org.springframework.context.annotation.Import
     // 组件
     OpenAiCompatibleClient::class,
     XmlWorkflowPromptProvider::class,
+    LlmPromptContextResolver::class,
     JwtTokenProvider::class,
 
     EmailAdapter::class,
@@ -44,6 +46,8 @@ import org.springframework.context.annotation.Import
     DomainEventRepositoryImpl::class,
     EventProcessingLogRepositoryImpl::class,
     InviteLinkRepositoryImpl::class,
+    LlmPromptConfigRepositoryImpl::class,
+    LlmPromptHitLogRepositoryImpl::class,
     InvitePermissionRepositoryImpl::class,
     NotificationPreferenceRepositoryImpl::class,
     NotificationRepositoryImpl::class,

@@ -46,6 +46,7 @@ import org.springframework.context.annotation.Import
     CollaborationService::class,
     DocumentVersionService::class,
     InviteService::class,
+    LlmPromptService::class,
     NotificationPreferenceService::class,
     NotificationService::class,
     AccessControlService::class,

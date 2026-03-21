@@ -28,6 +28,7 @@ import org.springframework.context.annotation.Import
     HealthCheckController::class,
     HomePageController::class,
     InviteController::class,
+    LlmPromptController::class,
     ProjectController::class,
     RequirementConversationController::class,
     RequirementConversationListController::class,

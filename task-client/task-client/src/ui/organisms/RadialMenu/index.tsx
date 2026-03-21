@@ -18,6 +18,7 @@ import {
   FiMoon,
   FiSearch,
   FiSettings,
+  FiSliders,
   FiStar,
   FiSun,
   FiUser,
@@ -717,6 +718,7 @@ const RadialMenu: React.FC = () => {
   // 定义主导航菜单项 - 渐变色
   const mainMenuItems: RadialMenuItem[] = [
     { icon: <FiHome size={22} />, title: '工作台', path: '/dashboard', color: 'bg-gradient-to-br from-blue-400 to-blue-600' },
+    { icon: <FiSliders size={22} />, title: '分析偏好', path: '/dashboard/prompts', color: 'bg-gradient-to-br from-indigo-400 to-indigo-600' },
     { icon: <FiLayers size={22} />, title: '项目列表', path: '/projects', color: 'bg-gradient-to-br from-emerald-400 to-emerald-600' },
     {
       icon: <FiUsers size={22} />,
@@ -802,12 +804,10 @@ const RadialMenu: React.FC = () => {
   };
 
   // 计算当前激活的菜单项
-  const activeItemIndex = menuItems.findIndex(item =>
-    !item.isUtility && (pathname === item.path || pathname?.startsWith(item.path + '/'))
-  );
-
-  // 获取当前页面信息
-  const activeMenuItem = activeItemIndex >= 0 ? menuItems[activeItemIndex] : null;
+  const activeMenuItem = [...mainMenuItems]
+    .filter((item) => pathname === item.path || pathname?.startsWith(item.path + '/'))
+    .sort((left, right) => right.path.length - left.path.length)[0] || null;
+  const activeItemIndex = activeMenuItem ? menuItems.findIndex((item) => item.path === activeMenuItem.path) : -1;
   const currentPageTitle = activeMenuItem ? activeMenuItem.title : '未知页面';
 
   // 获取菜单位置（考虑边缘检测）

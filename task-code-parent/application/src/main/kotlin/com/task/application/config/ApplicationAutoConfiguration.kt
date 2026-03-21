@@ -22,6 +22,7 @@ import org.springframework.context.annotation.Import
     AgreementTermApplicationService::class,
     HomePageApplicationService::class,
     InviteApplicationService::class,
+    LlmPromptApplicationService::class,
     ProjectApplicationService::class,
     AnalysisResultSummarizer::class,
     RequirementAnalysisApplicationService::class,

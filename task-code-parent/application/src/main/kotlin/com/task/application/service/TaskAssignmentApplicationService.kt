@@ -52,7 +52,7 @@ class TaskAssignmentApplicationService(
                 logger.info("成功获取项目成员信息，成员数量: {}", membersInfo.size)
                 
                 // 2. 根据成员信息和任务描述进行任务分配（这里只是示例逻辑，后续可以扩展）
-                processTaskAssignment(request.description, membersInfo)
+                processTaskAssignment(request.projectId, request.description, membersInfo)
             }
             .onErrorResume { e ->
                 logger.error("任务分配过程中发生错误: {}", e.message, e)
@@ -110,6 +110,7 @@ class TaskAssignmentApplicationService(
      * @return 任务分配结果流，使用LlmResultVO格式
      */
     private fun processTaskAssignment(
+        projectId: Long,
         taskDescription: String, 
         members: List<ProjectMemberDetail>
     ): Flux<LlmResultVO> {
@@ -121,6 +122,7 @@ class TaskAssignmentApplicationService(
         
         // 构建请求载荷
         val payload = mapOf(
+            "project_id" to projectId,
             "user_input" to taskDescription,
             "comprehensive_analysis" to taskDescription,
             "team_member" to membersJson
