@@ -1,5 +1,6 @@
 plugins {
     kotlin("jvm")
+    kotlin("kapt")
     kotlin("plugin.spring")
     id("org.springframework.boot")
     id("io.spring.dependency-management")
@@ -25,6 +26,8 @@ repositories {
 
 dependencies {
     api(project(":shared"))
+    compileOnly("org.springframework:spring-context-indexer")
+    kapt("org.springframework:spring-context-indexer")
     implementation("org.springframework.boot:spring-boot-starter")
     implementation("org.springframework.security:spring-security-core")
     implementation("org.jetbrains.kotlin:kotlin-reflect")

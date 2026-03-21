@@ -6,6 +6,7 @@ plugins {
     id("io.spring.dependency-management") version "1.1.4"
     kotlin("jvm") version "2.1.0"
     kotlin("plugin.spring") version "2.1.0"
+    kotlin("kapt") version "2.1.0" apply false
     // 启用GraalVM插件以支持原生镜像编译
     id("org.graalvm.buildtools.native") version "0.10.0"
     id("org.jlleitschuh.gradle.ktlint") version "12.0.3"

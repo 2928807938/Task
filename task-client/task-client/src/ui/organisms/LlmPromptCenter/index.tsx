@@ -23,6 +23,7 @@ import {
 
 import llmPromptApi from '@/adapters/api/llm-prompt-api';
 import {useToast} from '@/ui/molecules/Toast';
+import {ConfirmDialog} from '@/ui/molecules/ConfirmDialog';
 import {
   LLM_PROMPT_SCENE_OPTIONS,
   LlmPromptConfig,
@@ -470,6 +471,8 @@ const LlmPromptCenter: React.FC<LlmPromptCenterProps> = ({
   const [previewResult, setPreviewResult] = useState<LlmPromptPreview | null>(null);
   const [isPreviewPending, setIsPreviewPending] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
+  const [deletingPrompt, setDeletingPrompt] = useState<LlmPromptConfig | null>(null);
+  const [statusChangingPrompt, setStatusChangingPrompt] = useState<{prompt: LlmPromptConfig; nextStatus: LlmPromptStatus} | null>(null);
   const [editingPrompt, setEditingPrompt] = useState<LlmPromptConfig | null>(null);
   const [formState, setFormState] = useState<SaveLlmPromptRequest>(DEFAULT_FORM_STATE);
 
@@ -699,12 +702,35 @@ const LlmPromptCenter: React.FC<LlmPromptCenterProps> = ({
   };
 
   const handleDelete = (prompt: LlmPromptConfig) => {
-    const shouldDelete = window.confirm(`确认删除提示词“${prompt.promptName}”吗？删除后无法恢复。`);
-    if (!shouldDelete) {
+    setDeletingPrompt(prompt);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!deletingPrompt) {
       return;
     }
 
-    deleteMutation.mutate(prompt.id);
+    deleteMutation.mutate(deletingPrompt.id, {
+      onSettled: () => setDeletingPrompt(null)
+    });
+  };
+
+
+  const handleToggleStatus = (prompt: LlmPromptConfig) => {
+    setStatusChangingPrompt({
+      prompt,
+      nextStatus: prompt.status === 'ENABLED' ? 'DISABLED' : 'ENABLED'
+    });
+  };
+
+  const handleConfirmStatusChange = () => {
+    if (!statusChangingPrompt) {
+      return;
+    }
+
+    quickUpdateMutation.mutate(statusChangingPrompt, {
+      onSettled: () => setStatusChangingPrompt(null)
+    });
   };
 
   useEffect(() => {
@@ -854,7 +880,7 @@ const LlmPromptCenter: React.FC<LlmPromptCenterProps> = ({
                           </button>
                           <button
                             type="button"
-                            onClick={() => quickUpdateMutation.mutate({prompt, nextStatus: prompt.status === 'ENABLED' ? 'DISABLED' : 'ENABLED'})}
+                            onClick={() => handleToggleStatus(prompt)}
                             disabled={quickUpdateMutation.isPending}
                             className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3.5 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5"
                           >
@@ -1088,6 +1114,31 @@ const LlmPromptCenter: React.FC<LlmPromptCenterProps> = ({
         onChange={(patch) => setFormState((currentState) => ({...currentState, ...patch}))}
         onToggleScene={handleToggleScene}
         onSubmit={handleSubmit}
+      />
+
+      <ConfirmDialog
+        isOpen={Boolean(deletingPrompt)}
+        title="删除提示词"
+        message={deletingPrompt ? `确认删除提示词“${deletingPrompt.promptName}”吗？删除后不可恢复。` : ''}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeletingPrompt(null)}
+        confirmText={deleteMutation.isPending ? '删除中...' : '确认删除'}
+        confirmClassName="bg-red-500 hover:bg-red-600 text-white"
+        cancelText="取消"
+        cancelClassName="bg-gray-100 hover:bg-gray-200 text-gray-700"
+      />
+
+
+      <ConfirmDialog
+        isOpen={Boolean(statusChangingPrompt)}
+        title={statusChangingPrompt?.nextStatus === 'ENABLED' ? '启用提示词' : '停用提示词'}
+        message={statusChangingPrompt ? `确认${statusChangingPrompt.nextStatus === 'ENABLED' ? '启用' : '停用'}提示词“${statusChangingPrompt.prompt.promptName}”吗？` : ''}
+        onConfirm={handleConfirmStatusChange}
+        onCancel={() => setStatusChangingPrompt(null)}
+        confirmText={quickUpdateMutation.isPending ? '处理中...' : (statusChangingPrompt?.nextStatus === 'ENABLED' ? '确认启用' : '确认停用')}
+        confirmClassName={statusChangingPrompt?.nextStatus === 'ENABLED' ? 'bg-blue-500 hover:bg-blue-600 text-white' : 'bg-amber-500 hover:bg-amber-600 text-white'}
+        cancelText="取消"
+        cancelClassName="bg-gray-100 hover:bg-gray-200 text-gray-700"
       />
     </div>
   );

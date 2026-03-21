@@ -1,6 +1,8 @@
 spring:
   application:
     name: task-code-parent
+  aot:
+    enabled: ${SPRING_AOT_ENABLED:false}
   main:
     allow-bean-definition-overriding: false
   profiles:

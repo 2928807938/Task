@@ -19,10 +19,13 @@ class NativeHints {
             hints.resources()
                 .registerPattern("META-INF/spring.factories")
                 .registerPattern("META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports")
+                .registerPattern("META-INF/spring/**")
                 .registerPattern("META-INF/spring.components")
                 .registerPattern("application.properties")
                 .registerPattern("application.yml")
                 .registerPattern("application-*.yml")
+                .registerPattern("logback-spring.xml")
+                .registerPattern("db/**")
                 .registerPattern("static/*")
         }
     }

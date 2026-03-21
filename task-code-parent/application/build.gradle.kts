@@ -1,5 +1,6 @@
 plugins {
     kotlin("jvm")
+    kotlin("kapt")
     kotlin("plugin.spring")
     id("org.springframework.boot")
     id("io.spring.dependency-management")
@@ -24,7 +25,9 @@ repositories {
 dependencies {
     implementation(project(":domain"))
     implementation(project(":shared"))
-    
+    compileOnly("org.springframework:spring-context-indexer")
+    kapt("org.springframework:spring-context-indexer")
+
     // Spring Boot 依赖
     implementation("org.springframework.boot:spring-boot-starter")
     implementation("org.springframework.boot:spring-boot-starter-webflux")

@@ -100,6 +100,11 @@ export const LLM_PROMPT_SCENE_OPTIONS: LlmPromptSceneOption[] = [
     description: '偏向拆解执行步骤、依赖关系和并行机会。'
   },
   {
+    key: '任务规划',
+    label: '任务规划',
+    description: '偏向阶段安排、执行节奏与里程碑规划。'
+  },
+  {
     key: '需求分类',
     label: '需求分类',
     description: '帮助模型先判断需求类型与上下文归类。'
@@ -128,6 +133,11 @@ export const LLM_PROMPT_SCENE_OPTIONS: LlmPromptSceneOption[] = [
     key: '分析摘要',
     label: '分析摘要',
     description: '用于压缩多阶段分析结果，保留关键信息。'
+  },
+  {
+    key: '分析总结',
+    label: '分析总结',
+    description: '偏向综合归纳最终结论、行动建议与输出收束。'
   }
 ];
 
