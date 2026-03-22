@@ -1,4 +1,6 @@
 -- 先删除表（如果存在）
+-- 本表用于承载用户级与项目级提示词配置。
+-- 冲突检测接口不会额外落库，而是基于本表中的提示词内容、作用域、场景范围进行实时计算。
 DROP TABLE IF EXISTS t_llm_prompt_config;
 
 -- LLM提示词配置表
@@ -20,6 +22,9 @@ CREATE TABLE t_llm_prompt_config (
 );
 
 -- 创建索引以提高查询性能
+-- idx_t_llm_prompt_config_scope: 支持按用户或项目快速查询提示词
+-- idx_t_llm_prompt_config_status: 支持按状态过滤可用提示词
+-- uk_t_llm_prompt_config_scope_name: 保证同一作用域下名称唯一，降低管理歧义
 CREATE INDEX idx_t_llm_prompt_config_scope ON t_llm_prompt_config(scope_type, scope_object_id);
 CREATE INDEX idx_t_llm_prompt_config_status ON t_llm_prompt_config(status, deleted);
 CREATE UNIQUE INDEX uk_t_llm_prompt_config_scope_name ON t_llm_prompt_config(scope_type, scope_object_id, prompt_name, deleted);

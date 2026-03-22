@@ -48,6 +48,15 @@ data class LlmPromptPreviewRequest(
 )
 
 /**
+ * LLM提示词冲突检测请求。
+ */
+data class LlmPromptConflictCheckRequest(
+    @field:Size(max = 64, message = "sceneKey不能超过64个字符")
+    val sceneKey: String? = null,
+    val projectId: Long? = null
+)
+
+/**
  * LLM提示词命中日志分页查询请求。
  */
 data class LlmPromptHitLogPageRequest(

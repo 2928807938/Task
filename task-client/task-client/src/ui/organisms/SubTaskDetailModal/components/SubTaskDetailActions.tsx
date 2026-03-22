@@ -80,7 +80,7 @@ const SubTaskDetailActions: React.FC<SubTaskDetailActionsProps> = ({
 
   // 处理复制任务链接
   const handleCopyLink = () => {
-    const taskUrl = `${window.location.origin}/tasks/${task.id}`;
+    const taskUrl = `${window.location.origin}/task-detail?id=${task.id}`;
     navigator.clipboard.writeText(taskUrl);
     // 这里可以添加一个 toast 提示
   };

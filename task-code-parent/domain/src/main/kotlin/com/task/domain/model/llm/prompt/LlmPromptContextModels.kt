@@ -107,6 +107,7 @@ data class ResolvedPromptContext(
 data class NormalizedPrompt(
     val id: Long?,
     val scopeType: LlmPromptScopeTypeEnum,
+    val scopeObjectId: Long,
     val promptName: String,
     val originalContent: String,
     val normalizedContent: String,
@@ -123,3 +124,73 @@ data class PromptInspectionResult(
     val normalizedContent: String,
     val filteredLines: List<String>
 )
+
+/**
+ * 提示词冲突检测结果。
+ * 用于描述指定场景下，当前用户与项目级提示词之间的冲突详情。
+ *
+ * @property sceneKey 场景标识
+ * @property projectId 项目ID
+ * @property userId 用户ID
+ * @property userPrompts 参与检测的用户级提示词
+ * @property projectPrompts 参与检测的项目级提示词
+ * @property conflicts 检测到的冲突列表
+ */
+data class PromptConflictInspectionResult(
+    val sceneKey: String,
+    val projectId: Long?,
+    val userId: Long?,
+    val userPrompts: List<NormalizedPrompt>,
+    val projectPrompts: List<NormalizedPrompt>,
+    val conflicts: List<PromptConflictDetail>
+)
+
+/**
+ * 单条提示词冲突明细。
+ *
+ * @property relationType 冲突关系类型
+ * @property conflictType 冲突类型
+ * @property promptA 冲突提示词A
+ * @property promptB 冲突提示词B
+ * @property promptAOpinion 提示词A表达的要求摘要
+ * @property promptBOpinion 提示词B表达的要求摘要
+ * @property reason 冲突原因
+ * @property resolutionRule 冲突裁决规则说明
+ * @property winnerPromptId 裁决后保留的提示词ID
+ * @property loserPromptId 裁决后被压制的提示词ID
+ */
+data class PromptConflictDetail(
+    val relationType: PromptConflictRelationType,
+    val conflictType: PromptConflictType,
+    val promptA: NormalizedPrompt,
+    val promptB: NormalizedPrompt,
+    val promptAOpinion: String,
+    val promptBOpinion: String,
+    val reason: String,
+    val resolutionRule: String,
+    val winnerPromptId: Long?,
+    val loserPromptId: Long?
+)
+
+/**
+ * 提示词冲突关系类型。
+ */
+enum class PromptConflictRelationType {
+    USER_USER,
+    USER_PROJECT,
+    PROJECT_PROJECT
+}
+
+/**
+ * 提示词冲突类型。
+ */
+enum class PromptConflictType {
+    DETAIL_LEVEL,
+    ANALYSIS_PROCESS,
+    RISK_DISCLOSURE,
+    OUTPUT_LENGTH,
+    OUTPUT_FORMAT,
+    ROLE_DEFINITION,
+    ORDERING_PREFERENCE,
+    EXPRESSION_STYLE
+}

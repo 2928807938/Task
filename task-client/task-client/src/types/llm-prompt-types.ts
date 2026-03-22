@@ -22,6 +22,11 @@ export interface LlmPromptPreviewRequest {
   sceneKey: string;
 }
 
+export interface LlmPromptConflictCheckRequest {
+  sceneKey?: string;
+  projectId?: string;
+}
+
 export interface LlmPromptHitLogPageRequest {
   pageNumber?: number;
   pageSize?: number;
@@ -47,10 +52,42 @@ export interface LlmPromptConfig {
 export interface LlmPromptMatchedItem {
   id?: string | null;
   scopeType: LlmPromptScopeType;
+  scopeObjectId: string;
+  projectId?: string | null;
   promptName: string;
   originalContent: string;
   normalizedContent: string;
   filteredLines: string[];
+}
+
+export type LlmPromptConflictRelationType = 'USER_USER' | 'USER_PROJECT' | 'PROJECT_PROJECT';
+
+export type LlmPromptConflictType = 'DETAIL_LEVEL' | 'ANALYSIS_PROCESS' | 'RISK_DISCLOSURE' | 'OUTPUT_LENGTH' | 'OUTPUT_FORMAT' | 'ROLE_DEFINITION' | 'ORDERING_PREFERENCE' | 'EXPRESSION_STYLE';
+
+export interface LlmPromptConflictItem {
+  relationType: LlmPromptConflictRelationType;
+  conflictType: LlmPromptConflictType;
+  promptAOpinion: string;
+  promptBOpinion: string;
+  reason: string;
+  resolutionRule: string;
+  winnerPromptId?: string | null;
+  loserPromptId?: string | null;
+  promptA: LlmPromptMatchedItem;
+  promptB: LlmPromptMatchedItem;
+}
+
+export interface LlmPromptConflictCheckResult {
+  sceneKey: string;
+  projectId?: string | null;
+  userId?: string | null;
+  userPromptCount: number;
+  projectPromptCount: number;
+  totalConflictCount: number;
+  userUserConflictCount: number;
+  userProjectConflictCount: number;
+  projectProjectConflictCount: number;
+  conflicts: LlmPromptConflictItem[];
 }
 
 export interface LlmPromptPreview {
@@ -140,4 +177,3 @@ export const LLM_PROMPT_SCENE_OPTIONS: LlmPromptSceneOption[] = [
     description: '偏向综合归纳最终结论、行动建议与输出收束。'
   }
 ];
-

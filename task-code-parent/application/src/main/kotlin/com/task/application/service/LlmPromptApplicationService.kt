@@ -2,10 +2,13 @@ package com.task.application.service
 
 import com.task.application.request.LlmPromptHitLogPageRequest
 import com.task.application.request.LlmPromptPageRequest
+import com.task.application.request.LlmPromptConflictCheckRequest
 import com.task.application.request.LlmPromptPreviewRequest
 import com.task.application.request.SaveLlmPromptRequest
 import com.task.application.utils.SecurityUtils
 import com.task.application.vo.LlmPromptConfigVO
+import com.task.application.vo.LlmPromptConflictCheckVO
+import com.task.application.vo.LlmPromptConflictItemVO
 import com.task.application.vo.LlmPromptHitLogVO
 import com.task.application.vo.LlmPromptMatchedItemVO
 import com.task.application.vo.LlmPromptPreviewVO
@@ -15,6 +18,9 @@ import com.task.domain.model.common.PageResult
 import com.task.domain.model.llm.prompt.LlmPromptScopeTypeEnum
 import com.task.domain.model.llm.prompt.LlmPromptStatusEnum
 import com.task.domain.model.llm.prompt.NormalizedPrompt
+import com.task.domain.model.llm.prompt.PromptConflictDetail
+import com.task.domain.model.llm.prompt.PromptConflictInspectionResult
+import com.task.domain.model.llm.prompt.PromptConflictRelationType
 import com.task.domain.model.llm.prompt.ResolvedPromptContext
 import com.task.domain.service.LlmPromptContextService
 import com.task.domain.service.LlmPromptService
@@ -112,6 +118,22 @@ class LlmPromptApplicationService(
             }
             llmPromptContextService.resolve(request.sceneKey, inputs)
                 .map { it.toPreviewVO() }
+        }
+    }
+
+    /**
+     * 检测当前用户在指定场景下的提示词冲突。
+     */
+    fun inspectCurrentUserPromptConflicts(request: LlmPromptConflictCheckRequest): Mono<LlmPromptConflictCheckVO> {
+        return securityUtils.withCurrentUserId {
+            val inputs = buildMap<String, Any> {
+                request.projectId?.let { put("project_id", it) }
+            }
+            llmPromptContextService.inspectConflicts(
+                sceneKey = request.sceneKey.orEmpty(),
+                inputs = inputs,
+                includeCurrentUserPrompts = true
+            ).map { it.toConflictCheckVO() }
         }
     }
 
@@ -230,6 +252,24 @@ class LlmPromptApplicationService(
     }
 
     /**
+     * 检测项目级提示词之间的冲突。
+     */
+    @RequireProjectPermission(
+        permission = ProjectPermissions.PROJECT_VIEW,
+        projectIdParam = "projectId"
+    )
+    fun inspectProjectPromptConflicts(
+        projectId: Long,
+        request: LlmPromptConflictCheckRequest
+    ): Mono<LlmPromptConflictCheckVO> {
+        return llmPromptContextService.inspectConflicts(
+            sceneKey = request.sceneKey.orEmpty(),
+            inputs = mapOf("project_id" to projectId),
+            includeCurrentUserPrompts = false
+        ).map { it.toConflictCheckVO() }
+    }
+
+    /**
      * 分页查询项目下的提示词命中日志。
      *
      * @param projectId 项目ID
@@ -331,6 +371,43 @@ class LlmPromptApplicationService(
     }
 
     /**
+     * 将冲突检测结果转换为展示对象。
+     */
+    private fun PromptConflictInspectionResult.toConflictCheckVO(): LlmPromptConflictCheckVO {
+        val mappedConflicts = conflicts.map { it.toVO() }
+        return LlmPromptConflictCheckVO(
+            sceneKey = sceneKey,
+            projectId = projectId,
+            userId = userId,
+            userPromptCount = userPrompts.size,
+            projectPromptCount = projectPrompts.size,
+            totalConflictCount = mappedConflicts.size,
+            userUserConflictCount = mappedConflicts.count { it.relationType == PromptConflictRelationType.USER_USER.name },
+            userProjectConflictCount = mappedConflicts.count { it.relationType == PromptConflictRelationType.USER_PROJECT.name },
+            projectProjectConflictCount = mappedConflicts.count { it.relationType == PromptConflictRelationType.PROJECT_PROJECT.name },
+            conflicts = mappedConflicts
+        )
+    }
+
+    /**
+     * 将单条冲突明细转换为展示对象。
+     */
+    private fun PromptConflictDetail.toVO(): LlmPromptConflictItemVO {
+        return LlmPromptConflictItemVO(
+            relationType = relationType.name,
+            conflictType = conflictType.name,
+            promptAOpinion = promptAOpinion,
+            promptBOpinion = promptBOpinion,
+            reason = reason,
+            resolutionRule = resolutionRule,
+            winnerPromptId = winnerPromptId,
+            loserPromptId = loserPromptId,
+            promptA = promptA.toVO(),
+            promptB = promptB.toVO()
+        )
+    }
+
+    /**
      * 将匹配到的标准化提示词转换为展示对象。
      *
      * @return 提示词匹配项VO
@@ -339,6 +416,8 @@ class LlmPromptApplicationService(
         return LlmPromptMatchedItemVO(
             id = id,
             scopeType = scopeType.name,
+            scopeObjectId = scopeObjectId,
+            projectId = scopeObjectId.takeIf { scopeType == LlmPromptScopeTypeEnum.PROJECT },
             promptName = promptName,
             originalContent = originalContent,
             normalizedContent = normalizedContent,

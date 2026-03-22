@@ -21,12 +21,16 @@ import {
   FiZap,
 } from 'react-icons/fi';
 
+import {projectApi} from '@/adapters/api';
 import llmPromptApi from '@/adapters/api/llm-prompt-api';
+import {ProjectListItem} from '@/types/api-types';
 import {useToast} from '@/ui/molecules/Toast';
 import {ConfirmDialog} from '@/ui/molecules/ConfirmDialog';
 import {
   LLM_PROMPT_SCENE_OPTIONS,
   LlmPromptConfig,
+  LlmPromptConflictCheckResult,
+  LlmPromptConflictItem,
   LlmPromptHitLog,
   LlmPromptPageRequest,
   LlmPromptPreview,
@@ -151,6 +155,42 @@ function computeCoveredScenes(prompts: LlmPromptConfig[]) {
   });
 
   return `${sceneSet.size}`;
+}
+
+function getConflictRelationLabel(relationType: LlmPromptConflictItem['relationType']) {
+  switch (relationType) {
+    case 'USER_USER':
+      return '用户级 ↔ 用户级';
+    case 'USER_PROJECT':
+      return '用户级 ↔ 项目级';
+    case 'PROJECT_PROJECT':
+      return '项目级 ↔ 项目级';
+    default:
+      return relationType;
+  }
+}
+
+function getConflictTypeLabel(conflictType: LlmPromptConflictItem['conflictType']) {
+  switch (conflictType) {
+    case 'DETAIL_LEVEL':
+      return '详略冲突';
+    case 'ANALYSIS_PROCESS':
+      return '过程冲突';
+    case 'RISK_DISCLOSURE':
+      return '风险偏好冲突';
+    case 'OUTPUT_LENGTH':
+      return '长度约束冲突';
+    case 'OUTPUT_FORMAT':
+      return '输出格式冲突';
+    case 'ROLE_DEFINITION':
+      return '角色定位冲突';
+    case 'ORDERING_PREFERENCE':
+      return '排序规则冲突';
+    case 'EXPRESSION_STYLE':
+      return '表达风格冲突';
+    default:
+      return conflictType;
+  }
 }
 
 function MetricCard({
@@ -461,6 +501,7 @@ const LlmPromptCenter: React.FC<LlmPromptCenterProps> = ({
   const scopeMeta = SCOPE_META[scope];
   const baseQueryKey = useMemo(() => ['llm-prompt-list', scope, projectId ?? 'self'], [projectId, scope]);
   const baseHitLogKey = useMemo(() => ['llm-prompt-hit-log', scope, projectId ?? 'self'], [projectId, scope]);
+  const baseConflictKey = useMemo(() => ['llm-prompt-conflicts', scope, projectId ?? 'self'], [projectId, scope]);
 
   const [pageNumber, setPageNumber] = useState(0);
   const [draftPromptName, setDraftPromptName] = useState('');
@@ -468,11 +509,13 @@ const LlmPromptCenter: React.FC<LlmPromptCenterProps> = ({
   const [statusFilter, setStatusFilter] = useState<'ALL' | LlmPromptStatus>('ALL');
   const [previewSceneKey, setPreviewSceneKey] = useState(DEFAULT_SCENE_KEY);
   const [logSceneKey, setLogSceneKey] = useState<'ALL' | string>('ALL');
+  const [conflictSceneKey, setConflictSceneKey] = useState<'ALL' | string>('ALL');
   const [previewResult, setPreviewResult] = useState<LlmPromptPreview | null>(null);
   const [isPreviewPending, setIsPreviewPending] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
   const [deletingPrompt, setDeletingPrompt] = useState<LlmPromptConfig | null>(null);
   const [statusChangingPrompt, setStatusChangingPrompt] = useState<{prompt: LlmPromptConfig; nextStatus: LlmPromptStatus} | null>(null);
+  const [isConflictRefreshing, setIsConflictRefreshing] = useState(false);
   const [editingPrompt, setEditingPrompt] = useState<LlmPromptConfig | null>(null);
   const [formState, setFormState] = useState<SaveLlmPromptRequest>(DEFAULT_FORM_STATE);
 
@@ -517,6 +560,68 @@ const LlmPromptCenter: React.FC<LlmPromptCenterProps> = ({
     },
     enabled: scope === 'user' || Boolean(projectId),
   });
+
+  const projectsQuery = useQuery<ProjectListItem[], Error>({
+    queryKey: ['llm-prompt-projects', 'current-user'],
+    queryFn: async () => {
+      const response = await projectApi.getCurrentUserProjects({
+        pageNum: 1,
+        pageSize: 100,
+        sortField: 'updatedAt',
+        sortOrder: 'desc',
+      });
+
+      if (!response.success) {
+        throw new Error(response.message || '获取项目列表失败');
+      }
+
+      return response.data?.content || [];
+    },
+    enabled: scope === 'user',
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const conflictQuery = useQuery({
+    queryKey: [...baseConflictKey, conflictSceneKey],
+    queryFn: async () => {
+      const request = {
+        sceneKey: conflictSceneKey === 'ALL' ? undefined : conflictSceneKey,
+      };
+
+      return scope === 'user'
+        ? llmPromptApi.inspectCurrentUserPromptConflicts(request)
+        : llmPromptApi.inspectProjectPromptConflicts(projectId || '', request);
+    },
+    enabled: scope === 'user' || Boolean(projectId),
+  });
+
+  const refreshConflictInsight = useCallback(async (notify = false) => {
+    setIsConflictRefreshing(true);
+
+    try {
+      const result = await conflictQuery.refetch();
+      const response = result.data;
+
+      if (!notify) {
+        return response?.data || null;
+      }
+
+      if (!response?.success || !response.data) {
+        addToast('冲突检测失败，请稍后在冲突面板查看', 'warning');
+        return null;
+      }
+
+      if (response.data.totalConflictCount > 0) {
+        addToast(`检测到 ${response.data.totalConflictCount} 个提示词冲突，请查看冲突面板`, 'warning');
+      } else {
+        addToast('冲突检查已完成，当前未发现冲突', 'info', 2200);
+      }
+
+      return response.data;
+    } finally {
+      setIsConflictRefreshing(false);
+    }
+  }, [addToast, conflictQuery]);
 
   const persistPrompt = useCallback(async (request: SaveLlmPromptRequest, promptId?: string) => {
     if (scope === 'user') {
@@ -570,8 +675,12 @@ const LlmPromptCenter: React.FC<LlmPromptCenterProps> = ({
       await Promise.all([
         queryClient.invalidateQueries({queryKey: baseQueryKey}),
         queryClient.invalidateQueries({queryKey: baseHitLogKey}),
+        queryClient.invalidateQueries({queryKey: baseConflictKey}),
       ]);
-      await runPreview(previewSceneKey);
+      await Promise.all([
+        runPreview(previewSceneKey),
+        refreshConflictInsight(true),
+      ]);
     },
     onError: () => addToast('保存提示词失败，请稍后重试', 'error')
   });
@@ -590,8 +699,12 @@ const LlmPromptCenter: React.FC<LlmPromptCenterProps> = ({
       await Promise.all([
         queryClient.invalidateQueries({queryKey: baseQueryKey}),
         queryClient.invalidateQueries({queryKey: baseHitLogKey}),
+        queryClient.invalidateQueries({queryKey: baseConflictKey}),
       ]);
-      await runPreview(previewSceneKey);
+      await Promise.all([
+        runPreview(previewSceneKey),
+        refreshConflictInsight(true),
+      ]);
     },
     onError: () => addToast('更新提示词状态失败', 'error')
   });
@@ -612,8 +725,12 @@ const LlmPromptCenter: React.FC<LlmPromptCenterProps> = ({
       await Promise.all([
         queryClient.invalidateQueries({queryKey: baseQueryKey}),
         queryClient.invalidateQueries({queryKey: baseHitLogKey}),
+        queryClient.invalidateQueries({queryKey: baseConflictKey}),
       ]);
-      await runPreview(previewSceneKey);
+      await Promise.all([
+        runPreview(previewSceneKey),
+        refreshConflictInsight(false),
+      ]);
     },
     onError: () => addToast('删除提示词失败，请稍后重试', 'error')
   });
@@ -622,6 +739,26 @@ const LlmPromptCenter: React.FC<LlmPromptCenterProps> = ({
   const promptList = useMemo(() => promptPage?.content || [], [promptPage?.content]);
   const hitLogPage = hitLogQuery.data?.data;
   const hitLogs = useMemo(() => hitLogPage?.content || [], [hitLogPage?.content]);
+  const conflictResult = conflictQuery.data?.data as LlmPromptConflictCheckResult | null | undefined;
+  const projectNameMap = useMemo(() => {
+    return new Map((projectsQuery.data || []).map((project) => [project.id, project.name]));
+  }, [projectsQuery.data]);
+
+  const getProjectDisplayName = useCallback((id?: string | null) => {
+    if (!id) {
+      return '用户级';
+    }
+
+    return projectNameMap.get(id) || `项目 #${id}`;
+  }, [projectNameMap]);
+
+  const getPromptOwnerLabel = useCallback((scopeType: string, promptProjectId?: string | null) => {
+    if (scopeType === 'USER') {
+      return '用户级';
+    }
+
+    return `项目级 · ${getProjectDisplayName(promptProjectId)}`;
+  }, [getProjectDisplayName]);
 
   const metrics = useMemo(() => {
     const enabledCount = promptList.filter((prompt) => prompt.status === 'ENABLED').length;
@@ -636,12 +773,16 @@ const LlmPromptCenter: React.FC<LlmPromptCenterProps> = ({
   }, [hitLogPage?.total, promptList, promptPage?.total]);
 
   const handleRefreshAll = useCallback(async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({queryKey: baseQueryKey}),
+        queryClient.invalidateQueries({queryKey: baseHitLogKey}),
+        queryClient.invalidateQueries({queryKey: baseConflictKey}),
+      ]);
     await Promise.all([
-      queryClient.invalidateQueries({queryKey: baseQueryKey}),
-      queryClient.invalidateQueries({queryKey: baseHitLogKey}),
+      runPreview(previewSceneKey),
+      refreshConflictInsight(false),
     ]);
-    await runPreview(previewSceneKey);
-  }, [baseHitLogKey, baseQueryKey, previewSceneKey, queryClient, runPreview]);
+  }, [baseConflictKey, baseHitLogKey, baseQueryKey, previewSceneKey, queryClient, refreshConflictInsight, runPreview]);
 
   const handleOpenCreate = () => {
     setEditingPrompt(null);
@@ -933,10 +1074,118 @@ const LlmPromptCenter: React.FC<LlmPromptCenterProps> = ({
               </div>
             </div>
           </div>
+
+
+          <div className={`${PANEL_CLASS} relative overflow-hidden p-5 sm:p-6`}>
+            {isConflictRefreshing && (
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-1 overflow-hidden">
+                <div className="h-full w-full animate-[conflict-progress_1.1s_ease-in-out_infinite] bg-[linear-gradient(90deg,transparent,rgba(37,99,235,0.9),transparent)]" />
+              </div>
+            )}
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-600 dark:bg-amber-500/10 dark:text-amber-300">
+                  <FiAlertTriangle size={13} />
+                  冲突洞察
+                </div>
+                <h3 className="mt-3 text-lg font-semibold text-slate-900 dark:text-white">保存后自动检查提示词冲突</h3>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                  {scope === 'user'
+                    ? '这里会扫描当前用户全部用户级提示词，以及当前用户所属全部项目的项目级提示词。'
+                    : '这里会扫描当前项目内全部项目级提示词，帮助你发现同层规则之间的互斥要求。'}
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <label className="block min-w-[180px]">
+                  <div className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">冲突场景</div>
+                  <select
+                    value={conflictSceneKey}
+                    onChange={(event) => setConflictSceneKey(event.target.value)}
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:border-white/10 dark:bg-white/[0.03] dark:text-white"
+                  >
+                    <option value="ALL">全部场景</option>
+                    {LLM_PROMPT_SCENE_OPTIONS.map((option) => (
+                      <option key={option.key} value={option.key}>{option.label}</option>
+                    ))}
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => void refreshConflictInsight(true)}
+                  disabled={isConflictRefreshing}
+                  className={`mt-auto inline-flex items-center justify-center gap-2 rounded-full border px-4 py-3 text-sm font-medium transition ${isConflictRefreshing ? 'border-blue-200 bg-blue-50 text-blue-600 shadow-[0_10px_24px_rgba(37,99,235,0.12)] dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-300' : 'border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5'} disabled:cursor-not-allowed`}
+                >
+                  <FiRefreshCw className={isConflictRefreshing ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
+                  {isConflictRefreshing ? '检查中...' : '重新检查'}
+                </button>
+              </div>
+            </div>
+
+            <div className={`mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4 ${isConflictRefreshing ? 'animate-pulse' : ''}`}>
+              <MetricCard label="总冲突数" value={String(conflictResult?.totalConflictCount ?? 0)} helper="当前过滤条件下识别出的互斥规则" />
+              <MetricCard label="用户-用户" value={String(conflictResult?.userUserConflictCount ?? 0)} helper="同一用户下的个人规则冲突" />
+              <MetricCard label="用户-项目" value={String(conflictResult?.userProjectConflictCount ?? 0)} helper="个人偏好与项目规则冲突" />
+              <MetricCard label="项目-项目" value={String(conflictResult?.projectProjectConflictCount ?? 0)} helper="项目规则之间的冲突数量" />
+            </div>
+
+            <div className={`mt-5 space-y-3 ${isConflictRefreshing ? 'opacity-90' : ''}`}>
+              {conflictQuery.isLoading ? (
+                Array.from({length: 3}).map((_, index) => (
+                  <div key={`conflict-skeleton-${index}`} className="animate-pulse rounded-[22px] border border-slate-200 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-white/[0.03]">
+                    <div className="h-4 w-40 rounded bg-slate-200 dark:bg-white/10" />
+                    <div className="mt-3 h-3 w-full rounded bg-slate-200 dark:bg-white/10" />
+                    <div className="mt-2 h-3 w-4/5 rounded bg-slate-200 dark:bg-white/10" />
+                  </div>
+                ))
+              ) : conflictResult && conflictResult.conflicts.length > 0 ? (
+                conflictResult.conflicts.slice(0, 6).map((conflict, index) => (
+                  <div key={`${conflict.relationType}-${conflict.conflictType}-${index}`} className="rounded-[22px] border border-amber-200 bg-amber-50/60 p-4 dark:border-amber-500/20 dark:bg-amber-500/10">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-amber-700 dark:bg-slate-950/60 dark:text-amber-200">
+                        {getConflictRelationLabel(conflict.relationType)}
+                      </span>
+                      <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-semibold text-amber-700 dark:bg-amber-500/20 dark:text-amber-200">
+                        {getConflictTypeLabel(conflict.conflictType)}
+                      </span>
+                    </div>
+
+                    <div className="mt-3 grid gap-3 lg:grid-cols-2">
+                      <div className="rounded-2xl border border-white/80 bg-white/80 p-3 dark:border-white/10 dark:bg-slate-950/40">
+                        <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">提示词 A</div>
+                        <div className="mt-2 text-sm font-semibold text-slate-900 dark:text-white">{conflict.promptA.promptName}</div>
+                        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{getPromptOwnerLabel(conflict.promptA.scopeType, conflict.promptA.projectId)}</div>
+                        <div className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">{conflict.promptAOpinion}</div>
+                      </div>
+
+                      <div className="rounded-2xl border border-white/80 bg-white/80 p-3 dark:border-white/10 dark:bg-slate-950/40">
+                        <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">提示词 B</div>
+                        <div className="mt-2 text-sm font-semibold text-slate-900 dark:text-white">{conflict.promptB.promptName}</div>
+                        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{getPromptOwnerLabel(conflict.promptB.scopeType, conflict.promptB.projectId)}</div>
+                        <div className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">{conflict.promptBOpinion}</div>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 rounded-2xl border border-amber-200/70 bg-white/70 p-3 text-sm leading-6 text-slate-600 dark:border-amber-500/20 dark:bg-slate-950/30 dark:text-slate-300">
+                      <div><span className="font-semibold text-slate-900 dark:text-white">冲突原因：</span>{conflict.reason}</div>
+                      <div className="mt-1"><span className="font-semibold text-slate-900 dark:text-white">处理说明：</span>{conflict.resolutionRule}</div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <EmptyPanel title="当前未发现冲突" description="新增、编辑或停用提示词后，系统会自动重新检查当前用户可见范围内的冲突。" />
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="space-y-6">
-          <div className={`${PANEL_CLASS} p-5 sm:p-6`}>
+          <div className={`${PANEL_CLASS} relative overflow-hidden p-5 sm:p-6`}>
+            {isConflictRefreshing && (
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-1 overflow-hidden">
+                <div className="h-full w-full animate-[conflict-progress_1.1s_ease-in-out_infinite] bg-[linear-gradient(90deg,transparent,rgba(37,99,235,0.9),transparent)]" />
+              </div>
+            )}
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <div className="inline-flex items-center gap-2 rounded-full bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-600 dark:bg-violet-500/10 dark:text-violet-300">
@@ -1043,7 +1292,12 @@ const LlmPromptCenter: React.FC<LlmPromptCenterProps> = ({
             </div>
           </div>
 
-          <div className={`${PANEL_CLASS} p-5 sm:p-6`}>
+          <div className={`${PANEL_CLASS} relative overflow-hidden p-5 sm:p-6`}>
+            {isConflictRefreshing && (
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-1 overflow-hidden">
+                <div className="h-full w-full animate-[conflict-progress_1.1s_ease-in-out_infinite] bg-[linear-gradient(90deg,transparent,rgba(37,99,235,0.9),transparent)]" />
+              </div>
+            )}
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300">
@@ -1069,7 +1323,7 @@ const LlmPromptCenter: React.FC<LlmPromptCenterProps> = ({
               </label>
             </div>
 
-            <div className="mt-5 space-y-3">
+            <div className={`mt-5 space-y-3 ${isConflictRefreshing ? 'opacity-90' : ''}`}>
               {hitLogQuery.isLoading ? (
                 Array.from({length: 3}).map((_, index) => (
                   <div key={`log-skeleton-${index}`} className="animate-pulse rounded-[22px] border border-slate-200 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-white/[0.03]">
@@ -1128,6 +1382,13 @@ const LlmPromptCenter: React.FC<LlmPromptCenterProps> = ({
         cancelClassName="bg-gray-100 hover:bg-gray-200 text-gray-700"
       />
 
+
+      <style jsx global>{`
+        @keyframes conflict-progress {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+      `}</style>
 
       <ConfirmDialog
         isOpen={Boolean(statusChangingPrompt)}

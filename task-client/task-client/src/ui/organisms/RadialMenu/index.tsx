@@ -408,7 +408,7 @@ const RadialMenu: React.FC = () => {
       id: 'task-detail',
       title: '任务详情',
       description: '查看和编辑具体任务信息',
-      path: '/tasks/[taskId]',
+      path: '/task-detail',
       category: '任务',
       icon: <FiClipboard className="text-amber-400" />,
       keywords: ['任务详情', '任务信息', '任务编辑']

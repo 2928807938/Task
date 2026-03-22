@@ -2,6 +2,8 @@ import httpClientImpl from '@/infrastructure/http/http-client-impl';
 import {ApiResponse} from '@/types/api-types';
 import {
   LlmPromptConfig,
+  LlmPromptConflictCheckRequest,
+  LlmPromptConflictCheckResult,
   LlmPromptHitLog,
   LlmPromptHitLogPageRequest,
   LlmPromptPageData,
@@ -77,6 +79,12 @@ export const llmPromptApi = {
     return httpClientImpl.post('/api/client/llm-prompt/user/preview', request);
   },
 
+  inspectCurrentUserPromptConflicts: async (
+    request: LlmPromptConflictCheckRequest = {}
+  ): Promise<ApiResponse<LlmPromptConflictCheckResult>> => {
+    return httpClientImpl.post('/api/client/llm-prompt/user/conflicts', request);
+  },
+
   getCurrentUserHitLogs: async (
     request: LlmPromptHitLogPageRequest = {}
   ): Promise<ApiResponse<LlmPromptPageData<LlmPromptHitLog>>> => {
@@ -123,6 +131,13 @@ export const llmPromptApi = {
     request: LlmPromptPreviewRequest
   ): Promise<ApiResponse<LlmPromptPreview>> => {
     return httpClientImpl.post(`/api/client/llm-prompt/project/${projectId}/preview`, request);
+  },
+
+  inspectProjectPromptConflicts: async (
+    projectId: string,
+    request: LlmPromptConflictCheckRequest = {}
+  ): Promise<ApiResponse<LlmPromptConflictCheckResult>> => {
+    return httpClientImpl.post(`/api/client/llm-prompt/project/${projectId}/conflicts`, request);
   },
 
   getProjectHitLogs: async (

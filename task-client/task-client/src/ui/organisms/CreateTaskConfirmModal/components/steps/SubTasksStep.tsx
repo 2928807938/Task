@@ -163,7 +163,7 @@ const SubTasksStep: React.FC<SubTasksStepProps> = ({
       // 延迟关闭，让用户看到成功消息并跳转到任务列表页面
       setTimeout(() => {
         // 跳转到项目任务列表页面
-        router.push(`/projects/${projectId}?tab=tasks&highlight=${taskId}`);
+        router.push(`/project-detail?id=${projectId}&tab=tasks&highlight=${taskId}`);
       }, 1500);
     } catch (error) {
       // 处理错误，显示错误提示

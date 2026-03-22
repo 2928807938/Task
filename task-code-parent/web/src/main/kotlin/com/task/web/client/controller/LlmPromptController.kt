@@ -2,10 +2,12 @@ package com.task.web.client.controller
 
 import com.task.application.request.LlmPromptHitLogPageRequest
 import com.task.application.request.LlmPromptPageRequest
+import com.task.application.request.LlmPromptConflictCheckRequest
 import com.task.application.request.LlmPromptPreviewRequest
 import com.task.application.request.SaveLlmPromptRequest
 import com.task.application.service.LlmPromptApplicationService
 import com.task.application.vo.LlmPromptConfigVO
+import com.task.application.vo.LlmPromptConflictCheckVO
 import com.task.application.vo.LlmPromptHitLogVO
 import com.task.application.vo.LlmPromptPreviewVO
 import com.task.shared.api.response.ApiResponse
@@ -91,6 +93,20 @@ class LlmPromptController(
     @PostMapping("/user/preview")
     fun previewCurrentUserPrompt(@RequestBody @Valid request: LlmPromptPreviewRequest): Mono<ApiResponse<LlmPromptPreviewVO>> {
         return llmPromptApplicationService.previewCurrentUserPrompt(request)
+            .map { ApiResponse.success(it) }
+    }
+
+    /**
+     * 检测当前用户在指定场景下的提示词冲突。
+     *
+     * @param request 冲突检测请求
+     * @return 冲突检测结果
+     */
+    @PostMapping("/user/conflicts")
+    fun inspectCurrentUserPromptConflicts(
+        @RequestBody @Valid request: LlmPromptConflictCheckRequest
+    ): Mono<ApiResponse<LlmPromptConflictCheckVO>> {
+        return llmPromptApplicationService.inspectCurrentUserPromptConflicts(request)
             .map { ApiResponse.success(it) }
     }
 
@@ -187,6 +203,22 @@ class LlmPromptController(
         @RequestBody @Valid request: LlmPromptPreviewRequest
     ): Mono<ApiResponse<LlmPromptPreviewVO>> {
         return llmPromptApplicationService.previewProjectPrompt(projectId, request)
+            .map { ApiResponse.success(it) }
+    }
+
+    /**
+     * 检测项目级提示词之间的冲突。
+     *
+     * @param projectId 项目ID
+     * @param request 冲突检测请求
+     * @return 冲突检测结果
+     */
+    @PostMapping("/project/{projectId}/conflicts")
+    fun inspectProjectPromptConflicts(
+        @PathVariable projectId: Long,
+        @RequestBody @Valid request: LlmPromptConflictCheckRequest
+    ): Mono<ApiResponse<LlmPromptConflictCheckVO>> {
+        return llmPromptApplicationService.inspectProjectPromptConflicts(projectId, request)
             .map { ApiResponse.success(it) }
     }
 

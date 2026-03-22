@@ -39,7 +39,7 @@ const ProjectListItem: React.FC<ProjectListItemProps> = ({ project }) => {
   }, [menuOpen]);
 
   const handleNavigate = () => {
-    router.push(`/projects/${project.id}`);
+    router.push(`/project-detail?id=${project.id}`);
   };
 
   return (

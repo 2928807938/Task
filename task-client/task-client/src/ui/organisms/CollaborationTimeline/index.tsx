@@ -152,10 +152,10 @@ export const CollaborationTimeline: React.FC<CollaborationTimelineProps> = ({
     // 可以根据活动类型跳转到相应页面
     if (activity.taskId) {
       // 跳转到任务详情
-      window.location.href = `/tasks/${activity.taskId}`;
+      window.location.href = `/task-detail?id=${activity.taskId}`;
     } else if (activity.projectId) {
       // 跳转到项目详情
-      window.location.href = `/projects/${activity.projectId}`;
+      window.location.href = `/project-detail?id=${activity.projectId}`;
     }
   };
 

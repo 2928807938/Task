@@ -1,8 +1,12 @@
 "use client";
 
-import React from 'react';
-import {LoginTemplate} from '@/ui/templates/LoginTemplate';
+import React, { Suspense } from 'react';
+import { LoginTemplate } from '@/ui/templates/LoginTemplate';
 
 export function LoginPage() {
-  return <LoginTemplate />;
+  return (
+    <Suspense fallback={null}>
+      <LoginTemplate />
+    </Suspense>
+  );
 }

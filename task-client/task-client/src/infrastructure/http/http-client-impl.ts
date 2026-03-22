@@ -34,6 +34,15 @@ const normalizeJsonText = (rawText: string): string => rawText.replace(/^\uFEFF/
 
 const isObject = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
 
+const isApiResponseShape = <T>(value: unknown): value is ApiResponse<T> => {
+  return isObject(value)
+    && typeof value.success === 'boolean'
+    && typeof value.code === 'string'
+    && 'data' in value
+    && 'message' in value
+    && typeof value.timestamp === 'string';
+};
+
 const parseJsonValueToken = (text: string, startIndex: number): number => {
   const openingChar = text[startIndex];
 
@@ -251,12 +260,12 @@ const handleResponse = async <T>(response: Response): Promise<ApiResponse<T>> =>
     const data = parseJsonResponseBody(rawText);
 
     // 如果不是标准ApiResponse格式，则进行包装
-    if (!isObject(data) || !('success' in data && 'code' in data)) {
+    if (!isApiResponseShape<T>(data)) {
       const isSuccess = response.ok;
       return {
         success: isSuccess,
-        data: isSuccess ? data : null,
-        code: isSuccess ? "200" : response.status.toString(),
+        data: isSuccess ? (data as T) : null,
+        code: isSuccess ? '200' : response.status.toString(),
         message: isSuccess ? null : (response.statusText || `服务器返回错误状态码: ${response.status}`),
         timestamp: Date.now().toString()
       };
@@ -270,7 +279,7 @@ const handleResponse = async <T>(response: Response): Promise<ApiResponse<T>> =>
       }
     }
 
-    return data as ApiResponse<T>;
+    return data;
   } catch (error) {
     console.error('响应解析失败:', error);
     // JSON解析错误，返回错误响应

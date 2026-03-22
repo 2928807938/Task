@@ -48,7 +48,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
       transition={{ duration: 0.24 }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      onClick={() => router.push(`/projects/${project.id}`)}
+      onClick={() => router.push(`/project-detail?id=${project.id}`)}
       className="surface-card group relative grid h-full grid-rows-[auto_auto_auto_1fr] overflow-hidden p-4"
       style={{
         boxShadow: isHovered ? '0 16px 36px rgba(15, 23, 42, 0.12)' : undefined,
@@ -168,7 +168,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
         <button
           onClick={(event) => {
             event.stopPropagation();
-            router.push(`/projects/${project.id}`);
+            router.push(`/project-detail?id=${project.id}`);
           }}
           className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[rgba(99,102,241,0.12)] px-3 py-1.5 text-xs font-semibold text-[var(--theme-primary-700)] transition hover:bg-[rgba(99,102,241,0.18)] dark:text-[var(--theme-primary-200)]"
         >

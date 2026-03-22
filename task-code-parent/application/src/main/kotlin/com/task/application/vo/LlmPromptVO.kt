@@ -47,6 +47,8 @@ data class LlmPromptConfigVO(
 data class LlmPromptMatchedItemVO(
     val id: Long?,
     val scopeType: String,
+    val scopeObjectId: Long,
+    val projectId: Long?,
     val promptName: String,
     val originalContent: String,
     val normalizedContent: String,
@@ -68,6 +70,38 @@ data class LlmPromptPreviewVO(
     val userPromptContext: String,
     val effectivePromptProfile: String,
     val finalPromptPreview: String?
+)
+
+/**
+ * LLM提示词冲突检测结果。
+ */
+data class LlmPromptConflictCheckVO(
+    val sceneKey: String,
+    val projectId: Long?,
+    val userId: Long?,
+    val userPromptCount: Int,
+    val projectPromptCount: Int,
+    val totalConflictCount: Int,
+    val userUserConflictCount: Int,
+    val userProjectConflictCount: Int,
+    val projectProjectConflictCount: Int,
+    val conflicts: List<LlmPromptConflictItemVO>
+)
+
+/**
+ * 单条提示词冲突明细。
+ */
+data class LlmPromptConflictItemVO(
+    val relationType: String,
+    val conflictType: String,
+    val promptAOpinion: String,
+    val promptBOpinion: String,
+    val reason: String,
+    val resolutionRule: String,
+    val winnerPromptId: Long?,
+    val loserPromptId: Long?,
+    val promptA: LlmPromptMatchedItemVO,
+    val promptB: LlmPromptMatchedItemVO
 )
 
 /**

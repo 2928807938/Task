@@ -7,7 +7,7 @@ const TestButton = ({ projectId }: { projectId: string }) => {
   const router = useRouter();
 
   const handleClick = () => {
-    router.push(`/projects/${projectId}`);
+    router.push(`/project-detail?id=${projectId}`);
   };
 
   return (

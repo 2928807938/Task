@@ -288,7 +288,7 @@ class LlmPromptService(
             throw IllegalArgumentException("未开启全场景时，sceneKeys 不能为空")
         }
         if (priority !in MIN_PRIORITY..MAX_PRIORITY) {
-            throw IllegalArgumentException("提示词优先级必须在$MIN_PRIORITY-$MAX_PRIORITY之间")
+            throw IllegalArgumentException("提示词优先级必须在${MIN_PRIORITY}-${MAX_PRIORITY}之间")
         }
     }
 

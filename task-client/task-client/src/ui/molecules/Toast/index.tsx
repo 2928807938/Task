@@ -6,6 +6,12 @@ import {FiAlertCircle, FiCheckCircle, FiInfo, FiX, FiXCircle} from 'react-icons/
 
 // 全局Toast函数引用，用于在组件外部调用
 let globalAddToast: ((message: string, type: ToastType, duration?: number) => void) | null = null;
+let toastSequence = 0;
+
+const createToastId = () => {
+  toastSequence += 1;
+  return `toast-${Date.now()}-${toastSequence}`;
+};
 
 // 定义Toast类型
 export type ToastType = 'success' | 'error' | 'info' | 'warning';
@@ -34,7 +40,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // 添加Toast
   const addToast = useCallback((message: string, type: ToastType, duration = 3000) => {
-    const id = Date.now().toString();
+    const id = createToastId();
     setToasts((prevToasts) => [...prevToasts, { id, message, type, duration }]);
   }, []);
 
@@ -83,7 +89,7 @@ const ToastContainer: React.FC = () => {
 
 // 创建单个Toast项组件
 const ToastItem: React.FC<{ toast: Toast; onClose: () => void }> = ({ toast, onClose }) => {
-  const { id, message, type, duration = 3000 } = toast;
+  const { message, type, duration = 3000 } = toast;
 
   // 自动关闭Toast
   useEffect(() => {

@@ -65,7 +65,7 @@ const ProjectCardMenu: React.FC<ProjectCardMenuProps> = ({ project, onClose }) =
 
   const handleAction = async (action: string) => {
     if (action === '查看详情') {
-      router.push(`/projects/${project.id}`);
+      router.push(`/project-detail?id=${project.id}`);
       onClose();
       return;
     }
@@ -76,7 +76,7 @@ const ProjectCardMenu: React.FC<ProjectCardMenuProps> = ({ project, onClose }) =
     }
 
     if (action === '成员管理') {
-      router.push(`/projects/${project.id}?tab=team`);
+      router.push(`/project-detail?id=${project.id}&tab=team`);
       onClose();
       return;
     }

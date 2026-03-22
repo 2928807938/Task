@@ -178,17 +178,17 @@ class ReactiveTransactionalOutboxAspect {
         var newContext = context
         
         // 设置事件上下文
-        if (!newContext.hasKey(ReactiveTransactionalOutbox.OUTBOX_EVENTS_KEY)) {
+        if (!newContext.hasKey(ReactiveTransactionalOutboxContext.OUTBOX_EVENTS_KEY)) {
             newContext = newContext.put(
-                ReactiveTransactionalOutbox.OUTBOX_EVENTS_KEY,
+                ReactiveTransactionalOutboxContext.OUTBOX_EVENTS_KEY,
                 CopyOnWriteArrayList<DomainEvent>()
             )
         }
         
         // 如果启用了异步操作，设置异步操作上下文
-        if (enableAsyncOperations && !newContext.hasKey(ReactiveTransactionalOutbox.ASYNC_OPERATIONS_KEY)) {
+        if (enableAsyncOperations && !newContext.hasKey(ReactiveTransactionalOutboxContext.ASYNC_OPERATIONS_KEY)) {
             newContext = newContext.put(
-                ReactiveTransactionalOutbox.ASYNC_OPERATIONS_KEY,
+                ReactiveTransactionalOutboxContext.ASYNC_OPERATIONS_KEY,
                 CopyOnWriteArrayList<() -> Mono<Void>>()
             )
         }
@@ -205,7 +205,7 @@ class ReactiveTransactionalOutboxAspect {
      * @return 处理后的Mono
      */
     private fun handlePostTransactionOperations(result: Any, methodName: String, enableAsyncOperations: Boolean): Mono<Any> {
-        return ReactiveTransactionalOutbox.getEvents()
+        return ReactiveTransactionalOutboxContext.getEvents()
             .flatMap { events ->
                 val eventsMono = if (events.isNotEmpty()) {
                     log.debug("事务提交后发布 {} 个事件，方法: {}", events.size, methodName)
@@ -216,7 +216,7 @@ class ReactiveTransactionalOutboxAspect {
                 
                 if (enableAsyncOperations) {
                     // 处理异步操作
-                    ReactiveTransactionalOutbox.getAsyncOperations()
+                    ReactiveTransactionalOutboxContext.getAsyncOperations()
                         .doOnNext { operations ->
                             if (operations.isNotEmpty()) {
                                 log.debug("事务提交后异步执行 {} 个操作，方法: {}", operations.size, methodName)

@@ -1020,7 +1020,7 @@ const AiAnalysisModal: React.FC<AiAnalysisModalProps> = ({ isOpen, onClose, proj
                         // 注意：这里我们无法知道创建的任务ID，因此只能跳转到项目页面
                         if (projectId) {
                             setTimeout(() => {
-                                router.push(`/projects/${projectId}`);
+                                router.push(`/project-detail?id=${projectId}`);
                             }, 800);
                         }
                     } catch (error) {

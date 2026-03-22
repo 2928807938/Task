@@ -30,6 +30,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEPLOY_DIR="$SCRIPT_DIR"
 BACKEND_DIR="$DEPLOY_DIR/task-code-parent"
 FRONTEND_DIR="$DEPLOY_DIR/task-client/task-client"
+FRONTEND_OUT_DIR="$FRONTEND_DIR/out"
 BACKEND_BOOTSTRAP_DIR="$BACKEND_DIR/bootstrap"
 BACKEND_JAR_PATH="$BACKEND_BOOTSTRAP_DIR/build/libs/task-code-parent.jar"
 
@@ -180,6 +181,29 @@ cleanup_frontend_build_cache() {
         print_info "清理 Next.js 构建缓存..."
         rm -rf "$FRONTEND_DIR/.next/cache"
     fi
+    if [ -d "$FRONTEND_OUT_DIR" ]; then
+        print_info "清理前端导出目录..."
+        rm -rf "$FRONTEND_OUT_DIR"
+    fi
+}
+
+verify_frontend_static_out() {
+    if [ ! -d "$FRONTEND_OUT_DIR" ]; then
+        print_error "未找到前端静态导出目录: $FRONTEND_OUT_DIR"
+        return 1
+    fi
+
+    if [ ! -f "$FRONTEND_OUT_DIR/index.html" ]; then
+        print_error "前端静态入口不存在: $FRONTEND_OUT_DIR/index.html"
+        return 1
+    fi
+
+    if [ -d "$FRONTEND_DIR/.next" ]; then
+        print_info "清理 Next.js 构建中间目录: $FRONTEND_DIR/.next"
+        rm -rf "$FRONTEND_DIR/.next"
+    fi
+
+    print_success "前端静态文件已生成: $FRONTEND_OUT_DIR"
 }
 
 cleanup_backend_build_artifacts() {
@@ -221,6 +245,7 @@ resolve_deploy_dir() {
     DEPLOY_DIR="$SCRIPT_DIR"
     BACKEND_DIR="$DEPLOY_DIR/task-code-parent"
     FRONTEND_DIR="$DEPLOY_DIR/task-client/task-client"
+    FRONTEND_OUT_DIR="$FRONTEND_DIR/out"
     BACKEND_BOOTSTRAP_DIR="$BACKEND_DIR/bootstrap"
     BACKEND_JAR_PATH="$BACKEND_BOOTSTRAP_DIR/build/libs/task-code-parent.jar"
     LOG_DIR="$DEPLOY_DIR/logs"
@@ -1135,7 +1160,7 @@ main_deploy() {
     npm install --registry=https://registry.npmmirror.com
     print_success "前端依赖安装完成"
 
-    print_info "步骤 8/8: 启动服务..."
+    print_info "步骤 8/8: 启动后端并构建前端静态文件..."
     start_backend
     sleep 5
     start_frontend
@@ -1145,7 +1170,7 @@ main_deploy() {
     print_success "部署完成！"
     print_separator
     print_info "服务访问地址:"
-    echo -e "  前端: ${GREEN}http://localhost:$FRONTEND_PORT${NC}"
+    echo -e "  前端静态目录: ${GREEN}$FRONTEND_OUT_DIR${NC}"
     echo -e "  后端: ${GREEN}http://localhost:$BACKEND_PORT${NC}"
     print_info "数据库信息:"
     echo "  PostgreSQL: localhost:$POSTGRES_PORT"
@@ -1208,17 +1233,8 @@ start_backend() {
 start_frontend() {
     ensure_runtime_dirs
     print_separator
-    print_info "启动前端服务..."
+    print_info "构建前端静态文件..."
     print_separator
-    if check_port "$FRONTEND_PORT"; then
-        print_warning "前端端口 $FRONTEND_PORT 已被占用"
-        read -p "是否停止现有服务并重启? (y/n): " choice
-        if [ "$choice" = "y" ]; then
-            stop_frontend
-        else
-            return 1
-        fi
-    fi
     if [ ! -d "$FRONTEND_DIR" ]; then
         print_error "前端目录不存在: $FRONTEND_DIR"
         print_info "请先运行主部署脚本 (选项 1)"
@@ -1230,20 +1246,13 @@ start_frontend() {
         npm install --registry="$NPM_REGISTRY"
     fi
     cd "$FRONTEND_DIR"
-    print_info "构建前端项目..."
-    npm run build
-    print_info "正在启动前端服务..."
-    nohup npm run start -- -p "$FRONTEND_PORT" > "$FRONTEND_LOG" 2>&1 &
-    echo $! > "$FRONTEND_PID"
-    if wait_for_port "$FRONTEND_PORT" 60; then
-        print_success "前端服务启动成功"
-        print_info "日志文件: $FRONTEND_LOG"
-        print_info "访问地址: http://localhost:$FRONTEND_PORT"
-    else
-        print_error "前端服务启动失败"
-        print_info "查看日志: tail -f $FRONTEND_LOG"
-        return 1
-    fi
+    print_info "构建前端静态项目..."
+    STATIC_EXPORT=1 NEXT_PUBLIC_API_BASE_URL="${NEXT_PUBLIC_API_BASE_URL:-}" npm run build
+    verify_frontend_static_out || return 1
+    print_success "前端静态资源构建完成"
+    print_info "静态目录: $FRONTEND_OUT_DIR"
+    print_info "请将 Nginx root 指向该目录，并将 /api 代理到 http://127.0.0.1:$BACKEND_PORT"
+    print_info "如启用实时功能，请将 /ws 代理到 http://127.0.0.1:$BACKEND_PORT/ws"
 }
 
 stop_backend() {
@@ -1252,8 +1261,9 @@ stop_backend() {
 }
 
 stop_frontend() {
-    stop_service_by_pid_file "$FRONTEND_PID" "前端"
-    stop_processes_on_port "$FRONTEND_PORT" "前端"
+    [ -f "$FRONTEND_PID" ] && rm -f "$FRONTEND_PID"
+    [ -f "$FRONTEND_LOG" ] && rm -f "$FRONTEND_LOG"
+    print_info "前端为静态部署，无需停止进程"
 }
 
 stop_all() {
@@ -1278,14 +1288,13 @@ check_status() {
     print_info "服务状态检查"
     print_separator
     echo ""
-    echo -e "${BLUE}前端服务:${NC}"
-    if check_port "$FRONTEND_PORT"; then
-        echo -e "  状态: ${GREEN}运行中${NC}"
-        echo "  端口: $FRONTEND_PORT"
-        [ -f "$FRONTEND_PID" ] && echo "  PID: $(cat "$FRONTEND_PID")"
-        echo "  访问: http://localhost:$FRONTEND_PORT"
+    echo -e "${BLUE}前端静态资源:${NC}"
+    if [ -f "$FRONTEND_OUT_DIR/index.html" ]; then
+        echo -e "  状态: ${GREEN}已生成${NC}"
+        echo "  目录: $FRONTEND_OUT_DIR"
+        echo "  入口: $FRONTEND_OUT_DIR/index.html"
     else
-        echo -e "  状态: ${RED}未运行${NC}"
+        echo -e "  状态: ${RED}未生成${NC}"
     fi
     echo ""
     echo -e "${BLUE}后端服务:${NC}"
@@ -1325,7 +1334,7 @@ check_status() {
 
 update_deploy() {
     print_separator
-    print_info "更新部署 - 拉取最新代码并重启"
+    print_info "更新部署 - 拉取最新代码并刷新静态资源"
     print_separator
     resolve_deploy_dir
     if [ ! -d "$DEPLOY_DIR/.git" ]; then
@@ -1357,8 +1366,9 @@ update_deploy() {
     run_gradle_build
     cd "$FRONTEND_DIR"
     npm install --registry=https://registry.npmmirror.com
-    npm run build
-    print_info "步骤 5/5: 重启服务..."
+    STATIC_EXPORT=1 NEXT_PUBLIC_API_BASE_URL="${NEXT_PUBLIC_API_BASE_URL:-}" npm run build
+    verify_frontend_static_out
+    print_info "步骤 5/5: 重启后端并刷新前端静态资源..."
     start_backend
     sleep 5
     start_frontend
@@ -1375,7 +1385,7 @@ show_menu() {
     echo "请选择操作:"
     echo "  1. 主部署脚本 (首次部署)"
     echo "  2. 启动后端服务"
-    echo "  3. 启动前端服务"
+    echo "  3. 构建前端静态文件"
     echo "  4. 停止所有服务"
     echo "  5. 查看服务状态"
     echo "  6. 更新部署"

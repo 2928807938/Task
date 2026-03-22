@@ -1,6 +1,7 @@
 package com.task.domain.service
 
 import com.task.domain.model.llm.prompt.PromptInspectionResult
+import com.task.domain.model.llm.prompt.PromptConflictInspectionResult
 import com.task.domain.model.llm.prompt.ResolvedPromptContext
 import reactor.core.publisher.Mono
 
@@ -17,6 +18,20 @@ interface LlmPromptContextService {
      * @return 解析后的提示词上下文
      */
     fun resolve(sceneKey: String, inputs: Map<String, Any>): Mono<ResolvedPromptContext>
+
+    /**
+     * 检测指定场景下的提示词冲突。
+     *
+     * @param sceneKey 场景标识
+     * @param inputs 检测时使用的输入参数
+     * @param includeCurrentUserPrompts 是否纳入当前用户提示词参与检测
+     * @return 冲突检测结果
+     */
+    fun inspectConflicts(
+        sceneKey: String,
+        inputs: Map<String, Any>,
+        includeCurrentUserPrompts: Boolean = true
+    ): Mono<PromptConflictInspectionResult>
 
     /**
      * 检查并清洗提示词内容。

@@ -22,7 +22,7 @@ import com.task.domain.model.user.User
 import com.task.domain.repository.*
 import com.task.domain.state.DynamicStateMachine
 import com.task.domain.transaction.ReactiveTransactionalOutbox
-import com.task.domain.transaction.ReactiveTransactionalOutbox.Companion.registerEvent
+import com.task.domain.transaction.ReactiveTransactionalOutboxContext.registerEvent
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux

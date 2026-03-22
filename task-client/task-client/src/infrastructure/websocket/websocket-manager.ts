@@ -14,6 +14,15 @@ import { WebSocketErrorHandler } from './error-handler';
  * WebSocket管理器
  * 提供高级的WebSocket功能，包括自动重连、会话管理等
  */
+function getDefaultWebSocketUrl() {
+  if (typeof window !== 'undefined') {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${protocol}//${window.location.host}/ws`;
+  }
+
+  return 'ws://localhost:8080/ws';
+}
+
 export class WebSocketManager {
   private client: WebSocketClient;
   private currentProjectId: number | null = null;
@@ -41,7 +50,7 @@ export class WebSocketManager {
   constructor() {
     // 增强的配置，从环境变量读取
     const defaultConfig: WebSocketConfig = {
-      url: process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8080/ws',
+      url: process.env.NEXT_PUBLIC_WS_URL || getDefaultWebSocketUrl(),
       reconnectDelay: parseInt(process.env.NEXT_PUBLIC_WS_RECONNECT_DELAY || '5000'),
       maxReconnectAttempts: parseInt(process.env.NEXT_PUBLIC_WS_MAX_RECONNECT_ATTEMPTS || '10'),
       heartbeatIncoming: parseInt(process.env.NEXT_PUBLIC_WS_HEARTBEAT_INTERVAL || '30000'),
