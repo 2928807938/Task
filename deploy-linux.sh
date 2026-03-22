@@ -181,10 +181,6 @@ cleanup_frontend_build_cache() {
         print_info "清理 Next.js 构建缓存..."
         rm -rf "$FRONTEND_DIR/.next/cache"
     fi
-    if [ -d "$FRONTEND_OUT_DIR" ]; then
-        print_info "清理前端导出目录..."
-        rm -rf "$FRONTEND_OUT_DIR"
-    fi
 }
 
 verify_frontend_static_out() {
