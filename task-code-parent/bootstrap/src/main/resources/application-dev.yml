@@ -13,14 +13,13 @@ spring:
       max-acquire-time: 20s    # 设置获取连接超时时间
       max-life-time: 30m       # 连接最大生存时间
       validation-query: SELECT 1  # 添加连接验证
+  flyway:
+    url: jdbc:postgresql://localhost:5432/task_code_parent
+    user: ${spring.r2dbc.username}
+    password: ${spring.r2dbc.password}
   sql:
     init:
       mode: NEVER
-      schema-locations: classpath:db/schema/*.sql  # 创建表的SQL
-      #data-locations: classpath:db/data/*.sql      # 初始化数据的SQL
-      platform: postgresql
-      continue-on-error: false
-      separator: ;
   # Redis配置
   data:
     redis:

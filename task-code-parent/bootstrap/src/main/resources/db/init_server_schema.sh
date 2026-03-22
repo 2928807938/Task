@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# Legacy helper retained for reference only.
+# Database schema is now managed by Flyway migrations under db/migration.
+
 set -euo pipefail
 
 BASE_DIR="${BASE_DIR:-/home/Task/task-code-parent/bootstrap/src/main/resources/db}"

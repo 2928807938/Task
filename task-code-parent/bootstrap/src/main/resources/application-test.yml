@@ -7,6 +7,10 @@ spring:
       initial-size: 10
       max-size: 30
       max-idle-time: 30m
+  flyway:
+    url: jdbc:postgresql://test-db:5432/task_code_parent
+    user: ${spring.r2dbc.username}
+    password: ${spring.r2dbc.password}
   sql:
     init:
       mode: NEVER

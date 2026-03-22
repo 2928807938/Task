@@ -26,8 +26,11 @@ dependencies {
     implementation(project(":shared"))
 
     implementation("org.springframework.boot:spring-boot-starter")
+    implementation("org.flywaydb:flyway-core")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlin:kotlin-stdlib")
+
+    runtimeOnly("org.postgresql:postgresql")
 
     compileOnly("org.springframework:spring-context-indexer")
     kapt("org.springframework:spring-context-indexer")
